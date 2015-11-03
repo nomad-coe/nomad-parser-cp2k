@@ -1,1 +1,2 @@
 cp2kparser/cp2kparser.egg-info
+*.pyc
