@@ -13,7 +13,8 @@ from cp2kparser.engines.cp2kinputengine import CP2KInputEngine
 
 #===============================================================================
 class CP2KParser(NomadParser):
-    """The interface to a NoMaD CP2K parser.
+    """The interface for a NoMaD CP2K parser. All parsing actions will go
+    through this class.
     """
 
     def __init__(self, input_json_string):
@@ -167,9 +168,11 @@ class CP2KImplementation(object):
         xc_shortcut = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL").get_parameter()
 
         return {
+                'B3LYP': "HYB_GGA_XC_B3LYP",
+                'BEEFVDW': "",
+                'BLYP': "",
                 'PADE': "LDA_XC_TETER93",
                 'PBE': "GGA_X_PBE",
-                'B3LYP': "HYB_GGA_XC_B3LYP",
         }.get(xc_shortcut, None)
 
     def particle_forces(self):
