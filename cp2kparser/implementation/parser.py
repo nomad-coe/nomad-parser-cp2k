@@ -15,6 +15,10 @@ from cp2kparser.engines.cp2kinputengine import CP2KInputEngine
 class CP2KParser(NomadParser):
     """The interface for a NoMaD CP2K parser. All parsing actions will go
     through this class.
+
+    The CP2K version 2.6.2 was used as a reference for this basic
+    implementation. For other versions there should be classes that extend from
+    this.
     """
 
     def __init__(self, input_json_string):
@@ -92,8 +96,8 @@ class CP2KParser(NomadParser):
 
         # Now check from input what the other files are called
         self.inputengine.parse_input()
-        force_path = self.inputengine.get_subsection("FORCE_EVAL/PRINT/FORCES").get_keyword("FILENAME")
-        if force_path and force_path != "__STD_OUT__":
+        force_path = self.inputengine.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        if force_path is not None and force_path != "__STD_OUT__":
             force_path = os.path.basename(force_path) + "-1_0"
 
         # Check against the given files
@@ -157,23 +161,68 @@ class CP2KImplementation(object):
         return self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output"))
 
     def XC_functional(self):
-        """Returns the type of the XC functional based on the value of the
-        extractor xc_shortcut
+        """Returns the type of the XC functional.
 
-                Returns:
-                        A string containing the final result that should
-                        belong to the list defined in NoMaD wiki.
+        Can currently only determine version if they are declared as parameters
+        for XC_FUNCTIONAL or via activating subsections of XC_FUNCTIONAL.
+
+        Returns:
+            A string containing the final result that should
+            belong to the list defined in NoMaD wiki.
         """
-        # xc_shortcut = self.regexengine.parse(self.regexs.XC_functional, self.parser.get_file_handle("input"))
-        xc_shortcut = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL").get_parameter()
 
-        return {
-                'B3LYP': "HYB_GGA_XC_B3LYP",
-                'BEEFVDW': "",
-                'BLYP': "",
-                'PADE': "LDA_XC_TETER93",
-                'PBE': "GGA_X_PBE",
-        }.get(xc_shortcut, None)
+        # First try to look at the shortcut
+        xc_shortcut = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL").get_parameter()
+        if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
+            print_debug("Shortcut defined for XC_FUNCTIONAL")
+
+            # If PBE, check version
+            if xc_shortcut == "PBE":
+                pbe_version = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE").get_keyword("PARAMETRIZATION")
+                return {
+                        'ORIG': "GGA_X_PBE",
+                        'PBESOL': "GGA_X_PBE_SOL",
+                        'REVPBE': "GGA_X_PBE_R",
+                }.get(pbe_version, "GGA_X_PBE")
+
+            return {
+                    'B3LYP': "HYB_GGA_XC_B3LYP",
+                    'BEEFVDW': None,
+                    'BLYP': "GGA_C_LYP_GGA_X_B88",
+                    'BP': None,
+                    'HCTH120': None,
+                    'OLYP': None,
+                    'LDA': "LDA_XC_TETER93",
+                    'PADE': "LDA_XC_TETER93",
+                    'PBE0': None,
+                    'TPSS': None,
+            }.get(xc_shortcut, None)
+        else:
+            print_debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
+
+        # Look at the subsections and determine what part have been activated
+
+        # Becke88
+        xc_components = []
+        becke_88 = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88").get_parameter()
+        if becke_88 == "TRUE":
+            xc_components.append("GGA_X_B88")
+
+        # Becke 97
+        becke_97 = self.inputengine.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
+        if becke_97 == "TRUE":
+            becke_97_param = self.inputengine.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
+            becke_97_result = {
+                    'B97GRIMME': None,
+                    'B97_GRIMME': None,
+                    'ORIG': "GGA_XC_B97",
+                    'WB97X-V': None,
+            }.get(becke_97_param, None)
+            if becke_97_result is not None:
+                xc_components.append(becke_97_result)
+
+        # Return an alphabetically sorted and joined list of the xc components
+        return "_".join(sorted(xc_components))
 
     def particle_forces(self):
         """Return all the forces for every step found.
@@ -199,6 +248,6 @@ class CP2KImplementation(object):
 
 
 #===============================================================================
-class CP2K_240_Implementation(CP2KImplementation):
+class CP2K_262_Implementation(CP2KImplementation):
     def __init__(self, parser):
         CP2KImplementation.__init__(self, parser)

@@ -5,6 +5,7 @@ import os
 import time
 from abc import ABCMeta, abstractmethod
 from cp2kparser.generics.util import *
+from pint import UnitRegistry
 
 
 #===============================================================================
@@ -130,6 +131,8 @@ class NomadParser(object):
         else:
             print_debug("Using cached result.")
 
+        # Do the conversion to SI units based on the given units
+
         stop = time.clock()
         print_debug("Elapsed time: {} ms".format((stop-start)*1000))
         return result
@@ -149,7 +152,10 @@ class NomadParser(object):
 
     @abstractmethod
     def parse_quantity(self, name):
-        """Parse a quantity from the given files."""
+        """Parse a quantity from the given files. Should return a tuple
+        containing the result object (numeric results preferably as numpy
+        arrays) and the unit of the result (None if no unit is needed)
+        """
         pass
 
     @abstractmethod

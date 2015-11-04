@@ -1,4 +1,5 @@
-import logging
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
 import os
 import json
 from cp2kparser.implementation.parser import CP2KParser
@@ -18,7 +19,7 @@ def scan_path_for_files(path):
         extension = os.path.splitext(filename)[1]
         if extension in extensions:
             file_object = {
-                "path": filename,
+                "path": os.path.join(path, filename),
                 "file_id": "",
             }
             files.append(file_object)
@@ -26,9 +27,8 @@ def scan_path_for_files(path):
 
 
 #===============================================================================
-def extract(path):
+def get_parser(path):
     files = scan_path_for_files(path)
-    logging.basicConfig(format='%(message)s', level=logging.DEBUG)
     json_input = {
         "version": "nomadparsein.json 1.0",
         "tmpDir": "/home/lauri",
@@ -37,8 +37,4 @@ def extract(path):
         "files": files
     }
     parser = CP2KParser(json.dumps(json_input))
-    print parser.get_quantity("energy_total")
-    print parser.get_quantity("XC_functional")
-    print parser.get_quantity("particle_forces")
-    # n = len(parser.get_quantity("particle_forces"))
-    # print "Number of force configurations found: {}".format(n)
+    return parser
