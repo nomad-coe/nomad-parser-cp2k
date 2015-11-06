@@ -30,7 +30,7 @@ class CP2KRegexs(object):
         ''',
         separator=r" ATOMIC FORCES in",
         direction="down",
-        index=0,
+        index="all",
         from_beginning=False)
 
 

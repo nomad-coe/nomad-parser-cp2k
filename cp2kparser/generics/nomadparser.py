@@ -124,12 +124,12 @@ class NomadParser(object):
         result = self.results.get(name)
         if not result:
             # Ask the engine for the quantity
-            result = self.parse_quantity(name)
+            result = self.get_unformatted_quantity(name)
             self.results[name] = result
-            if result is None:
-                print_debug("The quantity '{}' could not be succesfully parsed.".format(name))
         else:
             print_debug("Using cached result.")
+        if result is None:
+            print_debug("The quantity '{}' is not present or could not be succesfully parsed.".format(name))
 
         # Do the conversion to SI units based on the given units
 
@@ -151,7 +151,7 @@ class NomadParser(object):
         pass
 
     @abstractmethod
-    def parse_quantity(self, name):
+    def get_unformatted_quantity(self, name):
         """Parse a quantity from the given files. Should return a tuple
         containing the result object (numeric results preferably as numpy
         arrays) and the unit of the result (None if no unit is needed)

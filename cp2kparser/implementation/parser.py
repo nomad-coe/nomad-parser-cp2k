@@ -9,6 +9,7 @@ from cp2kparser.implementation.regexs import *
 from cp2kparser.engines.regexengine import RegexEngine
 from cp2kparser.engines.xyzengine import XYZEngine
 from cp2kparser.engines.cp2kinputengine import CP2KInputEngine
+import numpy as np
 
 
 #===============================================================================
@@ -56,9 +57,10 @@ class CP2KParser(NomadParser):
 
         # Search for a version specific implementation
         class_name = "CP2K{}Implementation".format(version_number)
-        self.implementation = globals().get(class_name)(self)
-        if self.implementation:
+        class_object = globals().get(class_name)
+        if class_object:
             print_debug("Using version specific implementation '{}'.".format(class_name))
+            self.implementation = class_object(self)
         else:
             print_debug("Using default implementation.")
             self.implementation = globals()["CP2KImplementation"](self)
@@ -118,13 +120,23 @@ class CP2KParser(NomadParser):
             else:
                 self.file_handles[file_id] = file_handle
 
-    def parse_quantity(self, name):
+    def get_unformatted_quantity(self, name):
         """Inherited from NomadParser. The timing and caching is already
         implemented in the superclass.
         """
         # Ask the implementation for the quantity
-        result = getattr(self.implementation, name)()
-        return result
+        function = getattr(self.implementation, "_Q_" + name)
+        if function:
+            return function()
+        else:
+            print_error("The function for quantity '{}' is not defined".format(name))
+
+    def parse_all(self):
+        """Parse all supported quantities."""
+        implementation_methods = [method for method in dir(self.implementation) if callable(getattr(self.implementation, method))]
+        for method in implementation_methods:
+            if method.startswith("_Q_"):
+                getattr(self.implementation, method)()
 
     def check_quantity_availability(self, name):
         """Inherited from NomadParser.
@@ -140,14 +152,11 @@ class CP2KImplementation(object):
 
     This class provides the basic implementations and for a version specific
     updates and additions please make a new class that inherits from this.
-    """
 
-    # The nomad quantities that this implementation supports
-    supported_quantities = [
-        "energy_total",
-        "XC_functional",
-        "particle_forces",
-    ]
+    The functions that return certain quantities are tagged with a prefix '_Q_'
+    to be able to automatically determine which quantities have at least some
+    level of support. With the tag they can be also looped through.
+    """
 
     def __init__(self, parser):
         self.parser = parser
@@ -156,11 +165,11 @@ class CP2KImplementation(object):
         self.inputengine = parser.inputengine
         self.xyzengine = parser.xyzengine
 
-    def energy_total(self):
+    def _Q_energy_total(self):
         """Return the total energy from the bottom of the input file"""
         return self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output"))
 
-    def XC_functional(self):
+    def _Q_XC_functional(self):
         """Returns the type of the XC functional.
 
         Can currently only determine version if they are declared as parameters
@@ -224,14 +233,14 @@ class CP2KImplementation(object):
         # Return an alphabetically sorted and joined list of the xc components
         return "_".join(sorted(xc_components))
 
-    def particle_forces(self):
+    def _Q_particle_forces(self):
         """Return all the forces for every step found.
         """
 
         # Determine if a separate force file is used or are the forces printed
         # in the output file.
         separate_file = True
-        filename = self.inputengine.get_subsection("FORCE_EVAL/PRINT/FORCES").get_keyword("FILENAME")
+        filename = self.inputengine.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
         if not filename or filename == "__STD_OUT__":
             separate_file = False
 
@@ -239,8 +248,26 @@ class CP2KImplementation(object):
         if not separate_file:
             print_debug("Looking for forces in output file.")
             forces = self.regexengine.parse(self.regexs.particle_forces, self.parser.get_file_handle("output"))
-            forces = unicode("\n".join(forces))
-            forces = self.xyzengine.parse_string(forces, (-3, -2, -1), ("#", "ATOMIC", "SUM"))
+            if forces is None:
+                return None
+
+            # Insert force configuration into the array
+            i_conf = 0
+            force_array = None
+            for force_conf in forces:
+                unicode_force_conf = unicode(force_conf)
+                i_force_array = self.xyzengine.parse_string(unicode_force_conf, (-3, -2, -1), ("#", "ATOMIC", "SUM"))
+
+                # Initialize the numpy array if not done yet
+                n_particles = i_force_array.shape[0]
+                n_dim = i_force_array.shape[1]
+                n_confs = len(forces)
+                force_array = np.empty((n_particles, n_dim, n_confs))
+
+                force_array[:, :, i_conf] = i_force_array
+                i_conf += 1
+
+            return force_array
         else:
             print_debug("Looking for forces in separate force file.")
             forces = self.xyzengine.parse_file(self.parser.get_file_handle("forces"), (-3, -2, -1), ("#", "ATOMIC", "SUM"))
