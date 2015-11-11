@@ -11,7 +11,7 @@ the common parser structure when it is available.
     python setup.py install --user
     ```
 
-  For a system-wide install use:
+- For a system-wide install use:
 
     ```shell
     python setup.py install
