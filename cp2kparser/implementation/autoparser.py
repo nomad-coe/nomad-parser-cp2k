@@ -42,7 +42,6 @@ def get_parser(path):
 
 #===============================================================================
 if __name__ == '__main__':
-    print __file__
     path = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
     parser = get_parser(path)
     parser.parse_all()

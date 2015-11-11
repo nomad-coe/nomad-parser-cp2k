@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-from cp2kparser.generics.nomadlogging import *
+# from cp2kparser.generics.nomadlogging import *
 from cp2kparser.generics.nomadparser import NomadParser
 from cp2kparser.implementation.regexs import *
 from cp2kparser.engines.regexengine import RegexEngine
 from cp2kparser.engines.xyzengine import XYZEngine
 from cp2kparser.engines.cp2kinputengine import CP2KInputEngine
 import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 
 
 #===============================================================================
@@ -20,7 +22,6 @@ class CP2KParser(NomadParser):
     implementation. For other versions there should be classes that extend from
     this.
     """
-
     def __init__(self, input_json_string):
         NomadParser.__init__(self, input_json_string)
 
@@ -38,7 +39,6 @@ class CP2KParser(NomadParser):
     def setup_version(self):
         """Inherited from NomadParser.
         """
-
         # Determine the CP2K version from the input file
         beginning = self.read_part_of_file("output", 2048)
         version_regex = re.compile(r"CP2K\|\ version\ string:\s+CP2K\ version\ (\d+\.\d+\.\d+)\n")
@@ -48,20 +48,20 @@ class CP2KParser(NomadParser):
         class_name = "CP2K{}Regexs".format(version_number)
         self.regexs = globals().get(class_name)
         if self.regexs:
-            print_debug("Using version specific regexs '{}'.".format(class_name))
+            logger.debug("Using version specific regexs '{}'.".format(class_name))
             self.regexs = self.regexs()
         else:
-            print_debug("Using default regexs.")
+            logger.debug("Using default regexs.")
             self.regexs = globals()["CP2KRegexs"]()
 
         # Search for a version specific implementation
         class_name = "CP2K{}Implementation".format(version_number)
         class_object = globals().get(class_name)
         if class_object:
-            print_debug("Using version specific implementation '{}'.".format(class_name))
+            logger.debug("Using version specific implementation '{}'.".format(class_name))
             self.implementation = class_object(self)
         else:
-            print_debug("Using default implementation.")
+            logger.debug("Using default implementation.")
             self.implementation = globals()["CP2KImplementation"](self)
 
     def read_part_of_file(self, file_id, size=1024):
@@ -73,7 +73,6 @@ class CP2KParser(NomadParser):
     def determine_file_ids(self):
         """Inherited from NomadParser.
         """
-
         # Determine a list of filepaths that need id resolution
         resolved = {}
         resolvable = []
@@ -103,13 +102,13 @@ class CP2KParser(NomadParser):
 
             # The force path is not typically exactly as written in input
             if force_path.startswith("="):
-                print_debug("Using single force file.")
+                logger.debug("Using single force file.")
                 force_path = force_path[1:]
             elif re.match(r".?/", force_path):
-                print_debug("Using separate force file for each step.")
+                logger.debug("Using separate force file for each step.")
                 force_path = "{}-1_0.xyz".format(force_path)
             else:
-                print_debug("Using separate force file for each step.")
+                logger.debug("Using separate force file for each step.")
                 force_path = "{}-{}-1_0.xyz".format(project_name, force_path)
             force_path = os.path.basename(force_path)
 
@@ -127,7 +126,7 @@ class CP2KParser(NomadParser):
             try:
                 file_handle = open(file_path, 'r')
             except (OSError, IOError):
-                print_error("Could not open file: '{}'".format(file_path))
+                logger.error("Could not open file: '{}'".format(file_path))
             else:
                 self.file_handles[file_id] = file_handle
 
@@ -140,7 +139,7 @@ class CP2KParser(NomadParser):
         if function:
             return function()
         else:
-            print_error("The function for quantity '{}' is not defined".format(name))
+            logger.error("The function for quantity '{}' is not defined".format(name))
 
     def check_quantity_availability(self, name):
         """Inherited from NomadParser.
@@ -161,7 +160,6 @@ class CP2KImplementation(object):
     to be able to automatically determine which quantities have at least some
     level of support. With the tag they can be also looped through.
     """
-
     def __init__(self, parser):
         self.parser = parser
         self.regexs = parser.regexs
@@ -187,7 +185,7 @@ class CP2KImplementation(object):
         # First try to look at the shortcut
         xc_shortcut = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL").get_parameter()
         if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
-            print_debug("Shortcut defined for XC_FUNCTIONAL")
+            logger.debug("Shortcut defined for XC_FUNCTIONAL")
 
             # If PBE, check version
             if xc_shortcut == "PBE":
@@ -211,7 +209,7 @@ class CP2KImplementation(object):
                     'TPSS': None,
             }.get(xc_shortcut, None)
         else:
-            print_debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
+            logger.debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
 
         # Look at the subsections and determine what part have been activated
 
@@ -252,10 +250,10 @@ class CP2KImplementation(object):
 
         # Look for the forces either in output or in separate file
         if not separate_file:
-            print_debug("Looking for forces in output file.")
+            logger.debug("Looking for forces in output file.")
             forces = self.regexengine.parse(self.regexs.particle_forces, self.parser.get_file_handle("output"))
             if forces is None:
-                print_warning("No forces could be found in the output file.")
+                logger.warning("No forces could be found in the output file.")
                 return None
 
             # Insert force configuration into the array
@@ -276,10 +274,10 @@ class CP2KImplementation(object):
 
             return force_array
         else:
-            print_debug("Looking for forces in separate force file.")
+            logger.debug("Looking for forces in separate force file.")
             forces = self.xyzengine.parse(self.parser.get_file_handle("forces"), columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=r"\ ATOMIC FORCES in \[a\.u\.\]")
             if forces is None:
-                print print_warning("No forces could be found in the XYZ file.")
+                logger.warning("No forces could be found in the XYZ file.")
         return forces
 
 

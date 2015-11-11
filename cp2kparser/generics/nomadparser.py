@@ -4,8 +4,8 @@ import json
 import os
 import time
 from abc import ABCMeta, abstractmethod
-from cp2kparser.generics.nomadlogging import *
-from pint import UnitRegistry
+import logging
+logger = logging.getLogger(__name__)
 
 
 #===============================================================================
@@ -80,7 +80,7 @@ class NomadParser(object):
             try:
                 handle = open(path, "r")
             except (OSError, IOError):
-                print_error("Could not open file: '{}'".format(path))
+                logger.error("Could not open file: '{}'".format(path))
             else:
                 self.file_handles[file_id] = handle
         handle.seek(0, os.SEEK_SET)
@@ -95,10 +95,10 @@ class NomadParser(object):
         # See if the needed attributes exist
         self.tmp_dir = self.input_json_object.get("tmpDir")
         if self.tmp_dir is None:
-            print_error("No temporary folder specified.")
+            logger.error("No temporary folder specified.")
         self.files = self.input_json_object.get("files")
         if self.files is None:
-            print_error("No files specified.")
+            logger.error("No files specified.")
         self.metainfo_to_keep = self.input_json_object.get("metainfoToKeep")
         self.metainfo_to_skip = self.input_json_object.get("metainfoToSkip")
 
@@ -110,14 +110,14 @@ class NomadParser(object):
         return the value as json.
         """
         # Start timing
-        print_debug(74*'-')
-        print_debug("Getting quantity '{}'".format(name))
+        logger.debug(74*'-')
+        logger.debug("Getting quantity '{}'".format(name))
         start = time.clock()
 
         #Check availability
         available = self.check_quantity_availability(name)
         if not available:
-            print_warning("The quantity '{}' is not available for this parser version.".format(name))
+            logger.warning("The quantity '{}' is not available for this parser version.".format(name))
             return
 
         # Check cache
@@ -127,20 +127,20 @@ class NomadParser(object):
             result = self.get_unformatted_quantity(name)
             self.results[name] = result
         else:
-            print_debug("Using cached result.")
+            logger.debug("Using cached result.")
         if result is None:
-            print_debug("The quantity '{}' is not present or could not be succesfully parsed.".format(name))
+            logger.debug("The quantity '{}' is not present or could not be succesfully parsed.".format(name))
 
         # Check results
         if result is None:
-            print_info("There was an issue in parsing quantity '{}'. It is either not present in the files or could not be succesfully parsed.".format(name))
+            logger.info("There was an issue in parsing quantity '{}'. It is either not present in the files or could not be succesfully parsed.".format(name))
         else:
-            print_info("Succesfully parsed quantity '{}'. Result:\n{}".format(name, result))
+            logger.info("Succesfully parsed quantity '{}'. Result:\n{}".format(name, result))
 
         # Do the conversion to SI units based on the given units
 
         stop = time.clock()
-        print_debug("Elapsed time: {} ms".format((stop-start)*1000))
+        logger.debug("Elapsed time: {} ms".format((stop-start)*1000))
         return result
 
     def get_all_quantities(self):

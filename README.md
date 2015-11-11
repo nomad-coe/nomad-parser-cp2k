@@ -1,20 +1,20 @@
-# CP2K
+# CP2K NoMaD Parser
 The NoMaD parser for CP2K. Under development. Will be modified to conform to
 the common parser structure when it is available.
 
+---
 ## QuickStart
 - Clone repository
+
+    ```shell
+    git clone git@gitlab.mpcdf.mpg.de:nomad-lab/parser-cp2k.git
+    ```
+
 - Run setup by running the setup.py script. For local, user specific install
-  without sudo permissions use:
+  without sudo permissions use (omit --user for a system-wide install):
 
     ```shell
     python setup.py install --user
-    ```
-
-- For a system-wide install use:
-
-    ```shell
-    python setup.py install
     ```
 
 - You can test if everything is running fine by running the test script in tests folder:
@@ -31,17 +31,19 @@ the common parser structure when it is available.
     ```shell
     python -m cp2kparser
     ```
-
+---
 ## Structure
 Currently the python package is divided into three subpackages:
  - Engines: Classes for parsing different type of files
  - Generics: Generic utility classes and base classes
  - Implementation: The classes that actually define the parser functionality.
 
+---
 ## Reusable components and ideas for other parsers
 
 Some components and ideas could be reused in other parsers as well. If you find
-any of the following useful in you parser, you are welcome to do so.
+any of the following ideas useful in you parser, you are welcome to do reuse
+them.
 
 ### Engines
 Basically all the "engines", that is the modules that parse certain type of
@@ -54,7 +56,7 @@ Currently implemented engines that could be reused (not tested properly yet):
 - RegexEngine: For parsing text files with regular expressions. Uses the re2
   library if available (falls back to default python regex implementation if
   re2 not found).
-- XyzEngine: For parsing XYZ files and files with similar structure. Has a very
+- XYZEngine: For parsing XYZ files and files with similar structure. Has a very
   flexible nature as you can specify comments, column delimiters, column
   indices and the patterns used to separate different configurations.
 
@@ -74,5 +76,13 @@ parsers:
 - Time measurement for performance analysis
 - Providing file contents, sizes and handles
 
+### Logging
+Python has a great [logging package](https://www.google.com) which helps in
+following the program flow and catching different errors and warnings. In
+cp2kparser the file cp2kparser/generics/logconfig.py defines the behaviour of
+the logger. There you can setup the log levels even at a modular level. A more
+easily readable formatting is also provided for the log messages.
+
+---
 ## Lessons learned
 
