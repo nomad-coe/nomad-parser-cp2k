@@ -4,7 +4,7 @@ import json
 import os
 import time
 from abc import ABCMeta, abstractmethod
-from cp2kparser.generics.util import *
+from cp2kparser.generics.nomadlogging import *
 from pint import UnitRegistry
 
 
@@ -131,11 +131,25 @@ class NomadParser(object):
         if result is None:
             print_debug("The quantity '{}' is not present or could not be succesfully parsed.".format(name))
 
+        # Check results
+        if result is None:
+            print_info("There was an issue in parsing quantity '{}'. It is either not present in the files or could not be succesfully parsed.".format(name))
+        else:
+            print_info("Succesfully parsed quantity '{}'. Result:\n{}".format(name, result))
+
         # Do the conversion to SI units based on the given units
 
         stop = time.clock()
         print_debug("Elapsed time: {} ms".format((stop-start)*1000))
         return result
+
+    def get_all_quantities(self):
+        """Parse all supported quantities."""
+        implementation_methods = [method for method in dir(self.implementation) if callable(getattr(self.implementation, method))]
+        for method in implementation_methods:
+            if method.startswith("_Q_"):
+                method = method[3:]
+                self.get_quantity(method)
 
     @abstractmethod
     def setup_version(self):

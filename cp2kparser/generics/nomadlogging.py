@@ -4,6 +4,7 @@
 """Misc. utility functions."""
 import textwrap
 import logging
+logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 
 #===============================================================================
@@ -52,7 +53,7 @@ def make_message(message, width=80, spaces=0):
 
 
 #===============================================================================
-def make_debug_message(message, width=80, spaces=0):
+def make_titled_message(title, message, width=80, spaces=0):
     """Styles a message to be printed into console.
     """
     wrapper = textwrap.TextWrapper(width=width-6)
@@ -61,7 +62,7 @@ def make_debug_message(message, width=80, spaces=0):
     first = True
     for line in lines:
         if first:
-            new_line = spaces*" " + "  >> DEBUG: " + line + (width-6-len(line))*" " + "  "
+            new_line = spaces*" " + "  >> {}: ".format(title) + line + (width-6-len(line))*" " + "  "
             styled_message += new_line
             first = False
         else:
@@ -88,7 +89,14 @@ def print_message(title, message, width=80):
 def print_debug(message, width=80):
     """Returns a styled warning message to be printed into console.
     """
-    logging.debug(make_debug_message(message))
+    logging.debug(make_titled_message("DEBUG", message))
+
+
+#===============================================================================
+def print_info(message, width=80):
+    """Returns a styled warning message to be printed into console.
+    """
+    logging.info(make_titled_message("INFO", message))
 
 
 #===============================================================================

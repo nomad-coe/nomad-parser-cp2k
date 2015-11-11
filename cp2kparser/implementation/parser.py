@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-from cp2kparser.generics.util import *
-from cp2kparser.generics.util import *
+from cp2kparser.generics.nomadlogging import *
 from cp2kparser.generics.nomadparser import NomadParser
 from cp2kparser.implementation.regexs import *
 from cp2kparser.engines.regexengine import RegexEngine
@@ -99,13 +98,25 @@ class CP2KParser(NomadParser):
         # Now check from input what the other files are called
         self.inputengine.parse_input()
         force_path = self.inputengine.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        project_name = self.inputengine.get_keyword("GLOBAL/PROJECT_NAME")
         if force_path is not None and force_path != "__STD_OUT__":
-            force_path = os.path.basename(force_path) + "-1_0"
+
+            # The force path is not typically exactly as written in input
+            if force_path.startswith("="):
+                print_debug("Using single force file.")
+                force_path = force_path[1:]
+            elif re.match(r".?/", force_path):
+                print_debug("Using separate force file for each step.")
+                force_path = "{}-1_0.xyz".format(force_path)
+            else:
+                print_debug("Using separate force file for each step.")
+                force_path = "{}-{}-1_0.xyz".format(project_name, force_path)
+            force_path = os.path.basename(force_path)
 
         # Check against the given files
         for file_path in resolvable:
-            file_no_ext, file_extension = os.path.splitext(file_path)
-            if force_path and file_no_ext == force_path and file_extension == ".xyz":
+            tail = os.path.basename(file_path)
+            if force_path is not None and tail == force_path:
                 self.file_ids["forces"] = file_path
                 self.get_file_handle("forces")
 
@@ -130,13 +141,6 @@ class CP2KParser(NomadParser):
             return function()
         else:
             print_error("The function for quantity '{}' is not defined".format(name))
-
-    def parse_all(self):
-        """Parse all supported quantities."""
-        implementation_methods = [method for method in dir(self.implementation) if callable(getattr(self.implementation, method))]
-        for method in implementation_methods:
-            if method.startswith("_Q_"):
-                getattr(self.implementation, method)()
 
     def check_quantity_availability(self, name):
         """Inherited from NomadParser.
@@ -235,6 +239,8 @@ class CP2KImplementation(object):
 
     def _Q_particle_forces(self):
         """Return all the forces for every step found.
+
+        Supports forces printed in the output file or in a single .xyz file.
         """
 
         # Determine if a separate force file is used or are the forces printed
@@ -249,28 +255,31 @@ class CP2KImplementation(object):
             print_debug("Looking for forces in output file.")
             forces = self.regexengine.parse(self.regexs.particle_forces, self.parser.get_file_handle("output"))
             if forces is None:
+                print_warning("No forces could be found in the output file.")
                 return None
 
             # Insert force configuration into the array
             i_conf = 0
             force_array = None
             for force_conf in forces:
-                unicode_force_conf = unicode(force_conf)
-                i_force_array = self.xyzengine.parse_string(unicode_force_conf, (-3, -2, -1), ("#", "ATOMIC", "SUM"))
+                i_force_array = self.xyzengine.parse(force_conf, columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=None)
+                i_force_array = i_force_array[0]
 
                 # Initialize the numpy array if not done yet
                 n_particles = i_force_array.shape[0]
                 n_dim = i_force_array.shape[1]
                 n_confs = len(forces)
-                force_array = np.empty((n_particles, n_dim, n_confs))
+                force_array = np.empty((n_confs, n_particles, n_dim))
 
-                force_array[:, :, i_conf] = i_force_array
+                force_array[i_conf, :, :] = i_force_array
                 i_conf += 1
 
             return force_array
         else:
             print_debug("Looking for forces in separate force file.")
-            forces = self.xyzengine.parse_file(self.parser.get_file_handle("forces"), (-3, -2, -1), ("#", "ATOMIC", "SUM"))
+            forces = self.xyzengine.parse(self.parser.get_file_handle("forces"), columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=r"\ ATOMIC FORCES in \[a\.u\.\]")
+            if forces is None:
+                print print_warning("No forces could be found in the XYZ file.")
         return forces
 
 
