@@ -8,6 +8,7 @@ from cp2kparser.implementation.regexs import *
 from cp2kparser.engines.regexengine import RegexEngine
 from cp2kparser.engines.xyzengine import XYZEngine
 from cp2kparser.engines.cp2kinputengine import CP2KInputEngine
+from cp2kparser.engines.xmlengine import XMLEngine
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)
@@ -25,27 +26,34 @@ class CP2KParser(NomadParser):
     def __init__(self, input_json_string):
         NomadParser.__init__(self, input_json_string)
 
+        self.version_number = None
+
         # Engines are created here
         self.inputengine = CP2KInputEngine(self)
         self.xyzengine = XYZEngine(self)
         self.regexengine = RegexEngine(self)
+        self.xmlengine = XMLEngine(self)
 
         self.regexs = None
         self.analyse_input_json()
-        self.determine_file_ids()
-        self.open_files()
+        self.check_resolved_file_ids()
+        self.determine_file_ids_from_extension()
         self.setup_version()
+        self.determine_file_ids()
+        # self.open_files()
 
     def setup_version(self):
         """Inherited from NomadParser.
         """
-        # Determine the CP2K version from the input file
+        # Determine the CP2K version from the output file
         beginning = self.read_part_of_file("output", 2048)
         version_regex = re.compile(r"CP2K\|\ version\ string:\s+CP2K\ version\ (\d+\.\d+\.\d+)\n")
-        version_number = '_' + version_regex.search(beginning).groups()[0].replace('.', '') + '_'
+        self.version_number = version_regex.search(beginning).groups()[0].replace('.', '')
+        self.inputengine.setup_version_number(self.version_number)
+        version_name = '_' + self.version_number + '_'
 
         # Search for a version specific regex class
-        class_name = "CP2K{}Regexs".format(version_number)
+        class_name = "CP2K{}Regexs".format(version_name)
         self.regexs = globals().get(class_name)
         if self.regexs:
             logger.debug("Using version specific regexs '{}'.".format(class_name))
@@ -55,7 +63,7 @@ class CP2KParser(NomadParser):
             self.regexs = globals()["CP2KRegexs"]()
 
         # Search for a version specific implementation
-        class_name = "CP2K{}Implementation".format(version_number)
+        class_name = "CP2K{}Implementation".format(version_name)
         class_object = globals().get(class_name)
         if class_object:
             logger.debug("Using version specific implementation '{}'.".format(class_name))
@@ -70,10 +78,9 @@ class CP2KParser(NomadParser):
         buffer = fh.read(size)
         return buffer
 
-    def determine_file_ids(self):
-        """Inherited from NomadParser.
+    def check_resolved_file_ids(self):
+        """Save the file id's that were given in the JSON input.
         """
-        # Determine a list of filepaths that need id resolution
         resolved = {}
         resolvable = []
         for file_object in self.files:
@@ -84,17 +91,27 @@ class CP2KParser(NomadParser):
             else:
                 resolved[file_id] = path
 
-        # First resolve the file that can be identified by extension
-        input_path = resolved.get("input")
-        if not input_path:
-            for file_path in resolvable:
-                if file_path.endswith(".inp"):
-                    self.file_ids["input"] = file_path
-                    self.get_file_handle("input")
-                if file_path.endswith(".out"):
-                    self.file_ids["output"] = file_path
+        for id, path in resolved.iteritems():
+            self.file_ids[id] = path
+            self.get_file_handle(id)
 
-        # Now check from input what the other files are called
+        self.resolvable = resolvable
+
+    def determine_file_ids_from_extension(self):
+        """First resolve the files that can be identified by extension.
+        """
+        for file_path in self.resolvable:
+            if file_path.endswith(".inp"):
+                self.file_ids["input"] = file_path
+                self.get_file_handle("input")
+            if file_path.endswith(".out"):
+                self.file_ids["output"] = file_path
+                self.get_file_handle("output")
+
+    def determine_file_ids(self):
+        """Inherited from NomadParser.
+        """
+        # Check from input what the other files are called
         self.inputengine.parse_input()
         force_path = self.inputengine.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
         project_name = self.inputengine.get_keyword("GLOBAL/PROJECT_NAME")
@@ -113,22 +130,22 @@ class CP2KParser(NomadParser):
             force_path = os.path.basename(force_path)
 
         # Check against the given files
-        for file_path in resolvable:
+        for file_path in self.resolvable:
             tail = os.path.basename(file_path)
             if force_path is not None and tail == force_path:
                 self.file_ids["forces"] = file_path
                 self.get_file_handle("forces")
 
-    def open_files(self):
-        """Open the file handles and keep them open until program finishes.
-        """
-        for file_id, file_path in self.file_ids.iteritems():
-            try:
-                file_handle = open(file_path, 'r')
-            except (OSError, IOError):
-                logger.error("Could not open file: '{}'".format(file_path))
-            else:
-                self.file_handles[file_id] = file_handle
+    # def open_files(self):
+        # """Open the file handles and keep them open until program finishes.
+        # """
+        # for file_id, file_path in self.file_ids.iteritems():
+            # try:
+                # file_handle = open(file_path, 'r')
+            # except (OSError, IOError):
+                # logger.error("Could not open file: '{}'".format(file_path))
+            # else:
+                # self.file_handles[file_id] = file_handle
 
     def get_unformatted_quantity(self, name):
         """Inherited from NomadParser. The timing and caching is already
@@ -183,7 +200,7 @@ class CP2KImplementation(object):
         """
 
         # First try to look at the shortcut
-        xc_shortcut = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL").get_parameter()
+        xc_shortcut = self.inputengine.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
         if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
             logger.debug("Shortcut defined for XC_FUNCTIONAL")
 
@@ -215,7 +232,7 @@ class CP2KImplementation(object):
 
         # Becke88
         xc_components = []
-        becke_88 = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88").get_parameter()
+        becke_88 = self.inputengine.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
         if becke_88 == "TRUE":
             xc_components.append("GGA_X_B88")
 

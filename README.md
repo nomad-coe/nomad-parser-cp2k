@@ -52,6 +52,11 @@ repository where other developers can improve and extend them. One should also
 write tests for the engines that would validate their behaviour and ease the
 performance analysis.
 
+The engine classes work also as interfaces. You can change the engine behaviour
+while maintaining the same API in the parsers. For example one might improve
+the performance of an engine but if the function calls remain the same no other
+code has to be changed.
+
 Currently implemented engines that could be reused (not tested properly yet):
 - RegexEngine: For parsing text files with regular expressions. Uses the re2
   library if available (falls back to default python regex implementation if
@@ -83,6 +88,21 @@ cp2kparser the file cp2kparser/generics/logconfig.py defines the behaviour of
 the logger. There you can setup the log levels even at a modular level. A more
 easily readable formatting is also provided for the log messages.
 
----
-## Lessons learned
+### Testing
+The parsers can become quite complicated and maintaining them without
+systematic testing is perhaps not a good idea. Unittests provide one way to
+test each parseable quantity and python has a very good [library for
+unittesting](https://docs.python.org/2/library/unittest.html).
 
+### Profiling
+The parsers have to be reasonably fast. For some codes there is already
+significant amount of data in the NoMaD repository and the time taken to parse
+it will depend on the performance of the parser. Also each time the parser
+evolves after system deployment, the existing data may have to be reparsed at
+least partially.
+
+By profiling what functions take the most computational time and memory during
+parsing you can identify the bottlenecks in the parser. There are already
+existing profiling tools such as
+[cProfile](https://docs.python.org/2/library/profile.html#module-cProfile)
+which you can plug into your scripts very easily.

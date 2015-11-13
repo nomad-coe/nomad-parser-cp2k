@@ -11,7 +11,7 @@ def main():
         author="Lauri Himanen",
         author_email="lauri.himanen@gmail.com",
         license="GPL3",
-        packages=["engines", "generics", "implementation"],
+        packages=["cp2kparser"],
         zip_safe=False
     )
 
