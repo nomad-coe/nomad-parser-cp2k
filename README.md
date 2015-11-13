@@ -2,8 +2,7 @@
 The NoMaD parser for CP2K. Under development. Will be modified to conform to
 the common parser structure when it is available.
 
----
-## QuickStart
+# QuickStart
 - Clone repository
 
     ```shell
@@ -31,21 +30,20 @@ the common parser structure when it is available.
     ```shell
     python -m cp2kparser
     ```
----
-## Structure
+
+# Structure
 Currently the python package is divided into three subpackages:
  - Engines: Classes for parsing different type of files
  - Generics: Generic utility classes and base classes
  - Implementation: The classes that actually define the parser functionality.
 
----
-## Reusable components and ideas for other parsers
+# Reusable components and ideas for other parsers
 
 Some components and ideas could be reused in other parsers as well. If you find
-any of the following ideas useful in you parser, you are welcome to do reuse
+any of the following ideas useful in you parser, you are welcome to reuse
 them.
 
-### Engines
+## Engines
 Basically all the "engines", that is the modules that parse certain type of
 files, are reusable as is in other parsers. They could be put into a common
 repository where other developers can improve and extend them. One should also
@@ -64,8 +62,9 @@ Currently implemented engines that could be reused (not tested properly yet):
 - XYZEngine: For parsing XYZ files and files with similar structure. Has a very
   flexible nature as you can specify comments, column delimiters, column
   indices and the patterns used to separate different configurations.
+- XMLEngine: For parsing XML files using XPath syntax.
 
-### NomadParser base class
+## NomadParser base class
 In the generics folder there is a module called nomadparser.py that defines a
 class called NomadParser. This acts as a base class for the cp2k parser defined
 in the implementation folder.
@@ -81,20 +80,20 @@ parsers:
 - Time measurement for performance analysis
 - Providing file contents, sizes and handles
 
-### Logging
+## Logging
 Python has a great [logging package](https://www.google.com) which helps in
 following the program flow and catching different errors and warnings. In
 cp2kparser the file cp2kparser/generics/logconfig.py defines the behaviour of
 the logger. There you can setup the log levels even at a modular level. A more
 easily readable formatting is also provided for the log messages.
 
-### Testing
+## Testing
 The parsers can become quite complicated and maintaining them without
 systematic testing is perhaps not a good idea. Unittests provide one way to
 test each parseable quantity and python has a very good [library for
 unittesting](https://docs.python.org/2/library/unittest.html).
 
-### Profiling
+## Profiling
 The parsers have to be reasonably fast. For some codes there is already
 significant amount of data in the NoMaD repository and the time taken to parse
 it will depend on the performance of the parser. Also each time the parser
