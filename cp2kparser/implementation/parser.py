@@ -29,11 +29,12 @@ class CP2KParser(NomadParser):
         self.version_number = None
 
         # Engines are created here
-        self.inputengine = CP2KInputEngine(self)
         self.xyzengine = XYZEngine(self)
         self.regexengine = RegexEngine(self)
         self.xmlengine = XMLEngine(self)
+        self.inputengine = CP2KInputEngine(self)
 
+        self.input_tree = None
         self.regexs = None
         self.analyse_input_json()
         self.check_resolved_file_ids()
@@ -50,6 +51,8 @@ class CP2KParser(NomadParser):
         version_regex = re.compile(r"CP2K\|\ version\ string:\s+CP2K\ version\ (\d+\.\d+\.\d+)\n")
         self.version_number = version_regex.search(beginning).groups()[0].replace('.', '')
         self.inputengine.setup_version_number(self.version_number)
+        self.inputengine.parse()
+        self.input_tree = self.inputengine.get_input_tree()
         version_name = '_' + self.version_number + '_'
 
         # Search for a version specific regex class
@@ -112,9 +115,8 @@ class CP2KParser(NomadParser):
         """Inherited from NomadParser.
         """
         # Check from input what the other files are called
-        self.inputengine.parse_input()
-        force_path = self.inputengine.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
-        project_name = self.inputengine.get_keyword("GLOBAL/PROJECT_NAME")
+        force_path = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
         if force_path is not None and force_path != "__STD_OUT__":
 
             # The force path is not typically exactly as written in input
@@ -181,8 +183,8 @@ class CP2KImplementation(object):
         self.parser = parser
         self.regexs = parser.regexs
         self.regexengine = parser.regexengine
-        self.inputengine = parser.inputengine
         self.xyzengine = parser.xyzengine
+        self.input_tree = parser.input_tree
 
     def _Q_energy_total(self):
         """Return the total energy from the bottom of the input file"""
@@ -200,13 +202,13 @@ class CP2KImplementation(object):
         """
 
         # First try to look at the shortcut
-        xc_shortcut = self.inputengine.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
+        xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
         if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
             logger.debug("Shortcut defined for XC_FUNCTIONAL")
 
             # If PBE, check version
             if xc_shortcut == "PBE":
-                pbe_version = self.inputengine.get_subsection("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE").get_keyword("PARAMETRIZATION")
+                pbe_version = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE/PARAMETRIZATION")
                 return {
                         'ORIG': "GGA_X_PBE",
                         'PBESOL': "GGA_X_PBE_SOL",
@@ -232,14 +234,14 @@ class CP2KImplementation(object):
 
         # Becke88
         xc_components = []
-        becke_88 = self.inputengine.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
+        becke_88 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
         if becke_88 == "TRUE":
             xc_components.append("GGA_X_B88")
 
         # Becke 97
-        becke_97 = self.inputengine.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
+        becke_97 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
         if becke_97 == "TRUE":
-            becke_97_param = self.inputengine.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
+            becke_97_param = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
             becke_97_result = {
                     'B97GRIMME': None,
                     'B97_GRIMME': None,
@@ -261,7 +263,7 @@ class CP2KImplementation(object):
         # Determine if a separate force file is used or are the forces printed
         # in the output file.
         separate_file = True
-        filename = self.inputengine.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        filename = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
         if not filename or filename == "__STD_OUT__":
             separate_file = False
 
