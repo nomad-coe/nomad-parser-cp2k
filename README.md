@@ -33,9 +33,9 @@ the common parser structure when it is available.
 
 # Structure
 Currently the python package is divided into three subpackages:
-    - Engines: Classes for parsing different type of files
-    - Generics: Generic utility classes and base classes
-    - Implementation: The classes that actually define the parser functionality.
+- Engines: Classes for parsing different type of files
+- Generics: Generic utility classes and base classes
+- Implementation: The classes that actually define the parser functionality.
 
 # Reusable components and ideas for other parsers
 
@@ -56,13 +56,13 @@ the performance of an engine but if the function calls remain the same no other
 code has to be changed.
 
 Currently implemented engines that could be reused (not tested properly yet):
-    - RegexEngine: For parsing text files with regular expressions. Uses the re2
-    library if available (falls back to default python regex implementation if
-    re2 not found).
-    - XYZEngine: For parsing XYZ files and files with similar structure. Has a very
-    flexible nature as you can specify comments, column delimiters, column
-    indices and the patterns used to separate different configurations.
-    - XMLEngine: For parsing XML files using XPath syntax.
+- RegexEngine: For parsing text files with regular expressions. Uses the re2
+library if available (falls back to default python regex implementation if
+re2 not found).
+- XYZEngine: For parsing XYZ files and files with similar structure. Has a very
+flexible nature as you can specify comments, column delimiters, column
+indices and the patterns used to separate different configurations.
+- XMLEngine: For parsing XML files using XPath syntax.
 
 ## NomadParser base class
 In the generics folder there is a module called nomadparser.py that defines a
@@ -74,11 +74,11 @@ the scala code (will be modified later to conform to the common interface).
 This class is also responsible for some common tasks that are present in all
 parsers:
 
-    - Unit conversion
-    - JSON encoding
-    - Caching
-    - Time measurement for performance analysis
-    - Providing file contents, sizes and handles
+- Unit conversion
+- JSON encoding
+- Caching
+- Time measurement for performance analysis
+- Providing file contents, sizes and handles
 
 ## Logging
 Python has a great [logging package](https://www.google.com) which helps in
