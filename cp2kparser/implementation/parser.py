@@ -1,9 +1,6 @@
-#extract! /usr/bin/env python
-# -*- coding: utf-8 -*-
 import os
 import re
-# from cp2kparser.generics.nomadlogging import *
-from cp2kparser.generics.nomadparser import NomadParser
+from cp2kparser.generics.nomadparser import NomadParser, Result
 from cp2kparser.implementation.regexs import *
 from cp2kparser.engines.regexengine import RegexEngine
 from cp2kparser.engines.xyzengine import XYZEngine
@@ -12,6 +9,7 @@ from cp2kparser.engines.xmlengine import XMLEngine
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)
+from cp2kparser import ureg
 
 
 #===============================================================================
@@ -32,7 +30,7 @@ class CP2KParser(NomadParser):
         self.xyzengine = XYZEngine(self)
         self.regexengine = RegexEngine(self)
         self.xmlengine = XMLEngine(self)
-        self.inputengine = CP2KInputEngine(self)
+        self.inputengine = CP2KInputEngine()
 
         self.input_tree = None
         self.regexs = None
@@ -51,8 +49,7 @@ class CP2KParser(NomadParser):
         version_regex = re.compile(r"CP2K\|\ version\ string:\s+CP2K\ version\ (\d+\.\d+\.\d+)\n")
         self.version_number = version_regex.search(beginning).groups()[0].replace('.', '')
         self.inputengine.setup_version_number(self.version_number)
-        self.inputengine.parse()
-        self.input_tree = self.inputengine.get_input_tree()
+        self.input_tree = self.inputengine.parse(self.get_file_contents("input"))
         version_name = '_' + self.version_number + '_'
 
         # Search for a version specific regex class
@@ -149,7 +146,7 @@ class CP2KParser(NomadParser):
             # else:
                 # self.file_handles[file_id] = file_handle
 
-    def get_unformatted_quantity(self, name):
+    def get_quantity_unformatted(self, name):
         """Inherited from NomadParser. The timing and caching is already
         implemented in the superclass.
         """
@@ -188,7 +185,11 @@ class CP2KImplementation(object):
 
     def _Q_energy_total(self):
         """Return the total energy from the bottom of the input file"""
-        return self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output"))
+        result = Result()
+        result.kind = Result.energy
+        result.unit = ureg.hartree
+        result.value = float(self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output")))
+        return result
 
     def _Q_XC_functional(self):
         """Returns the type of the XC functional.
@@ -200,6 +201,8 @@ class CP2KImplementation(object):
             A string containing the final result that should
             belong to the list defined in NoMaD wiki.
         """
+        result = Result()
+        result.kind = Result.text
 
         # First try to look at the shortcut
         xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
@@ -209,13 +212,14 @@ class CP2KImplementation(object):
             # If PBE, check version
             if xc_shortcut == "PBE":
                 pbe_version = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE/PARAMETRIZATION")
-                return {
+                result.value = {
                         'ORIG': "GGA_X_PBE",
                         'PBESOL': "GGA_X_PBE_SOL",
                         'REVPBE': "GGA_X_PBE_R",
                 }.get(pbe_version, "GGA_X_PBE")
+                return result
 
-            return {
+            result.value = {
                     'B3LYP': "HYB_GGA_XC_B3LYP",
                     'BEEFVDW': None,
                     'BLYP': "GGA_C_LYP_GGA_X_B88",
@@ -227,6 +231,7 @@ class CP2KImplementation(object):
                     'PBE0': None,
                     'TPSS': None,
             }.get(xc_shortcut, None)
+            return result
         else:
             logger.debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
 
@@ -252,13 +257,17 @@ class CP2KImplementation(object):
                 xc_components.append(becke_97_result)
 
         # Return an alphabetically sorted and joined list of the xc components
-        return "_".join(sorted(xc_components))
+        result.value = "_".join(sorted(xc_components))
+        return result
 
     def _Q_particle_forces(self):
         """Return all the forces for every step found.
 
         Supports forces printed in the output file or in a single .xyz file.
         """
+        result = Result()
+        result.kind = Result.force
+        result.unit = ureg.force_au
 
         # Determine if a separate force file is used or are the forces printed
         # in the output file.
@@ -269,11 +278,12 @@ class CP2KImplementation(object):
 
         # Look for the forces either in output or in separate file
         if not separate_file:
-            logger.debug("Looking for forces in output file.")
+            logger.debug("Looking for forcesnature in output file.")
             forces = self.regexengine.parse(self.regexs.particle_forces, self.parser.get_file_handle("output"))
             if forces is None:
                 logger.warning("No forces could be found in the output file.")
-                return None
+                result.value = forces
+                return result
 
             # Insert force configuration into the array
             i_conf = 0
@@ -291,13 +301,16 @@ class CP2KImplementation(object):
                 force_array[i_conf, :, :] = i_force_array
                 i_conf += 1
 
-            return force_array
+            result.value = force_array
+            return result
         else:
             logger.debug("Looking for forces in separate force file.")
             forces = self.xyzengine.parse(self.parser.get_file_handle("forces"), columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=r"\ ATOMIC FORCES in \[a\.u\.\]")
             if forces is None:
                 logger.warning("No forces could be found in the XYZ file.")
-        return forces
+
+        result.value = forces
+        return result
 
 
 #===============================================================================

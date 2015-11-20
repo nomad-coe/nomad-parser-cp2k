@@ -12,6 +12,10 @@ def main():
         author_email="lauri.himanen@gmail.com",
         license="GPL3",
         packages=["cp2kparser"],
+        install_requires=[
+            'pint',
+            'numpy',
+        ],
         zip_safe=False
     )
 

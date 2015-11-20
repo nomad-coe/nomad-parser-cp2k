@@ -6,6 +6,7 @@ import time
 from abc import ABCMeta, abstractmethod
 import logging
 logger = logging.getLogger(__name__)
+from cp2kparser import ureg
 
 
 #===============================================================================
@@ -106,12 +107,12 @@ class NomadParser(object):
 
     def get_quantity(self, name):
         """Given a unique quantity id which is present in the metainfo
-        declaration, parses the corresponding quantity (if available) and
-        return the value as json.
+        declaration, parses the corresponding quantity (if available), converts
+        it to SI units and return the value as json.
         """
         # Start timing
         logger.debug(74*'-')
-        logger.debug("Getting quantity '{}'".format(name))
+        logger.info("Getting quantity '{}'".format(name))
         start = time.clock()
 
         #Check availability
@@ -124,7 +125,7 @@ class NomadParser(object):
         result = self.results.get(name)
         if not result:
             # Ask the engine for the quantity
-            result = self.get_unformatted_quantity(name)
+            result = self.get_quantity_json(name)
             self.results[name] = result
         else:
             logger.debug("Using cached result.")
@@ -135,13 +136,27 @@ class NomadParser(object):
         if result is None:
             logger.info("There was an issue in parsing quantity '{}'. It is either not present in the files or could not be succesfully parsed.".format(name))
         else:
-            logger.info("Succesfully parsed quantity '{}'. Result:\n{}".format(name, result))
-
-        # Do the conversion to SI units based on the given units
+            logger.info("Succesfully parsed quantity '{}'.".format(name))
 
         stop = time.clock()
-        logger.debug("Elapsed time: {} ms".format((stop-start)*1000))
+        logger.info("Elapsed time: {} ms".format((stop-start)*1000))
+        # logger.info("Result: {}".format(result))
+
         return result
+
+    def get_quantity_json(self, name):
+        result_si = self.get_quantity_SI(name)
+        return result_si
+
+    def get_quantity_SI(self, name):
+        result = self.get_quantity_unformatted(name)
+
+        # Do the conversion to SI units based on the given units
+        converted_result = result.value
+        if result.unit is not None:
+            converted_result = self.convert_units(result)
+
+        return converted_result
 
     def get_all_quantities(self):
         """Parse all supported quantities."""
@@ -150,6 +165,33 @@ class NomadParser(object):
             if method.startswith("_Q_"):
                 method = method[3:]
                 self.get_quantity(method)
+
+    def convert_units(self, result):
+        """Provided floating point data as the input, this function will perform
+        a conversion to SI units from the specified units. The conversion could
+        be done by the subclass but then maintaining the conversion would
+        become much more difficult.
+
+        Supports single floating point numbers, arbitrary dimensional numpy
+        arrays and regular lists/tuples of floating point numbers.
+        """
+        kind = result.kind
+        value = result.value * result.unit
+
+        # Energy to joule
+        if kind == Result.energy:
+            converted = value.to(ureg.joule)
+
+        # Force to newton
+        if kind == Result.force:
+            converted = value.to(ureg.newton)
+
+        return converted
+
+    def jsonify(self, data):
+        """ Formats the result as a json string.
+        """
+        pass
 
     @abstractmethod
     def setup_version(self):
@@ -165,7 +207,7 @@ class NomadParser(object):
         pass
 
     @abstractmethod
-    def get_unformatted_quantity(self, name):
+    def get_quantity_unformatted(self, name):
         """Parse a quantity from the given files. Should return a tuple
         containing the result object (numeric results preferably as numpy
         arrays) and the unit of the result (None if no unit is needed)
@@ -181,3 +223,17 @@ class NomadParser(object):
           'metainfoToSkip'
         """
         pass
+
+
+#===============================================================================
+class Result(object):
+    """ Encapsulates a parsing result.
+    """
+    energy = "energy"
+    force = "force"
+    text = "text"
+
+    def __init__(self, value=None, kind=None, unit=None):
+        self.value = value
+        self.unit = unit
+        self.kind = kind

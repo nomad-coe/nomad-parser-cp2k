@@ -37,12 +37,6 @@ Currently the python package is divided into three subpackages:
 - Generics: Generic utility classes and base classes
 - Implementation: The classes that actually define the parser functionality.
 
-# Reusable components and ideas for other parsers
-
-Some components and ideas could be reused in other parsers as well. If you find
-any of the following ideas useful in you parser, you are welcome to reuse
-them.
-
 ## Engines
 Basically all the "engines", that is the modules that parse certain type of
 files, are reusable as is in other parsers. They could be put into a common
@@ -64,7 +58,7 @@ flexible nature as you can specify comments, column delimiters, column
 indices and the patterns used to separate different configurations.
 - XMLEngine: For parsing XML files using XPath syntax.
 
-## NomadParser base class
+## Generics
 In the generics folder there is a module called nomadparser.py that defines a
 class called NomadParser. This acts as a base class for the cp2k parser defined
 in the implementation folder.
@@ -80,6 +74,14 @@ parsers:
 - Time measurement for performance analysis
 - Providing file contents, sizes and handles
 
+# Tools and Methods
+
+The following is a list of tools/methods that can help the development process.
+
+## Documentation
+The [google style guide](https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments) provides a good template on how to document your code.
+Documenting makes it much easier to follow the logic behind your parser.
+
 ## Logging
 Python has a great [logging package](https://www.google.com) which helps in
 following the program flow and catching different errors and warnings. In
@@ -89,9 +91,17 @@ easily readable formatting is also provided for the log messages.
 
 ## Testing
 The parsers can become quite complicated and maintaining them without
-systematic testing is perhaps not a good idea. Unittests provide one way to
+systematic testing is perhaps not a good idea. Unit tests provide one way to
 test each parseable quantity and python has a very good [library for
-unittesting](https://docs.python.org/2/library/unittest.html).
+unit testing](https://docs.python.org/2/library/unittest.html).
+
+## Unit conversion
+The NoMaD parsers need a unified approach to unit conversion. The parsers
+should use the same set of physical constants, and a system that does the
+conversion semiautomatically. I would propose using
+[Pint](https://pint.readthedocs.org/en/0.6/) as it has a very natural syntax
+and an easily reconfigurable constant/unit declaration mechanisms. The
+constants and units can be shared as simple text files across all parsers.
 
 ## Profiling
 The parsers have to be reasonably fast. For some codes there is already
@@ -105,3 +115,6 @@ parsing you can identify the bottlenecks in the parser. There are already
 existing profiling tools such as
 [cProfile](https://docs.python.org/2/library/profile.html#module-cProfile)
 which you can plug into your scripts very easily.
+
+
+

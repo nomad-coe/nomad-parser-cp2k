@@ -1,0 +1,5 @@
+# Pint constants for NomadParsers
+# source: http://physics.nist.gov/cuu/Constants/Table/allascii.txt
+
+# Bohr radius
+bohr = 0.52917721067e-10 m
