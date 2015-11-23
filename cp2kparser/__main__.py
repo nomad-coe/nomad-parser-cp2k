@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 import os
 import logging
 from cp2kparser.implementation.autoparser import get_parser

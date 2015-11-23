@@ -15,6 +15,8 @@ def main():
         install_requires=[
             'pint',
             'numpy',
+            'enum34',
+            'ase'
         ],
         zip_safe=False
     )

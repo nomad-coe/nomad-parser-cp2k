@@ -31,25 +31,26 @@ class LogFormatter(logging.Formatter):
         if level == "INFO" or level == "DEBUG":
             return make_titled_message("{}:{}".format(level, module), message)
         else:
-            return "\n        " + make_title("WARNING", width=64) + "\n" + make_message(message, width=64, spaces=8) + "\n"
+            return "\n        " + make_title(level, width=64) + "\n" + make_message(message, width=64, spaces=8) + "\n"
 
 
 #===============================================================================
-def make_titled_message(title, message, width=80, spaces=0):
+def make_titled_message(title, message, width=80):
     """Styles a message to be printed into console.
     """
-    wrapper = textwrap.TextWrapper(width=width-6)
+    wrapper = textwrap.TextWrapper(width=width-5)
     lines = wrapper.wrap(message)
     styled_message = ""
     first = True
     for line in lines:
         if first:
-            new_line = spaces*" " + "  >> {}: ".format(title) + line + (width-6-len(line))*" " + "  "
+            new_line = "  >> {}: ".format(title) + line
             styled_message += new_line
             first = False
         else:
-            new_line = spaces*" " + "     " + line + (width-6-len(line))*" " + "  "
+            new_line = 5*" " + line
             styled_message += "\n" + new_line
+
     return styled_message
 
 

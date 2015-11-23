@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
 import json
 import os
 import time
@@ -7,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 import logging
 logger = logging.getLogger(__name__)
 from cp2kparser import ureg
+from enum import Enum
 
 
 #===============================================================================
@@ -111,8 +110,8 @@ class NomadParser(object):
         it to SI units and return the value as json.
         """
         # Start timing
-        logger.debug(74*'-')
-        logger.info("Getting quantity '{}'".format(name))
+        logger.info("===========================================================================")
+        logger.info("GETTING QUANTITY '{}'".format(name))
         start = time.clock()
 
         #Check availability
@@ -140,7 +139,8 @@ class NomadParser(object):
 
         stop = time.clock()
         logger.info("Elapsed time: {} ms".format((stop-start)*1000))
-        # logger.info("Result: {}".format(result))
+        logger.info("Result: {}".format(result))
+        logger.info("")
 
         return result
 
@@ -175,15 +175,15 @@ class NomadParser(object):
         Supports single floating point numbers, arbitrary dimensional numpy
         arrays and regular lists/tuples of floating point numbers.
         """
-        kind = result.kind
+        return_type = result.return_type
         value = result.value * result.unit
 
         # Energy to joule
-        if kind == Result.energy:
+        if return_type == Result.energy:
             converted = value.to(ureg.joule)
 
         # Force to newton
-        if kind == Result.force:
+        if return_type == Result.force:
             converted = value.to(ureg.newton)
 
         return converted
@@ -226,14 +226,31 @@ class NomadParser(object):
 
 
 #===============================================================================
-class Result(object):
-    """ Encapsulates a parsing result.
+class ResultCode(Enum):
+    """Enumeration for indicating the result status.
+    """
+    fail = 0
+    success = 1
+
+
+#===============================================================================
+class ResultKind(Enum):
+    """Enumeration for indicating the type of returned value.
     """
     energy = "energy"
     force = "force"
     text = "text"
+    number = "number"
 
-    def __init__(self, value=None, kind=None, unit=None):
+
+#===============================================================================
+class Result(object):
+    """ Encapsulates a parsing result.
+    """
+
+    def __init__(self, value=None, kind=None, unit=None, code=ResultCode.success):
         self.value = value
         self.unit = unit
         self.kind = kind
+        self.code = code
+        self.error_message = ""

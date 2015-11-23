@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
 import os
 import json
 from cp2kparser.implementation.parser import CP2KParser

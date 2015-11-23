@@ -50,10 +50,12 @@ the performance of an engine but if the function calls remain the same no other
 code has to be changed.
 
 Currently implemented engines that could be reused (not tested properly yet):
+- AtomsEngine: For reading various atomic coordinate files. Currently uses ASE
+  to read the files.
 - RegexEngine: For parsing text files with regular expressions. Uses the re2
 library if available (falls back to default python regex implementation if
 re2 not found).
-- XYZEngine: For parsing XYZ files and files with similar structure. Has a very
+- CSVEngine: For parsing CSV-like files. Has a very
 flexible nature as you can specify comments, column delimiters, column
 indices and the patterns used to separate different configurations.
 - XMLEngine: For parsing XML files using XPath syntax.
