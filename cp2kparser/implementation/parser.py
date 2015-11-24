@@ -138,6 +138,7 @@ class CP2KParser(NomadParser):
         # Determine the presence of an initial coordinate file
         init_coord_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_NAME")
         if init_coord_file is not None:
+            logger.debug("Initial coordinate file found.")
             # Check against the given files
             file_path = self.search_file(init_coord_file)
             self.file_ids["initial_coordinates"] = file_path
@@ -382,26 +383,34 @@ class CP2KImplementation(object):
         # Check where the coordinates are specified
         coord_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
 
+        # Check if the unit cell is multiplied programmatically
+        multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
+        factors = [int(x) for x in multiples.split()]
+        factor = np.prod(np.array(factors))
+
         # See if the coordinates are provided in the input file
         if coord_format == "OFF":
             logger.debug("Using coordinates from the input file.")
             coords = self.input_tree.get_default_keyword("FORCE_EVAL/SUBSYS/COORD")
             coords.strip()
             n_particles = coords.count("\n")
-            result.value = n_particles
-            return result
-        elif coord_format == "CP2K":
-            msg = "Unsupported coordinate file format: '{}'".format(coord_format)
+            result.value = factor*n_particles
+        elif coord_format in ["CP2K", "G96", "XTL"]:
+            msg = "Tried to read the number of atoms from the initial configuration, but the parser does not yet support the '{}' format that is used by file '{}'.".format(coord_format, self.parser.file_ids["initial_coordinates"])
             logger.warning(msg)
             result.error_message = msg
             result.code = ResultCode.fail
-            return result
+        else:
+            # External file, use AtomsEngine
+            init_coord_file = self.parser.get_file_handle("initial_coordinates")
+            if coord_format == "XYZ":
+                n_particles = self.atomsengine.parse_n_atoms(init_coord_file, format="xyz")
+            if coord_format == "CIF":
+                n_particles = self.atomsengine.parse_n_atoms(init_coord_file, format="cif")
+            if coord_format == "PDB":
+                n_particles = self.atomsengine.parse_n_atoms(init_coord_file, format="pdb")
 
-        # External file
-        init_coord_file = self.parser.get_file_handle("initial_coordinates")
-        n_particles = self.atomsengine.parse_number(init_coord_file, format="xyz")
-        result.value = n_particles
-
+        result.value = factor*n_particles
         return result
 
 

@@ -39,7 +39,7 @@ Currently the python package is divided into three subpackages:
 
 ## Engines
 Basically all the "engines", that is the modules that parse certain type of
-files, are reusable as is in other parsers. They could be put into a common
+files, are reusable in other parsers. They could be put into a common
 repository where other developers can improve and extend them. One should also
 write tests for the engines that would validate their behaviour and ease the
 performance analysis.
@@ -93,17 +93,21 @@ easily readable formatting is also provided for the log messages.
 
 ## Testing
 The parsers can become quite complicated and maintaining them without
-systematic testing is perhaps not a good idea. Unit tests provide one way to
+systematic testing can become troublesome. Unit tests provide one way to
 test each parseable quantity and python has a very good [library for
-unit testing](https://docs.python.org/2/library/unittest.html).
+unit testing](https://docs.python.org/2/library/unittest.html). When the parser
+supports a new quantity it is quite fast to create unit tests for it. These
+tests will validate the parsing, and also easily detect bugs that may rise when
+the code is modified in the future.
 
 ## Unit conversion
 The NoMaD parsers need a unified approach to unit conversion. The parsers
 should use the same set of physical constants, and a system that does the
 conversion semiautomatically. I would propose using
-[Pint](https://pint.readthedocs.org/en/0.6/) as it has a very natural syntax
-and an easily reconfigurable constant/unit declaration mechanisms. The
-constants and units can be shared as simple text files across all parsers.
+[Pint](https://pint.readthedocs.org/en/0.6/) as it has a very natural syntax,
+support for numpy arrays and an easily reconfigurable constant/unit declaration
+mechanisms. The constants and units can be shared as simple text files across
+all parsers.
 
 ## Profiling
 The parsers have to be reasonably fast. For some codes there is already
