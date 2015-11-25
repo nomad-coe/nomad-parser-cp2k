@@ -122,5 +122,30 @@ existing profiling tools such as
 [cProfile](https://docs.python.org/2/library/profile.html#module-cProfile)
 which you can plug into your scripts very easily.
 
+# Manual for uploading a CP2K calculation
+All the files that are needed to run the calculation should be included in the
+upload, including the basis set and potential files. The folder structure does
+not matter, as the whole directory is searced for relevant files.
 
+Although CP2K often doesn't care about the file extensions, using them enables
+the parser to automatically identify the files and makes it perform better
+(only needs to decompress part of files in HDF5). Please use these default file
+extensions:
+ - Output file: .out
+ - Input file: .inp
+ - XYZ coordinate files: .xyz
+ - Protein Data Bank files: .pdb
+ - Crystallographic Information Files: .cif
 
+# Notes for CP2K developers
+Here is a list of features/fixes that would make the parsing of CP2K results
+easier:
+ - Include the number of simulated atoms to the output file. I could
+   not find a way to easily determine the number of atoms for all run types (MD,
+   GEO_OPT,...). Currently the number of atoms is deduced by counting the atoms
+   in the initials coordinate file/COORD section.
+ - The pdb trajectory output doesn't seem to conform to the actual standard as
+   the different configurations are separated by the END keyword which is
+   supposed to be written only once in the file. The [format specification](http://www.wwpdb.org/documentation/file-format)
+   states that different configurations should start with MODEL and end with
+   ENDMDL tags.

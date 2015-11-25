@@ -72,11 +72,14 @@ class NomadParser(object):
 
     def get_file_handle(self, file_id):
         """Get the handle for a file with the given id. Uses cached result
-        if available.
+        if available. Always seeks to beginning of file before returning it.
         """
         handle = self.file_handles.get(file_id)
         if not handle:
-            path = self.file_ids[file_id]
+            path = self.file_ids.get(file_id)
+            if not path:
+                logger.warning("The file with id '{}' could not be found. Probable reason for this is that the parser was not given files with this extension.")
+                return
             try:
                 handle = open(path, "r")
             except (OSError, IOError):

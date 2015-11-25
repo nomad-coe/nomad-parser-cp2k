@@ -32,7 +32,7 @@ class CP2KParser(NomadParser):
         self.regexengine = RegexEngine(self)
         self.xmlengine = XMLEngine(self)
         self.inputengine = CP2KInputEngine()
-        self.atomsengine = AtomsEngine()
+        self.atomsengine = AtomsEngine(self)
 
         self.input_tree = None
         self.regexs = None
@@ -144,11 +144,27 @@ class CP2KParser(NomadParser):
             self.file_ids["initial_coordinates"] = file_path
             self.get_file_handle("initial_coordinates")
 
-        # for file_path in self.resolvable:
-            # tail = os.path.basename(file_path)
-            # if force_path is not None and tail == force_path:
-                # self.file_ids["forces"] = file_path
-                # self.get_file_handle("forces")
+        # Determine the presence of a trajectory file
+        traj_file = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FILENAME")
+        if traj_file is not None:
+            logger.debug("Trajectory file found.")
+            normalized_path = self.normalize_cp2k_traj_path(traj_file)
+            file_path = self.search_file(normalized_path)
+            self.file_ids["trajectory"] = file_path
+            self.get_file_handle("trajectory")
+
+    def normalize_cp2k_traj_path(self, path):
+        logger.debug("Normalizing trajectory path")
+        project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
+        file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
+        extension = {"PDB": "pdb"}[file_format]
+        if path.startswith("="):
+            normalized_path = path[1:]
+        elif re.match(r"./", path):
+            normalized_path = "{}-pos-1.{}".format(path, extension)
+        else:
+            normalized_path = "{}-{}-pos-1.{}".format(project_name, path, extension)
+        return normalized_path
 
     def search_file(self, path):
         """Searches the list of given files for a file that is defined in the
@@ -342,8 +358,8 @@ class CP2KImplementation(object):
             i_conf = 0
             force_array = None
             for force_conf in forces:
-                i_force_array = self.csvengine.parse(force_conf, columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=None)
-                i_force_array = i_force_array[0]
+                iterator = self.csvengine.iread(force_conf, columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=None)
+                i_force_array = iterator.next()
 
                 # Initialize the numpy array if not done yet
                 n_particles = i_force_array.shape[0]
@@ -358,7 +374,12 @@ class CP2KImplementation(object):
             return result
         else:
             logger.debug("Looking for forces in separate force file.")
-            forces = self.csvengine.parse(self.parser.get_file_handle("forces"), columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=r"\ ATOMIC FORCES in \[a\.u\.\]")
+            iterator = self.csvengine.iread(self.parser.get_file_handle("forces"), columns=(-3, -2, -1), comments=("#", "SUM"), separator=r"\ ATOMIC FORCES in \[a\.u\.\]")
+            forces = []
+            for configuration in iterator:
+                forces.append(configuration)
+            forces = np.array(forces)
+
             if forces is None:
                 msg = "No force configurations were found when searching an external XYZ force file."
                 logger.warning(msg)
@@ -366,7 +387,8 @@ class CP2KImplementation(object):
                 result.code = ResultCode.fail
                 return result
             else:
-                result.value = forces
+                if len(forces) != 0:
+                    result.value = forces
                 return result
 
     def _Q_particle_number(self):
@@ -395,7 +417,7 @@ class CP2KImplementation(object):
             coords.strip()
             n_particles = coords.count("\n")
             result.value = factor*n_particles
-        elif coord_format in ["CP2K", "G96", "XTL"]:
+        elif coord_format in ["CP2K", "G96", "XTL", "CRD"]:
             msg = "Tried to read the number of atoms from the initial configuration, but the parser does not yet support the '{}' format that is used by file '{}'.".format(coord_format, self.parser.file_ids["initial_coordinates"])
             logger.warning(msg)
             result.error_message = msg
@@ -404,13 +426,32 @@ class CP2KImplementation(object):
             # External file, use AtomsEngine
             init_coord_file = self.parser.get_file_handle("initial_coordinates")
             if coord_format == "XYZ":
-                n_particles = self.atomsengine.parse_n_atoms(init_coord_file, format="xyz")
+                n_particles = self.atomsengine.n_atoms(init_coord_file, format="xyz")
             if coord_format == "CIF":
-                n_particles = self.atomsengine.parse_n_atoms(init_coord_file, format="cif")
+                n_particles = self.atomsengine.n_atoms(init_coord_file, format="cif")
             if coord_format == "PDB":
-                n_particles = self.atomsengine.parse_n_atoms(init_coord_file, format="pdb")
+                n_particles = self.atomsengine.n_atoms(init_coord_file, format="pdb")
 
         result.value = factor*n_particles
+        return result
+
+    def _Q_particle_position(self):
+        """Returns the particle positions (trajectory). Currently returns them
+        as one big object, which is not good because the trajectory can be very
+        large. When the streaming interface is available the coordinates can be
+        streamed to an outputfile.
+        """
+        result = Result()
+
+        # Read the trajectory
+        traj_file = self.parser.get_file_handle("trajectory")
+        traj_iter = self.atomsengine.iread(traj_file, format="cp2k-pdb")
+        positions = []
+
+        for configuration in traj_iter:
+            positions.append(configuration)
+        result.value = np.array(positions)
+
         return result
 
 
