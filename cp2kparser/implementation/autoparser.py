@@ -14,20 +14,16 @@ def scan_path_for_files(path):
         ".cif",
         ".pdb",
     }
-    files = []
+    files = {}
     for filename in os.listdir(path):
         extension = os.path.splitext(filename)[1]
         if extension in extensions:
-            file_object = {
-                "path": os.path.join(path, filename),
-                "file_id": "",
-            }
-            files.append(file_object)
+            files[os.path.join(path, filename)] = ""
     return files
 
 
 #===============================================================================
-def get_parser(path):
+def get_parser(path, test=True):
     files = scan_path_for_files(path)
     json_input = {
         "version": "nomadparsein.json 1.0",
@@ -36,7 +32,7 @@ def get_parser(path):
         "metainfoToSkip": [],
         "files": files
     }
-    parser = CP2KParser(json.dumps(json_input))
+    parser = CP2KParser(json.dumps(json_input), test=test)
     return parser
 
 

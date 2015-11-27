@@ -1,6 +1,6 @@
 import os
 import re
-from cp2kparser.generics.nomadparser import NomadParser, Result, ResultKind, ResultCode
+from cp2kparser.generics.nomadparser import NomadParser, Result, ResultCode
 from cp2kparser.implementation.regexs import *
 from cp2kparser.engines.regexengine import RegexEngine
 from cp2kparser.engines.csvengine import CSVEngine
@@ -9,6 +9,7 @@ from cp2kparser.engines.xmlengine import XMLEngine
 from cp2kparser.engines.atomsengine import AtomsEngine
 import numpy as np
 import logging
+import sys
 logger = logging.getLogger(__name__)
 from cp2kparser import ureg
 
@@ -22,10 +23,10 @@ class CP2KParser(NomadParser):
     implementation. For other versions there should be classes that extend from
     this.
     """
-    def __init__(self, input_json_string):
-        NomadParser.__init__(self, input_json_string)
+    def __init__(self, input_json_string, stream=sys.stdout, test=False):
 
-        self.version_number = None
+        # Initialize the base class
+        NomadParser.__init__(self, input_json_string, stream, test)
 
         # Engines are created here
         self.csvengine = CSVEngine(self)
@@ -34,14 +35,14 @@ class CP2KParser(NomadParser):
         self.inputengine = CP2KInputEngine()
         self.atomsengine = AtomsEngine(self)
 
+        self.version_number = None
         self.input_tree = None
         self.regexs = None
-        self.analyse_input_json()
-        self.check_resolved_file_ids()
-        self.determine_file_ids_from_extension()
+
+        # Use some convenient functions from base
+        self.determine_file_ids_pre_setup()
         self.setup_version()
-        self.determine_file_ids()
-        # self.open_files()
+        self.determine_file_ids_post_setup()
 
     def setup_version(self):
         """Inherited from NomadParser.
@@ -75,42 +76,20 @@ class CP2KParser(NomadParser):
             self.implementation = globals()["CP2KImplementation"](self)
 
     def read_part_of_file(self, file_id, size=1024):
-        fh = self.file_handles[file_id]
-        fh.seek(0, os.SEEK_SET)
+        fh = self.get_file_handle(file_id)
         buffer = fh.read(size)
         return buffer
 
-    def check_resolved_file_ids(self):
-        """Save the file id's that were given in the JSON input.
-        """
-        resolved = {}
-        resolvable = []
-        for file_object in self.files:
-            path = file_object.get("path")
-            file_id = file_object.get("file_id")
-            if not file_id:
-                resolvable.append(path)
-            else:
-                resolved[file_id] = path
-
-        for id, path in resolved.iteritems():
-            self.file_ids[id] = path
-            self.get_file_handle(id)
-
-        self.resolvable = resolvable
-
-    def determine_file_ids_from_extension(self):
+    def determine_file_ids_pre_setup(self):
         """First resolve the files that can be identified by extension.
         """
-        for file_path in self.resolvable:
+        for file_path in self.files.iterkeys():
             if file_path.endswith(".inp"):
-                self.file_ids["input"] = file_path
-                self.get_file_handle("input")
+                self.setup_file_id(file_path, "input")
             if file_path.endswith(".out"):
-                self.file_ids["output"] = file_path
-                self.get_file_handle("output")
+                self.setup_file_id(file_path, "output")
 
-    def determine_file_ids(self):
+    def determine_file_ids_post_setup(self):
         """Inherited from NomadParser.
         """
         # Determine the presence of force file
@@ -157,7 +136,10 @@ class CP2KParser(NomadParser):
         logger.debug("Normalizing trajectory path")
         project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
         file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
-        extension = {"PDB": "pdb"}[file_format]
+        extension = {
+            "PDB": "pdb",
+            "XYZ": "xyz"
+        }[file_format]
         if path.startswith("="):
             normalized_path = path[1:]
         elif re.match(r"./", path):
@@ -209,10 +191,9 @@ class CP2KParser(NomadParser):
 
                 break
 
-        # folders.reverse()
         return folders
 
-    def get_quantity_unformatted(self, name):
+    def start_parsing(self, name):
         """Inherited from NomadParser. The timing and caching is already
         implemented in the superclass.
         """
@@ -253,7 +234,6 @@ class CP2KImplementation(object):
     def _Q_energy_total(self):
         """Return the total energy from the bottom of the input file"""
         result = Result()
-        result.return_type = ResultKind.energy
         result.unit = ureg.hartree
         result.value = float(self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output")))
         return result
@@ -269,7 +249,6 @@ class CP2KImplementation(object):
             belong to the list defined in NoMaD wiki.
         """
         result = Result()
-        result.return_type = ResultKind.text
 
         # First try to look at the shortcut
         xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
@@ -333,7 +312,6 @@ class CP2KImplementation(object):
         Supports forces printed in the output file or in a single .xyz file.
         """
         result = Result()
-        result.return_type = ResultKind.force
         result.unit = ureg.force_au
 
         # Determine if a separate force file is used or are the forces printed
@@ -400,7 +378,6 @@ class CP2KImplementation(object):
         that must be present for all calculations.
         """
         result = Result()
-        result.return_type = ResultKind.number
 
         # Check where the coordinates are specified
         coord_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
@@ -445,12 +422,19 @@ class CP2KImplementation(object):
 
         # Read the trajectory
         traj_file = self.parser.get_file_handle("trajectory")
-        traj_iter = self.atomsengine.iread(traj_file, format="cp2k-pdb")
-        positions = []
+        file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
+        file_format = {
+            "XYZ": "xyz",
+            "PDB": "pdb-cp2k"
+        }[file_format]
+        traj_iter = self.atomsengine.iread(traj_file, format=file_format)
 
+        # Loop through the iterator to get all configurations
+        positions = []
         for configuration in traj_iter:
             positions.append(configuration)
-        result.value = np.array(positions)
+        if positions:
+            result.value = np.array(positions)
 
         return result
 
