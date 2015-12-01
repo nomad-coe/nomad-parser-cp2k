@@ -2,9 +2,11 @@
 
 ## NomadParser
 
-The class NomadParser is used as a base class for the parsers in the NoMaD
-project. When starting to develop a new parser, you subclass it and gain access
-to it's functionality. A minimal example of a parser class that inherit NomadParser:
+The NomadParser class can be used as a base class for parsers in the NoMaD
+project. The NomadParser class will automatically convert results to SI units,
+format the results as JSON and push them to the backend. It will also validate
+that the results match the type and shape defined for the quantity in the
+metainfo file. A minimal example of a class that inherits NomadParser:
 
 ```python
 class MyParser(NomadParser):
@@ -43,7 +45,7 @@ class MyParser(NomadParser):
         return self.implementation.supported_quantities
 ```
 
-This class only defines how to setup a parser based on the given input. The
+The class MyParser only defines how to setup a parser based on the given input. The
 actual dirty work is done by a parser implementation class. A minimal example
 of a parser implementation class:
 
@@ -99,7 +101,7 @@ class MyParserImplementation1():
     def particle_position(self):
         """An example of a function returning a generator. This function does
         not load the whole position file into memory, but goes throught it line
-        by line and returns configurations as soon as they are ready ready.
+        by line and returns configurations as soon as they are ready.
         """
 
         def position_generator():
