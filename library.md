@@ -6,7 +6,7 @@ The class NomadParser is used as a base class for the parsers in the NoMaD
 project. When starting to develop a new parser, you subclass it and gain access
 to it's functionality. A minimal example of a parser class that inherit NomadParser:
 
-´´´python
+```python
 class MyParser(NomadParser):
     """
     This class is responsible for setting up the actual parser implementation
@@ -41,13 +41,13 @@ class MyParser(NomadParser):
 
     def get_supported_quantities(self):
         return self.implementation.supported_quantities
-´´´
+```
 
 This class only defines how to setup a parser based on the given input. The
 actual dirty work is done by a parser implementation class. A minimal example
 of a parser implementation class:
 
-´´´python
+```python
 class MyParserImplementation1():
     """This is an implementation class that contains the actual parsing logic
     for a certain software version. There can be multiple implementation
@@ -128,7 +128,7 @@ class MyParserImplementation1():
         result.unit = ureg.angstrom
         result.value_iterable = position_generator()
         return result
-´´´
+```
 
 The MyParser class decides which implementation to use based on e.g. the
 software version number that is available on one of the input files. New
@@ -136,7 +136,7 @@ implementations corresponding to other software versions can then be easily
 defined and they can also use the functionality of other implementation.
 Example:
 
-´´´python
+```python
 class MyParserImplementation2(MyParserImplementation1):
     """Implementation for a different version of the electronic structure
     software. Subclasses MyParserImplementation1. In this version the
@@ -150,4 +150,4 @@ class MyParserImplementation2(MyParserImplementation1):
         result.unit = ureg.hartree
         result.value = "2.0"
         return result
-´´´
+```
