@@ -1,5 +1,3 @@
-# Parsing library
-
 ## NomadParser
 
 The NomadParser class can be used as a base class for parsers in the NoMaD
@@ -47,8 +45,9 @@ class MyParser(NomadParser):
 
 The class MyParser only defines how to setup a parser based on the given input.
 The actual dirty work is done by a parser implementation class. NomadParser
-does not enforce any specific style for the implementation. A very minimal example
-of a parser implementation class:
+does not enforce any specific style for the implementation. By wrapping the
+results in a Result object, you get the automatic unit conversion and JSON
+backend support. A very minimal example of a parser implementation class:
 
 ```python
 class MyParserImplementation1():
