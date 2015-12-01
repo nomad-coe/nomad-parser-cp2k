@@ -20,7 +20,7 @@ class MyParser(NomadParser):
         self.setup_version()
         # You would typically also setup some file id's here to help handling
         # the files. In this example the id's are already given in the JSON
-        # input. To register a file if you can call 'setup_file_id()'
+        # input. To register a file you can call 'setup_file_id()'
 
     def start_parsing(self, name):
         """Asks the implementation object to give the result object by calling
@@ -135,8 +135,8 @@ class MyParserImplementation1():
 The MyParser class decides which implementation to use based on e.g. the
 software version number that is available on one of the input files. New
 implementations corresponding to other software versions can then be easily
-defined and they can also use the functionality of other implementation.
-Example:
+defined and they can also use the functionality of another implementation by
+subclassing. Example:
 
 ```python
 class MyParserImplementation2(MyParserImplementation1):
@@ -154,7 +154,7 @@ class MyParserImplementation2(MyParserImplementation1):
         return result
 ```
 
-An example of the JSON input given to NomadParser:
+An example of the JSON file given to the NomadParser contructor:
 
 ```json
 {
