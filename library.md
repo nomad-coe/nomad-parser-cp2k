@@ -153,25 +153,31 @@ class MyParserImplementation2(MyParserImplementation1):
         result.value = "2.0"
         return result
 ```
+MyParser could be now used as follows:
 
-An example of the JSON file given to the NomadParser contructor:
-
-```json
-{
-    "metaInfoFile": "metainfo.json"),
-    "tmpDir": "/home",
-    "metainfoToKeep": [],
-    "metainfoToSkip": [],
-    "files": {
-        "forces.xyz": "forces",
-        "positions.xyz": "positions",
+```python
+    input_json = """{
+        "metaInfoFile": "metainfo.json",
+        "tmpDir": "/home",
+        "metainfoToKeep": [],
+        "metainfoToSkip": [],
+        "files": {
+            forces.xyz": "forces",
+            "positions.xyz": "positions"
+        }
     }
-}
+    """
+
+    parser = MyParser(json.dumps(input_json))
+    parser.parse_quantity("energy_total")
+    parser.parse_quantity("particle_forces")
+    parser.parse_quantity("particle_position")
 ```
 
-The 'metaInfoFile' contains the metainfo definitions used by the parser. From
-this file the parser can determine the type and shape and excistence of
-metainfo definitions.
+The input JSON string is used to initialize the parser. The 'metaInfoFile'
+attribute contains the metainfo definitions used by the parser. From this file
+the parser can determine the type and shape and existence of metainfo
+definitions.
 
 The 'files' object contains all the files that are given to the parser. The
 attribute names are the file paths and their values are optional id's. The id's

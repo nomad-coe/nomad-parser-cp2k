@@ -261,6 +261,7 @@ class NomadParser(object):
 
                 section_id = self.backend.openSection(name)
                 for value in value_iterable:
+                    print value
                     # Save to backend
                     self.input_value_to_backend(name, value, unit, dtypestr, shape)
                 self.backend.closeSection(name, section_id)
