@@ -131,7 +131,7 @@ class NomadParser(object):
         """
         for path, file_id in self.files.iteritems():
             if file_id:
-                self.setup_file_id(path, id)
+                self.setup_file_id(path, file_id)
 
     @abstractmethod
     def setup_version(self):
@@ -178,9 +178,14 @@ class NomadParser(object):
         Checks through the list given by get_supported_quantities and also
         checks the metainfoToSkip parameter given in the JSON input.
         """
+        if name not in self.metainfos:
+            logger.error("The metaname '{}' was not declared on the metainfo file defined in the JSON input.".format(name))
+            return False
         if name not in self.get_supported_quantities():
+            logger.error("The metaname '{}' is not available in this parser version.".format(name))
             return False
         if name in self.metainfo_to_skip:
+            logger.error("The metaname '{}' cannot be calculated as it is in the list 'metaInfoToSkip'.".format(name))
             return False
         return True
 
@@ -189,13 +194,12 @@ class NomadParser(object):
         the parser, parses the corresponding quantity (if available), converts
         it to SI units and return the value as json.
         """
-        logger.info("===========================================================================")
+
         logger.info("GETTING QUANTITY '{}'".format(name))
 
         #Check availability
         available = self.check_quantity_availability(name)
         if not available:
-            logger.warning("The quantity '{}' is not available for this parser setup.".format(name))
             return
 
         result = self.start_parsing(name)
