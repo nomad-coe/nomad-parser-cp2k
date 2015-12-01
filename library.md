@@ -45,8 +45,9 @@ class MyParser(NomadParser):
         return self.implementation.supported_quantities
 ```
 
-The class MyParser only defines how to setup a parser based on the given input. The
-actual dirty work is done by a parser implementation class. A minimal example
+The class MyParser only defines how to setup a parser based on the given input.
+The actual dirty work is done by a parser implementation class. NomadParser
+does not enforce any specific style for the implementation. A very minimal example
 of a parser implementation class:
 
 ```python
@@ -153,3 +154,28 @@ class MyParserImplementation2(MyParserImplementation1):
         result.value = "2.0"
         return result
 ```
+
+An example of the JSON input given to NomadParser:
+
+```json
+{
+    "metaInfoFile": "metainfo.json"),
+    "tmpDir": "/home",
+    "metainfoToKeep": [],
+    "metainfoToSkip": [],
+    "files": {
+        "forces.xyz": "forces",
+        "positions.xyz": "positions",
+    }
+}
+```
+
+The 'metaInfoFile' contains the metainfo definitions used by the parser. From
+this file the parser can determine the type and shape and excistence of
+metainfo definitions.
+
+The 'files' object contains all the files that are given to the parser. The
+attribute names are the file paths and their values are optional id's. The id's
+are not typically given and they have to be assigned by using the
+setup_file_id() function of NomadParser. Assigning id's helps to manage the
+files.
