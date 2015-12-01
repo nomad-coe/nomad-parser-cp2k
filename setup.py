@@ -7,6 +7,10 @@ def main():
     setup(
         name="cp2kparser",
         version="0.1",
+        include_package_data=True,
+        package_data={
+            '': ['*.json', '*.pickle'],
+        },
         description="NoMaD parser implementation for CP2K",
         author="Lauri Himanen",
         author_email="lauri.himanen@gmail.com",

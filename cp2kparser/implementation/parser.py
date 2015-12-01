@@ -23,10 +23,10 @@ class CP2KParser(NomadParser):
     implementation. For other versions there should be classes that extend from
     this.
     """
-    def __init__(self, input_json_string, stream=sys.stdout, test=False):
+    def __init__(self, input_json_string, stream=sys.stdout, test_mode=False):
 
         # Initialize the base class
-        NomadParser.__init__(self, input_json_string, stream, test)
+        NomadParser.__init__(self, input_json_string, stream, test_mode)
 
         # Engines are created here
         self.csvengine = CSVEngine(self)
@@ -36,6 +36,7 @@ class CP2KParser(NomadParser):
         self.atomsengine = AtomsEngine(self)
 
         self.version_number = None
+        self.implementation = None
         self.input_tree = None
         self.regexs = None
 
@@ -43,6 +44,18 @@ class CP2KParser(NomadParser):
         self.determine_file_ids_pre_setup()
         self.setup_version()
         self.determine_file_ids_post_setup()
+
+    def get_supported_quantities(self):
+        """Inherited from NomadParser.
+        """
+        supported_quantities = []
+        implementation_methods = [method for method in dir(self.implementation) if callable(getattr(self.implementation, method))]
+        for method in implementation_methods:
+            if method.startswith("_Q_"):
+                method = method[3:]
+                supported_quantities.append(method)
+
+        return supported_quantities
 
     def setup_version(self):
         """Inherited from NomadParser.
@@ -74,6 +87,16 @@ class CP2KParser(NomadParser):
         else:
             logger.debug("Using default implementation.")
             self.implementation = globals()["CP2KImplementation"](self)
+
+    def start_parsing(self, name):
+        """Inherited from NomadParser.
+        """
+        # Ask the implementation for the quantity
+        function = getattr(self.implementation, "_Q_" + name)
+        if function:
+            return function()
+        else:
+            logger.error("The function for quantity '{}' is not defined".format(name))
 
     def read_part_of_file(self, file_id, size=1024):
         fh = self.get_file_handle(file_id)
@@ -156,8 +179,9 @@ class CP2KParser(NomadParser):
         the path until only one or zero matches found.
         """
         matches = {}
+        resolvable = [x for x in self.files.iterkeys() if x not in self.file_ids.itervalues()]
 
-        for file_path in self.resolvable:
+        for file_path in resolvable:
             available_parts = self.split_path(file_path)
             searched_parts = self.split_path(path)
             for i_part, part in enumerate(searched_parts):
@@ -193,22 +217,10 @@ class CP2KParser(NomadParser):
 
         return folders
 
-    def start_parsing(self, name):
-        """Inherited from NomadParser. The timing and caching is already
-        implemented in the superclass.
-        """
-        # Ask the implementation for the quantity
-        function = getattr(self.implementation, "_Q_" + name)
-        if function:
-            return function()
-        else:
-            logger.error("The function for quantity '{}' is not defined".format(name))
-
-    def check_quantity_availability(self, name):
-        """Inherited from NomadParser.
-        """
-        #TODO
-        return True
+    def get_all_quantities(self):
+        """Parse all supported quantities."""
+        for method in self.get_supported_quantities:
+            self.get_quantity(method)
 
 
 #===============================================================================
@@ -230,6 +242,25 @@ class CP2KImplementation(object):
         self.csvengine = parser.csvengine
         self.atomsengine = parser.atomsengine
         self.input_tree = parser.input_tree
+
+    def decode_cp2k_unit(self, unit):
+        """Given a CP2K unit name, decode it as Pint unit definition.
+        """
+
+        map = {
+            # Length
+            "bohr": ureg.bohr,
+            "m": ureg.meter,
+            "pm": ureg.picometer,
+            "nm": ureg.nanometer,
+            "angstrom": ureg.angstrom,
+        }
+
+        pint_unit = map.get(unit)
+        if pint_unit:
+            return pint_unit
+        else:
+            logger.error("Unknown CP2K unit definition given.")
 
     def _Q_energy_total(self):
         """Return the total energy from the bottom of the input file"""
@@ -348,26 +379,13 @@ class CP2KImplementation(object):
                 force_array[i_conf, :, :] = i_force_array
                 i_conf += 1
 
-            result.value = force_array
+            result.value_iterable = force_array
             return result
         else:
             logger.debug("Looking for forces in separate force file.")
             iterator = self.csvengine.iread(self.parser.get_file_handle("forces"), columns=(-3, -2, -1), comments=("#", "SUM"), separator=r"\ ATOMIC FORCES in \[a\.u\.\]")
-            forces = []
-            for configuration in iterator:
-                forces.append(configuration)
-            forces = np.array(forces)
-
-            if forces is None:
-                msg = "No force configurations were found when searching an external XYZ force file."
-                logger.warning(msg)
-                result.error_message = msg
-                result.code = ResultCode.fail
-                return result
-            else:
-                if len(forces) != 0:
-                    result.value = forces
-                return result
+            result.value_iterable = iterator
+            return result
 
     def _Q_particle_number(self):
         """Return the number of particles in the system.
@@ -413,12 +431,14 @@ class CP2KImplementation(object):
         return result
 
     def _Q_particle_position(self):
-        """Returns the particle positions (trajectory). Currently returns them
-        as one big object, which is not good because the trajectory can be very
-        large. When the streaming interface is available the coordinates can be
-        streamed to an outputfile.
+        """Returns the particle positions (trajectory).
         """
         result = Result()
+
+        # Determine the unit
+        unit = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/UNIT")
+        unit = unit.lower()
+        result.unit = self.decode_cp2k_unit(unit)
 
         # Read the trajectory
         traj_file = self.parser.get_file_handle("trajectory")
@@ -429,13 +449,8 @@ class CP2KImplementation(object):
         }[file_format]
         traj_iter = self.atomsengine.iread(traj_file, format=file_format)
 
-        # Loop through the iterator to get all configurations
-        positions = []
-        for configuration in traj_iter:
-            positions.append(configuration)
-        if positions:
-            result.value = np.array(positions)
-
+        # Return the iterator
+        result.value_iterable = traj_iter
         return result
 
 

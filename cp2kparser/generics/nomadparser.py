@@ -12,8 +12,8 @@ import sys
 class NomadParser(object):
     """The base class for parsers in the NoMaD project.
 
-    This class provides general utility methods and a uniform interface for
-    input and output. :
+    What you can expect from this class:
+
         - Provides a starting point for the parser developers, but allows
           freedom to do the actual implementation in any way you like.
         - Automation and help with the unit conversion and JSON formatting.
@@ -21,7 +21,7 @@ class NomadParser(object):
         - Provides the push interface for results.
 
     This class defines a few abstract methods that each parser must implement
-    (actually raises a compilation error if you dont). This enforces a minimal
+    (actually raises a compilation error if you don't). This enforces a minimal
     interface that can be expected from each parser, but leaves the
     implementation details to the developer.
 
@@ -31,7 +31,8 @@ class NomadParser(object):
     this:
 
         {
-            "tmpDir": "/home/lauri",
+            "metaInfoFile": "/home/metainfo.json"
+            "tmpDir": "/home",
             "metainfoToKeep": ["energy"],
             "metainfoToSkip": ["particle_forces"],
             "files": {
@@ -42,6 +43,8 @@ class NomadParser(object):
         }
 
     Here is an explanation of the different attributes:
+        - metaInfoFile: The metainfo JSON file path containing the metainfo definitions
+          used by this parser
         - tmpDir: A temporary directory for data
         - metainfoToKeep: What metainfo should be parsed. If empty, tries to
           parse everything except the ones specified in 'metainfoToSkip'
@@ -50,45 +53,59 @@ class NomadParser(object):
           value is an optional identifier that can be provided or later
           determined by the parser.
 
-    When you make a subclass of this class, you should remember to call the
-    constructor of the base class. Example:
-
-        class MyParser(NomadParser):
-
-            def __init__(self, input_json_string, stream=sys.stdout, test=False):
-
+    Attributes:
+        input_json_string: A string containing the JSON input.
+        input_json_object: The JSON string decoded as an accessible object.
+        files: A dictionary of file paths as keys and id's as values. These ids's only include
+        the ones given at initialization in the input JSON."
+        tmp_dir: Temporary directory location.
+        metainfo_file: Path to the file where the metainfos are declared
+        meta_info_to_keep:
+        meta_info_to_skip:
+        file_ids: A dictionary containing all the assigned id's as keys and their
+        respective filepaths as values.
+        test_mode: A boolean for turning on test mode. In test mode the parsed
+        values are not converted to SI or formatted as JSON and they are not
+        sent to the backend but returned directly as one possibly large value.
+        backend: An object responsible for the JSON formatting and sending the
+        results to the scala layer.
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, input_json_string, stream=sys.stdout, test=False):
+    def __init__(self, input_json_string, stream=sys.stdout, test_mode=False):
         self.input_json_string = input_json_string
         self.input_json_object = None
         self.files = {}
         self.tmp_dir = None
+        self.metainfo_file = None
+        self.metainfos = {}
         self.metainfo_to_keep = None
         self.metainfo_to_skip = None
         self.file_ids = {}
-        self.file_handles = {}
-        self.interface_object = None
-        self.implementation = None
-        self.file_contents = {}
-        self.file_sizes = {}
-        self.results = {}
-        self.test = test
+        self.filepaths_wo_id = None
+        self.test_mode = test_mode
         self.backend = JsonParseEventsWriterBackend(None, stream)
+
+        self._file_handles = {}
+        self._file_contents = {}
+        self._file_sizes = {}
+
         self.analyze_input_json()
         self.setup_given_file_ids()
 
     def analyze_input_json(self):
         """Analyze the validity of the JSON string given as input.
         """
-        # Try to decode
+        # Try to decode the input JSON
         try:
             self.input_json_object = json.loads(self.input_json_string)
         except ValueError as e:
             logger.error("Error in decoding the given JSON input: {}".format(e))
 
         # See if the needed attributes exist
+        self.metainfo_file = self.input_json_object.get("metaInfoFile")
+        if self.metainfo_file is None:
+            logger.error("No metainfo file path specified.")
         self.tmp_dir = self.input_json_object.get("tmpDir")
         if self.tmp_dir is None:
             logger.error("No temporary folder specified.")
@@ -98,22 +115,23 @@ class NomadParser(object):
         self.metainfo_to_keep = self.input_json_object.get("metainfoToKeep")
         self.metainfo_to_skip = self.input_json_object.get("metainfoToSkip")
 
-    @abstractmethod
-    def determine_file_ids_pre_setup(self):
-        """If the files have not been given an id, try to determine the
-        correct ids by looking at the input file, contents and file extensions.
+        # Try to decode the metainfo file
+        try:
+            fh = open(self.metainfo_file, "r")
+            metainfo_object = json.load(fh)
+        except ValueError as e:
+            logger.error("Error in decoding the metainfo JSON: {}".format(e))
+        except IOError as e:
+            logger.error("Could not open the metainfo file in path: '{}'".format(self.metainfo_file))
+        for metainfo in metainfo_object["metaInfos"]:
+            self.metainfos[metainfo["name"]] = metainfo
 
-        You dont have to assign an ID to the files, but it can make your life
-        much easier. If you have assigned an ID to a file, you automatically
-        get access to these functions:
-
-            - get_file_handle(id): Returns a python file object that has been
-              reset to the beginning of file.
-            - get_file_contents(id): Returns the contents of a file as a
-              string. If the file is considered small, returns a the contents
-              from cache.
+    def setup_given_file_ids(self):
+        """Saves the file id's that were given in the JSON input.
         """
-        pass
+        for path, file_id in self.files.iteritems():
+            if file_id:
+                self.setup_file_id(path, id)
 
     @abstractmethod
     def setup_version(self):
@@ -121,129 +139,161 @@ class NomadParser(object):
         support many versions of the same code and the results of different
         versions may have to be parsed differently.
 
-        Here you can determine the version of the software, and setup the
-        version specific implementation of the parser.
+        With this function you should determine the version of the software,
+        and setup the version specific implementation of the parser.
         """
         pass
 
     @abstractmethod
-    def determine_file_ids_post_setup(self):
-        """
-        """
-        pass
-
-    @abstractmethod
-    def check_quantity_availability(self, name):
-        """Check quantity availability.
-          -Check the list of available quantities declared in interface.
-          -Check if the run type actually produces the quantity
-          -Check if the quantity is allowed by the 'metainfoToKeep' and
-          'metainfoToSkip'
+    def get_supported_quantities(self):
+        """Return a list of the nomad quantities that this parser supports. The
+        list should contain the metaInfoNames of the supported quantities.
         """
         pass
 
     @abstractmethod
     def start_parsing(self, name):
-        """Start parsing the given quantity and output the result to the
+        """Start parsing the given quantity and outputs the result to the
         backend.
 
         There are two modes of operation:
 
-            manual: This function uses the backend explicitly and does to unit
-            conversion and JSON formatting "manually". In this case the
-            function should return 'None'
-
-            automatic: If this function returns a value, the function
+            automatic: If this function returns a Result object, the function
             parse_quantity will detect it, convert the units, format the
-            result to JSON and send it to the backend. Supports also generators.
+            result to JSON and send it to the backend. Supports also returning
+            iterators that yield multiple results (handy for generator
+            functions that loop over e.g. a trajectory file extracting the
+            trajectory one configuration at a time without reading the entire
+            file into memory).
+
+            manual: You use the backend explicitly and do the unit
+            conversion and JSON formatting "manually". In this case the
+            function should return 'None'.
+
         """
         pass
 
+    def check_quantity_availability(self, name):
+        """Check if the given quantity can be parsed with this parser setup.
+        Checks through the list given by get_supported_quantities and also
+        checks the metainfoToSkip parameter given in the JSON input.
+        """
+        if name not in self.get_supported_quantities():
+            return False
+        if name in self.metainfo_to_skip:
+            return False
+        return True
+
     def parse_quantity(self, name):
-        """Given a unique quantity id which is present in the metainfo
-        declaration, parses the corresponding quantity (if available), converts
+        """Given a unique quantity id (=metaInfo name) which is supported by
+        the parser, parses the corresponding quantity (if available), converts
         it to SI units and return the value as json.
         """
-        # Start timing
         logger.info("===========================================================================")
         logger.info("GETTING QUANTITY '{}'".format(name))
 
         #Check availability
         available = self.check_quantity_availability(name)
         if not available:
-            logger.warning("The quantity '{}' is not available for this parser version.".format(name))
+            logger.warning("The quantity '{}' is not available for this parser setup.".format(name))
             return
 
         result = self.start_parsing(name)
-        if result:
-            if not self.test:
-                # Single Result object
-                if isinstance(result, Result):
 
-                    # Determine the type
-                    si_result = self.to_SI(result)
-                    section_id = self.backend.openSection(name)
-                    self.input_result(name, si_result)
-                    self.backend.closeSection(name, section_id)
-                # Assumes the result to be a generator function which returns
-                # multiple Result objects and loops over them
+        if result is not None:
+            if isinstance(result, Result):
+                if not self.test_mode:
+                    metainfo = self.metainfos.get(name)
+                    result.name = name
+                    result.dtypstr = metainfo.get("dtypeStr")
+                    result.repeats = metainfo.get("repeats")
+                    result.shape = metainfo.get("shape")
+                    self.result_saver(result)
+                # In test mode just return the values directly
                 else:
-                    section_id = self.backend.openSection(name)
-                    for value in result:
-                        si_result = self.to_SI(value)
-                        self.input_result(name, si_result)
-                        self.backend.addValue(name, si_result)
-                    self.backend.closeSection(name, section_id)
-            # In test mode return the results as one object and without
-            # formatting. Makes writing tests much easier
-            else:
-                if isinstance(result, Result):
-                    return result
-                else:
-                    results = []
-                    for value in result:
-                        results.append(value)
-                    return np.array(results)
+                    if result. value is not None:
+                        if result.value_iterable is None:
+                            return result.value
+                    if result.value_iterable is not None:
+                        values = []
+                        for value in result.value_iterable:
+                            values.append(value)
+                        values = np.array(values)
+                        if values.size != 0:
+                            return values
 
-    def input_result(self, name, result):
-        if isinstance(result, (float, int)):
-            self.backend.addRealValue(name, result)
-        elif isinstance(result, np.ndarray):
-            self.backend.addArrayValues(name, result)
-        elif isinstance(result, (str, unicode)):
-            self.backend.addValue(name, result)
+    def result_saver(self, result):
+        """Given a result object, saves the results to the backend.
+
+        The numeric results are automatically converted to SI units if a unit
+        has been defined. Automatic conversion to the correct data type
+        defined in the metainfo is attempted.
+        """
+        name = result.name
+        value = result.value
+        unit = result.unit
+        value_iterable = result.value_iterable
+        repeats = result.repeats
+        dtypestr = result.dtypstr
+        shape = result.shape
+
+        # Save a single result
+        if value is not None:
+            if value_iterable is None:
+                if repeats:
+                    logger.error("A repeating value was given in Result.value. Repeating values should be stored in Result.value_iterable instead.")
+                    return
+
+                # Save to backend
+                section_id = self.backend.openSection(name)
+                self.input_value_to_backend(name, value, unit, dtypestr, shape)
+                self.backend.closeSection(name, section_id)
+        # Save multiple values given by the iterator in Result.value_iterable
+        elif value is None:
+            if value_iterable is not None:
+                if not repeats:
+                    logger.error("A repeating value was given although the value with metaname '{}' should not repeat.".format(name))
+                    return
+
+                section_id = self.backend.openSection(name)
+                for value in value_iterable:
+                    # Save to backend
+                    self.input_value_to_backend(name, value, unit, dtypestr, shape)
+                self.backend.closeSection(name, section_id)
+
+    def input_value_to_backend(self, name, value, unit, dtypestr, shape):
+        """Detects the result type and calls the correct backend function.
+        """
+        # See if the type is correct or can be automatically casted to
+        # the correct type
+        value = self.type_checker(value, dtypestr)
+
+        # Convert to SI units if unit has been specified
+        if unit is not None:
+            value = self.to_SI(value, unit)
+
+        if len(shape) != 0:
+            self.backend.addArrayValues(name, value)
+        elif dtypestr == "C" or dtypestr == "b":
+            self.backend.addValue(name, value)
+        elif dtypestr == "f" or dtypestr == "i":
+            self.backend.addRealValue(name, value)
         else:
-            logger.error("Could not determine the backend function call for variable type '{}'".format(type(result)))
+            logger.error("Could not determine the backend function call for variable type '{}'".format(type(dtypestr)))
 
-    def to_SI(self, result):
+    def type_checker(self, value, expected_type):
+        """Check that the result can be interpreted as the expected type.
+        """
+        # TODO
+        return value
+
+    def to_SI(self, value, unit):
         """If units have been defined to the result, convert the units to SI.
-        Does nothing for example to strings or numbers without defined
-        units.
         """
-        if result.unit is None:
-            return result.value
-
         # Do the conversion to SI units based on the given units and type
-        value = result.value * result.unit
-        return value.to_base_units().magnitude
-
-    def setup_given_file_ids(self):
-        """Saves the file id's that were given in the JSON input.
-        """
-        resolved = {}
-        resolvable = []
-        for path, file_id in self.files.iteritems():
-            if not file_id:
-                resolvable.append(path)
-            else:
-                resolved[file_id] = path
-
-        for id, path in resolved.iteritems():
-            print id
-            print path
-            self.setup_file_id(path, id)
-
-        self.resolvable = resolvable
+        value = value * unit
+        converted = value.to_base_units()
+        return converted.magnitude
 
     def setup_file_id(self, path, file_id):
         """Used to map a simple identifier string to a file path. When a file
@@ -259,7 +309,7 @@ class NomadParser(object):
         """Get the handle for a file with the given id. Uses cached result
         if available. Always seeks to beginning of file before returning it.
         """
-        handle = self.file_handles.get(file_id)
+        handle = self._file_handles.get(file_id)
         if not handle:
             path = self.file_ids.get(file_id)
             if not path:
@@ -270,7 +320,7 @@ class NomadParser(object):
             except (OSError, IOError):
                 logger.error("Could not open file: '{}'".format(path))
             else:
-                self.file_handles[file_id] = handle
+                self._file_handles[file_id] = handle
         handle.seek(0, os.SEEK_SET)
         return handle
 
@@ -280,34 +330,26 @@ class NomadParser(object):
         limit.
         """
         cache_limit = 10000
-        contents = self.file_contents.get(file_id)
+        contents = self._file_contents.get(file_id)
         if not contents:
             fh = self.get_file_handle(file_id)
             fh.seek(0)
             contents = fh.read()
             if self.get_file_size(file_id) <= cache_limit:
-                self.file_contents[file_id] = contents
+                self._file_contents[file_id] = contents
         return contents
 
     def get_file_size(self, file_id):
         """Get the size of a file with the given id. Uses cached result
         if available.
         """
-        size = self.file_sizes.get(file_id)
+        size = self._file_sizes.get(file_id)
         if not size:
-            fh = self.file_handles[file_id]
+            fh = self.get_file_handle(file_id)
             fh.seek(0, os.SEEK_END)
             size = fh.tell()
-            self.file_sizes[file_id] = size
+            self._file_sizes[file_id] = size
         return size
-
-    def get_all_quantities(self):
-        """Parse all supported quantities."""
-        implementation_methods = [method for method in dir(self.implementation) if callable(getattr(self.implementation, method))]
-        for method in implementation_methods:
-            if method.startswith("_Q_"):
-                method = method[3:]
-                self.get_quantity(method)
 
 
 #===============================================================================
@@ -321,13 +363,32 @@ class ResultCode(Enum):
 #===============================================================================
 class Result(object):
     """ Encapsulates a parsing result.
+
+    The parser should return results as Result objects, which contain
+    additional data for automatic conversion and formatting.
+
+    The actual value can be single value (string, integer, float, 3D array of
+    floats, 1D array of integer, etc.) or an iterable object for repeatable
+    quantities (those that have "repeats: true" in metaInfo).
+
+    If returning a non-repeating value, you can place it to the "value" member.
+    Repeatable objects should be placed to the "value_iterable" object.
+
+    The repeatable values can also be given as generator functions. With
+    generators you can easily push results from a big data file piece by piece
+    to the backend without loading the entire file into memory.
     """
 
-    def __init__(self, value=None, unit=None, code=ResultCode.success):
-        self.value = value
-        self.unit = unit
-        self.code = code
+    def __init__(self, meta_name=""):
+        self.name = None
+        self.value = None
+        self.value_iterable = None
+        self.unit = None
+        self.code = ResultCode.success
         self.error_message = ""
+        self.dtypestr = None
+        self.repeats = None
+        self.shape = None
 
 
 #===============================================================================
