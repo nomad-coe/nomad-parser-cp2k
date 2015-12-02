@@ -33,7 +33,7 @@ class CP2KParser(NomadParser):
         self.regexengine = RegexEngine(self)
         self.xmlengine = XMLEngine(self)
         self.inputengine = CP2KInputEngine()
-        self.atomsengine = AtomsEngine(self)
+        self.atomsengine = AtomsEngine()
 
         self.version_number = None
         self.implementation = None
@@ -161,7 +161,10 @@ class CP2KParser(NomadParser):
         file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
         extension = {
             "PDB": "pdb",
-            "XYZ": "xyz"
+            "XYZ": "xyz",
+            "XMOL": "xyz",
+            "ATOMIC": "xyz",
+            "DCD": "dcd",
         }[file_format]
         if path.startswith("="):
             normalized_path = path[1:]
@@ -246,7 +249,6 @@ class CP2KImplementation(object):
     def decode_cp2k_unit(self, unit):
         """Given a CP2K unit name, decode it as Pint unit definition.
         """
-
         map = {
             # Length
             "bohr": ureg.bohr,
@@ -338,9 +340,11 @@ class CP2KImplementation(object):
         return result
 
     def _Q_particle_forces(self):
-        """Return all the forces for every step found.
+        """Return the forces that are controlled by
+        "FORCE_EVAL/PRINT/FORCES/FILENAME". These forces are typicalle printed
+        out during optimization or single point calculation.
 
-        Supports forces printed in the output file or in a single .xyz file.
+        Supports forces printed in the output file or in a single XYZ file.
         """
         result = Result()
         result.unit = ureg.force_au
@@ -396,12 +400,17 @@ class CP2KImplementation(object):
         that must be present for all calculations.
         """
         result = Result()
+        result.cache = True
 
         # Check where the coordinates are specified
         coord_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
+        if not coord_format:
+            coord_format = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
 
         # Check if the unit cell is multiplied programmatically
         multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
+        if not multiples:
+            multiples = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
         factors = [int(x) for x in multiples.split()]
         factor = np.prod(np.array(factors))
 
@@ -442,16 +451,63 @@ class CP2KImplementation(object):
 
         # Read the trajectory
         traj_file = self.parser.get_file_handle("trajectory")
-        file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
+        input_file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
         file_format = {
             "XYZ": "xyz",
-            "PDB": "pdb-cp2k"
-        }[file_format]
-        traj_iter = self.atomsengine.iread(traj_file, format=file_format)
+            "XMOL": "xyz",
+            "PDB": "pdb-cp2k",
+            "ATOMIC": "atomic",
+        }.get(input_file_format)
+
+        if file_format is None:
+            logger.error("Unsupported trajectory file format '{}'.".format(input_file_format))
+
+        # Use a custom implementation for the CP2K specific weird formats
+        if file_format == "pdb-cp2k":
+            traj_iter = self.parser.csvengine.iread(traj_file, columns=[3, 4, 5], comments=["TITLE", "AUTHOR", "REMARK", "CRYST"], separator="END")
+        elif file_format == "atomic":
+            n_atoms = self.parser.get_result_object("particle_number").value
+
+            def atomic_generator():
+                conf = []
+                i = 0
+                for line in traj_file:
+                    line = line.strip()
+                    components = np.array([float(x) for x in line.split()])
+                    conf.append(components)
+                    i += 1
+                    if i == n_atoms:
+                        yield np.array(conf)
+                        conf = []
+                        i = 0
+            traj_iter = atomic_generator()
+        else:
+            traj_iter = self.atomsengine.iread(traj_file, format=file_format)
 
         # Return the iterator
         result.value_iterable = traj_iter
         return result
+
+    def _Q_cell(self):
+
+        # Cell given as three vectors
+        A = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/A")
+        B = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/B")
+        C = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/C")
+
+        if A and B and C:
+            return
+
+        # Cell given as three lengths and three angles
+        ABC = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ABC")
+        abg = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
+
+        # Cell given in external file
+        cell_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_FORMAT")
+        cell_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
+
+        # Multiplication factor
+        factor = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
 
 
 #===============================================================================

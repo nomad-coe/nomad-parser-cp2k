@@ -14,6 +14,7 @@ def scan_path_for_files(path):
         ".xyz",
         ".cif",
         ".pdb",
+        ".dcd",
     }
     files = {}
     for filename in os.listdir(path):

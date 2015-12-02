@@ -82,6 +82,7 @@ class NomadParser(object):
         self.metainfo_to_keep = None
         self.metainfo_to_skip = None
         self.file_ids = {}
+        self.results = {}
         self.filepaths_wo_id = None
         self.test_mode = test_mode
         self.backend = JsonParseEventsWriterBackend(None, stream)
@@ -178,16 +179,22 @@ class NomadParser(object):
         Checks through the list given by get_supported_quantities and also
         checks the metainfoToSkip parameter given in the JSON input.
         """
-        if name not in self.metainfos:
-            logger.error("The metaname '{}' was not declared on the metainfo file defined in the JSON input.".format(name))
-            return False
         if name not in self.get_supported_quantities():
-            logger.error("The metaname '{}' is not available in this parser version.".format(name))
             return False
         if name in self.metainfo_to_skip:
             logger.error("The metaname '{}' cannot be calculated as it is in the list 'metaInfoToSkip'.".format(name))
             return False
         return True
+
+    def parse(self):
+        """Start parsing the contents.
+        """
+        # Determine which values in metainfo are parseable
+        metainfos = self.metainfos.itervalues()
+        for metainfo in metainfos:
+            name = metainfo["name"]
+            if self.check_quantity_availability(name):
+                self.parse_quantity(name)
 
     def parse_quantity(self, name):
         """Given a unique quantity id (=metaInfo name) which is supported by
@@ -202,7 +209,8 @@ class NomadParser(object):
         if not available:
             return
 
-        result = self.start_parsing(name)
+        # Get the result by parsing or from cache
+        result = self.get_result_object(name)
 
         if result is not None:
             if isinstance(result, Result):
@@ -215,16 +223,25 @@ class NomadParser(object):
                     self.result_saver(result)
                 # In test mode just return the values directly
                 else:
-                    if result. value is not None:
+                    if result.value is not None:
                         if result.value_iterable is None:
                             return result.value
-                    if result.value_iterable is not None:
+                    elif result.value_iterable is not None:
                         values = []
                         for value in result.value_iterable:
                             values.append(value)
                         values = np.array(values)
                         if values.size != 0:
                             return values
+
+    def get_result_object(self, name):
+        # Check cache
+        result = self.results.get(name)
+        if result is None:
+            result = self.start_parsing(name)
+            if result.cache:
+                self.results[name] = result
+        return result
 
     def result_saver(self, result):
         """Given a result object, saves the results to the backend.
@@ -382,9 +399,22 @@ class Result(object):
     The repeatable values can also be given as generator functions. With
     generators you can easily push results from a big data file piece by piece
     to the backend without loading the entire file into memory.
+
+    Attributes:
+        cache: Boolean indicating whether the result should be cached in memory.
+        name: The name of the metainfo corresponding to this result
+        value: The value of the result. Used for storing single results.
+        value_iterable: Iterable object containing multiple results.
+        unit: Unit of the result. Use the Pint units from UnitRegistry. e.g.
+              unit = ureg.newton. Used to automatically convert to SI.
+        dtypstr: The datatype string specified in metainfo.
+        shape: The expected shape of the result specified in metainfo.
+        repeats: A boolean indicating if this value can repeat. Specified in
+                 metainfo.
+
     """
 
-    def __init__(self, meta_name=""):
+    def __init__(self):
         self.name = None
         self.value = None
         self.value_iterable = None
@@ -394,6 +424,7 @@ class Result(object):
         self.dtypestr = None
         self.repeats = None
         self.shape = None
+        self.cache = False
 
 
 #===============================================================================
