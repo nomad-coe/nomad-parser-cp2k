@@ -143,36 +143,47 @@ class CP2KParser(NomadParser):
             logger.debug("Initial coordinate file found.")
             # Check against the given files
             file_path = self.search_file(init_coord_file)
-            self.file_ids["initial_coordinates"] = file_path
-            self.get_file_handle("initial_coordinates")
+            self.setup_file_id(file_path, "initial_coordinates")
 
         # Determine the presence of a trajectory file
         traj_file = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FILENAME")
         if traj_file is not None:
+            file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
+            extension = {
+                "PDB": "pdb",
+                "XYZ": "xyz",
+                "XMOL": "xyz",
+                "ATOMIC": "xyz",
+                "DCD": "dcd",
+            }[file_format]
             logger.debug("Trajectory file found.")
-            normalized_path = self.normalize_cp2k_traj_path(traj_file)
+            normalized_path = self.normalize_cp2k_path(traj_file, extension, "pos")
             file_path = self.search_file(normalized_path)
-            self.file_ids["trajectory"] = file_path
-            self.get_file_handle("trajectory")
+            self.setup_file_id(file_path, "trajectory")
 
-    def normalize_cp2k_traj_path(self, path):
+        # Determine the presence of a cell file
+        cell_motion_file = self.input_tree.get_keyword("MOTION/PRINT/CELL/FILENAME")
+        if cell_motion_file is not None:
+            logger.debug("Cell file found.")
+            extension = "cell"
+            normalized_path = self.normalize_cp2k_path(cell_motion_file, extension)
+            print normalized_path
+            file_path = self.search_file(normalized_path)
+            self.setup_file_id(file_path, "cell")
+
+    def normalize_cp2k_path(self, path, extension, name=""):
+        if name:
+            name = "-" + name
         logger.debug("Normalizing trajectory path")
         project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
-        file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
-        extension = {
-            "PDB": "pdb",
-            "XYZ": "xyz",
-            "XMOL": "xyz",
-            "ATOMIC": "xyz",
-            "DCD": "dcd",
-        }[file_format]
         if path.startswith("="):
             normalized_path = path[1:]
         elif re.match(r"./", path):
-            normalized_path = "{}-pos-1.{}".format(path, extension)
+            normalized_path = "{}{}-1.{}".format(path, name, extension)
         else:
-            normalized_path = "{}-{}-pos-1.{}".format(project_name, path, extension)
+            normalized_path = "{}-{}{}-1.{}".format(project_name, path, name, extension)
         return normalized_path
+
 
     def search_file(self, path):
         """Searches the list of given files for a file that is defined in the
@@ -262,7 +273,21 @@ class CP2KImplementation(object):
         if pint_unit:
             return pint_unit
         else:
-            logger.error("Unknown CP2K unit definition given.")
+            logger.error("Unknown CP2K unit definition '{}'.".format(unit))
+
+    def get_cp2k_unit(self, path):
+        input_value = self.input_tree.get_keyword(path)
+        unit_definition = input_value.split()[0]
+        if unit_definition.startswith('[') and unit_definition.endswith(']'):
+            unit_definition = unit_definition[1:-1]
+            return self.decode_cp2k_unit(unit_definition)
+        else:
+            logger.debug("No special unit definition found, returning default unit.")
+            unit_definition = self.input_tree.get_default_unit(path)
+            if unit_definition:
+                return self.decode_cp2k_unit(unit_definition)
+            else:
+                logger.error("Could not deduce the unit of keyword in path '{}'".format(path))
 
     def _Q_energy_total(self):
         """Return the total energy from the bottom of the input file"""
@@ -489,25 +514,61 @@ class CP2KImplementation(object):
         return result
 
     def _Q_cell(self):
+        """The cell size can be static or dynamic if e.g. doing NPT.
+        """
+        result = Result()
 
-        # Cell given as three vectors
-        A = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/A")
-        B = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/B")
-        C = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/C")
+        # Determine if the cell is printed during simulation steps
+        cell_file = self.parser.get_file_handle("cell")
+        if cell_file:
+            logger.debug("Cell motion file found.")
+            result.unit = ureg.angstrom
 
-        if A and B and C:
-            return
+            def cell_generator():
+                for line in cell_file:
+                    line = line.strip()
+                    if line.startswith("#"):
+                        continue
+                    split = line.split()
+                    A = [float(x) for x in split[2:5]]
+                    B = [float(x) for x in split[5:8]]
+                    C = [float(x) for x in split[8:11]]
+                    result = np.array([A, B, C])
+                    yield result
+            result.value_iterable = cell_generator()
+            return result
 
-        # Cell given as three lengths and three angles
-        ABC = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ABC")
-        abg = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
+        else:
+            # Cell given as three vectors
+            A = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/A")
+            B = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/B")
+            C = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/C")
+            A_unit = self.get_cp2k_unit("FORCE_EVAL/SUBSYS/CELL/A")
+            B_unit = self.get_cp2k_unit("FORCE_EVAL/SUBSYS/CELL/B")
+            C_unit = self.get_cp2k_unit("FORCE_EVAL/SUBSYS/CELL/C")
 
-        # Cell given in external file
-        cell_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_FORMAT")
-        cell_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
+            A = [float(x) for x in A.split()]
+            print A
+            print B
+            print C
+            print A_unit
+            print B_unit
+            print C_unit
 
-        # Multiplication factor
-        factor = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
+            # if A and B and C:
+                # cell = np.empty((3, 3))
+                # return
+
+            # # Cell given as three lengths and three angles
+            # ABC = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ABC")
+            # abg = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
+
+            # # Cell given in external file
+            # cell_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_FORMAT")
+            # cell_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
+
+            # # Multiplication factor
+            # factor = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
 
 
 #===============================================================================

@@ -169,9 +169,7 @@ MyParser could be now used as follows:
     """
 
     parser = MyParser(json.dumps(input_json))
-    parser.parse_quantity("energy_total")
-    parser.parse_quantity("particle_forces")
-    parser.parse_quantity("particle_position")
+    parser.parse()
 ```
 
 The input JSON string is used to initialize the parser. The 'metaInfoFile'

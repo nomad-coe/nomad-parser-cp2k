@@ -239,8 +239,9 @@ class NomadParser(object):
         result = self.results.get(name)
         if result is None:
             result = self.start_parsing(name)
-            if result.cache:
-                self.results[name] = result
+            if result:
+                if result.cache:
+                    self.results[name] = result
         return result
 
     def result_saver(self, result):
