@@ -20,8 +20,7 @@ def main():
             'pint',
             'numpy',
             'enum34',
-            'ase',
-            'MDAnalysis'
+            'ase'
         ],
         zip_safe=False
     )

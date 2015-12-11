@@ -4,6 +4,7 @@ import logging
 import numpy as np
 logger = logging.getLogger(__name__)
 from abc import ABCMeta, abstractmethod
+from nomadcore.unit_conversion.unit_conversion import convert_unit
 from enum import Enum
 import sys
 
@@ -170,7 +171,6 @@ class NomadParser(object):
             manual: You use the backend explicitly and do the unit
             conversion and JSON formatting "manually". In this case the
             function should return 'None'.
-
         """
         pass
 
@@ -293,7 +293,7 @@ class NomadParser(object):
 
         # Convert to SI units if unit has been specified
         if unit is not None:
-            value = self.to_SI(value, unit)
+            value = convert_unit(value, unit)
 
         if len(shape) != 0:
             self.backend.addArrayValues(name, value)
@@ -310,34 +310,62 @@ class NomadParser(object):
         # TODO
         return value
 
-    def to_SI(self, value, unit):
-        """If units have been defined to the result, convert the units to SI.
-        """
-        # Do the conversion to SI units based on the given units and type
-        value = value * unit
-        converted = value.to_base_units()
-        return converted.magnitude
-
     def setup_file_id(self, path, file_id):
         """Used to map a simple identifier string to a file path. When a file
         id has been setup, you can easily access the file by using the
         functions get_file_handle() or get_file_contents()
         """
         if path in self.files:
-            self.file_ids[file_id] = path
+            value = self.file_ids.get(file_id)
+            if value:
+                value.append(path)
+            else:
+                pathlist = []
+                pathlist.append(path)
+                self.file_ids[file_id] = pathlist
         else:
             logger.error("Trying to setup an id for an undefined path. See that the path was written correctly and it was given in the files attribute of the JSON string.")
 
+    def get_filepath_by_id(self, file_id):
+        """Get the file paths that were registered with the given id.
+        """
+        value = self.file_ids.get(file_id)
+        if value:
+            if isinstance(value, list):
+                n = len(value)
+                if n == 1:
+                    return value[0]
+                elif n == 0:
+                    logger.warning("No files set with id '{}'".format(file_id))
+                    return None
+                else:
+                    logger.debug("Multiple files set with id '{}'".format(file_id))
+                    return value
+        else:
+            logger.warning("No files set with id '{}'".format(file_id))
+
     def get_file_handle(self, file_id):
-        """Get the handle for a file with the given id. Uses cached result
+        """Get the handle for a single file with the given id. Uses cached result
         if available. Always seeks to beginning of file before returning it.
         """
-        handle = self._file_handles.get(file_id)
-        if not handle:
-            path = self.file_ids.get(file_id)
-            if not path:
-                logger.warning("The file with id '{}' could not be found. You have either not registered this id, or the parser was not given files with this extension.".format(file_id))
+        # Get the filepath(s)
+        path = self.get_filepath_by_id(file_id)
+        if not path:
+            logger.warning("No filepaths registered to id '{}'. Register id's with setup_file_id().".format(file_id))
+            return
+
+        if isinstance(path, list):
+            if len(path) == 0:
                 return
+            elif len(path) != 1:
+                logger.error("Multiple filepaths found with id '{}'. Use get_file_handles() instead if you expect to have multiple files.".format(file_id))
+                return
+            else:
+                path = path[0]
+
+        # Search for filehandles, if not present create one
+        handle = self._file_handles.get(path)
+        if not handle:
             try:
                 handle = open(path, "r")
             except (OSError, IOError):
@@ -346,6 +374,37 @@ class NomadParser(object):
                 self._file_handles[file_id] = handle
         handle.seek(0, os.SEEK_SET)
         return handle
+
+    def get_file_handles(self, file_id):
+        """Get the handles for multiple files with the given id. Uses cached result
+        if available. Always seeks to beginning of files before returning them.
+        """
+        # Get the filepath(s)
+        paths = self.get_filepath_by_id(file_id)
+        if not paths:
+            return
+        if not isinstance(paths, list):
+            paths = [paths]
+
+        # Search for filehandles, if not present create one
+        handles = []
+        for path in paths:
+            handle = self._file_handles.get(path)
+            if not handle:
+                try:
+                    handle = open(path, "r")
+                except (OSError, IOError):
+                    logger.error("Could not open file: '{}'".format(path))
+                else:
+                    self._file_handles[file_id] = handle
+            handle.seek(0, os.SEEK_SET)
+            handles.append(handle)
+
+        # Return handles
+        if len(handles) == 0:
+            return None
+        else:
+            return handles
 
     def get_file_contents(self, file_id):
         """Get the contents for the file with the given id. Uses cached result

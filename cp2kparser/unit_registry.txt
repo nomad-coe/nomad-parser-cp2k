@@ -107,6 +107,7 @@ ton_TNT = 4.184e9 * joule = tTNT
 US_therm = 1.054804e8 * joule
 watt_hour = watt * hour = Wh = watthour
 hartree = 4.35974394e-18 * joule = E_h = hartree_energy
+rydberg = h * c * rydberg_constant
 
 # Force
 [force] = [mass] * [acceleration]

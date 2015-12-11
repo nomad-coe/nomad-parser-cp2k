@@ -1,17 +1,19 @@
 import os
-import re
+import re2 as re
 from cp2kparser.generics.nomadparser import NomadParser, Result, ResultCode
 from cp2kparser.implementation.regexs import *
 from cp2kparser.engines.regexengine import RegexEngine
 from cp2kparser.engines.csvengine import CSVEngine
 from cp2kparser.engines.cp2kinputengine import CP2KInputEngine
 from cp2kparser.engines.xmlengine import XMLEngine
-from cp2kparser.engines.atomsengine import AtomsEngine
+from nomadcore.coordinate_reader import CoordinateReader
+from nomadcore.unit_conversion.unit_conversion import convert_unit, ureg
+from cp2kparser.engines.cp2kinputenginedata.input_tree import CP2KInput
 import numpy as np
 import logging
 import sys
 logger = logging.getLogger(__name__)
-from cp2kparser import ureg
+import math
 
 
 #===============================================================================
@@ -33,15 +35,17 @@ class CP2KParser(NomadParser):
         self.regexengine = RegexEngine(self)
         self.xmlengine = XMLEngine(self)
         self.inputengine = CP2KInputEngine()
-        self.atomsengine = AtomsEngine()
+        self.atomsengine = CoordinateReader()
 
         self.version_number = None
         self.implementation = None
         self.input_tree = None
         self.regexs = None
+        self.extended_input = None
 
         # Use some convenient functions from base
         self.determine_file_ids_pre_setup()
+        self.input_preprocessor()
         self.setup_version()
         self.determine_file_ids_post_setup()
 
@@ -65,7 +69,7 @@ class CP2KParser(NomadParser):
         version_regex = re.compile(r"CP2K\|\ version\ string:\s+CP2K\ version\ (\d+\.\d+\.\d+)\n")
         self.version_number = version_regex.search(beginning).groups()[0].replace('.', '')
         self.inputengine.setup_version_number(self.version_number)
-        self.input_tree = self.inputengine.parse(self.get_file_contents("input"))
+        self.input_tree = self.inputengine.parse(self.extended_input)
         version_name = '_' + self.version_number + '_'
 
         # Search for a version specific regex class
@@ -103,14 +107,115 @@ class CP2KParser(NomadParser):
         buffer = fh.read(size)
         return buffer
 
+    def input_preprocessor(self):
+        """Preprocess the input file. Concatenate separate files into one and
+        explicitly state all variables.
+        """
+
+        # Merge include files to input
+        include_files = self.get_file_handles("include")
+        input_file = self.get_file_contents("input")
+        input_lines = input_file.split("\n")
+        extended_input = input_lines[:]  # Make a copy
+        if include_files:
+            i_line = 0
+            for line in input_lines:
+                line = line.strip()
+                if line.startswith("@INCLUDE") or line.startswith("@include"):
+                    split = line.split(None, 1)
+                    filename = split[1]
+                    if filename.startswith(('\"', '\'')) and filename.endswith(('\"', '\'')):
+                        filename = filename[1:-1]
+                    filepath = self.search_file(filename)
+
+                    # Get the content from include file
+                    for handle in include_files:
+                        name = handle.name
+                        if name == filepath:
+                            contents = handle.read()
+                            contents = contents.split('\n')
+                            del extended_input[i_line]
+                            extended_input[i_line:i_line] = contents
+                            i_line += len(contents)
+                i_line += 1
+
+        # Gather the variable definitions
+        variables = {}
+        input_set_removed = []
+        for i_line, line in enumerate(extended_input):
+            if line.startswith("@SET") or line.startswith("@set"):
+                components = line.split(None, 2)
+                name = components[1]
+                value = components[2]
+                variables[name] = value
+                logger.debug("Variable '{}' found with value '{}'".format(name, value))
+            else:
+                input_set_removed.append(line)
+
+        # print '\n'.join(input_set_removed)
+
+        # Place the variables
+        variable_pattern = r"\@\{(\w+)\}|@(\w+)"
+        compiled = re.compile(variable_pattern)
+        reserved = ("include", "set", "if", "endif")
+        input_variables_replaced = []
+        for line in input_set_removed:
+            results = compiled.finditer(line)
+            new_line = line
+            offset = 0
+            for result in results:
+                options = result.groups()
+                first = options[0]
+                second = options[1]
+                if first:
+                    name = first
+                elif second:
+                    name = second
+                if name in reserved:
+                    continue
+                value = variables.get(name)
+                if not value:
+                    logger.error("Value for variable '{}' not set.".format(name))
+                    continue
+                len_value = len(value)
+                len_name = len(name)
+                start = result.start()
+                end = result.end()
+                beginning = new_line[:offset+start]
+                rest = new_line[offset+end:]
+                new_line = beginning + value + rest
+                offset += len_value - len_name - 1
+                # print offset
+                # print "BEG:" + beginning
+                # print "VALUE:" + value
+                # print "REST: " + rest
+                # print new_line
+            input_variables_replaced.append(new_line)
+
+        self.extended_input = '\n'.join(input_variables_replaced)
+        # print self.extended_input
+
     def determine_file_ids_pre_setup(self):
         """First resolve the files that can be identified by extension.
         """
+        # Input and output files
         for file_path in self.files.iterkeys():
             if file_path.endswith(".inp"):
                 self.setup_file_id(file_path, "input")
             if file_path.endswith(".out"):
                 self.setup_file_id(file_path, "output")
+
+        # Include files
+        input_file = self.get_file_contents("input")
+        for line in input_file.split("\n"):
+            line = line.strip()
+            if line.startswith("@INCLUDE") or line.startswith("@include"):
+                split = line.split(None, 1)
+                filename = split[1]
+                if filename.startswith(('\"', '\'')) and filename.endswith(('\"', '\'')):
+                    filename = filename[1:-1]
+                filepath = self.search_file(filename)
+                self.setup_file_id(filepath, "include")
 
     def determine_file_ids_post_setup(self):
         """Inherited from NomadParser.
@@ -134,8 +239,7 @@ class CP2KParser(NomadParser):
 
             # Check against the given files
             file_path = self.search_file(force_path)
-            self.file_ids["forces"] = file_path
-            self.get_file_handle("forces")
+            self.setup_file_id(file_path, "forces")
 
         # Determine the presence of an initial coordinate file
         init_coord_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_NAME")
@@ -161,15 +265,20 @@ class CP2KParser(NomadParser):
             file_path = self.search_file(normalized_path)
             self.setup_file_id(file_path, "trajectory")
 
-        # Determine the presence of a cell file
+        # Determine the presence of a cell output file
         cell_motion_file = self.input_tree.get_keyword("MOTION/PRINT/CELL/FILENAME")
         if cell_motion_file is not None:
             logger.debug("Cell file found.")
             extension = "cell"
             normalized_path = self.normalize_cp2k_path(cell_motion_file, extension)
-            print normalized_path
             file_path = self.search_file(normalized_path)
-            self.setup_file_id(file_path, "cell")
+            self.setup_file_id(file_path, "cell_output")
+
+        # Determine the presence of a cell input file
+        cell_input_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
+        if cell_input_file is not None:
+            file_path = self.search_file(cell_input_file)
+            self.setup_file_id(file_path, "cell_input")
 
     def normalize_cp2k_path(self, path, extension, name=""):
         if name:
@@ -184,13 +293,12 @@ class CP2KParser(NomadParser):
             normalized_path = "{}-{}{}-1.{}".format(project_name, path, name, extension)
         return normalized_path
 
-
     def search_file(self, path):
         """Searches the list of given files for a file that is defined in the
         CP2K input file.
 
         First compares the basenames, and if multiple matches found descends
-        the path until only one or zero matches found.
+        the path until only only one or zero matches found.
         """
         matches = {}
         resolvable = [x for x in self.files.iterkeys() if x not in self.file_ids.itervalues()]
@@ -226,9 +334,7 @@ class CP2KParser(NomadParser):
             else:
                 if path != "":
                     folders.append(path)
-
                 break
-
         return folders
 
     def get_all_quantities(self):
@@ -257,42 +363,10 @@ class CP2KImplementation(object):
         self.atomsengine = parser.atomsengine
         self.input_tree = parser.input_tree
 
-    def decode_cp2k_unit(self, unit):
-        """Given a CP2K unit name, decode it as Pint unit definition.
-        """
-        map = {
-            # Length
-            "bohr": ureg.bohr,
-            "m": ureg.meter,
-            "pm": ureg.picometer,
-            "nm": ureg.nanometer,
-            "angstrom": ureg.angstrom,
-        }
-
-        pint_unit = map.get(unit)
-        if pint_unit:
-            return pint_unit
-        else:
-            logger.error("Unknown CP2K unit definition '{}'.".format(unit))
-
-    def get_cp2k_unit(self, path):
-        input_value = self.input_tree.get_keyword(path)
-        unit_definition = input_value.split()[0]
-        if unit_definition.startswith('[') and unit_definition.endswith(']'):
-            unit_definition = unit_definition[1:-1]
-            return self.decode_cp2k_unit(unit_definition)
-        else:
-            logger.debug("No special unit definition found, returning default unit.")
-            unit_definition = self.input_tree.get_default_unit(path)
-            if unit_definition:
-                return self.decode_cp2k_unit(unit_definition)
-            else:
-                logger.error("Could not deduce the unit of keyword in path '{}'".format(path))
-
     def _Q_energy_total(self):
         """Return the total energy from the bottom of the input file"""
         result = Result()
-        result.unit = ureg.hartree
+        result.unit = "hartree"
         result.value = float(self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output")))
         return result
 
@@ -372,7 +446,7 @@ class CP2KImplementation(object):
         Supports forces printed in the output file or in a single XYZ file.
         """
         result = Result()
-        result.unit = ureg.force_au
+        result.unit = "force_au"
 
         # Determine if a separate force file is used or are the forces printed
         # in the output file.
@@ -470,9 +544,10 @@ class CP2KImplementation(object):
         result = Result()
 
         # Determine the unit
-        unit = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/UNIT")
+        unit_path = "MOTION/PRINT/TRAJECTORY/UNIT"
+        unit = self.input_tree.get_keyword(unit_path)
         unit = unit.lower()
-        result.unit = self.decode_cp2k_unit(unit)
+        result.unit = CP2KInput.decode_cp2k_unit(unit)
 
         # Read the trajectory
         traj_file = self.parser.get_file_handle("trajectory")
@@ -514,61 +589,121 @@ class CP2KImplementation(object):
         return result
 
     def _Q_cell(self):
-        """The cell size can be static or dynamic if e.g. doing NPT.
+        """The cell size can be static or dynamic if e.g. doing NPT. If the
+        cell size changes, outputs an Nx3x3 array where N is typically the
+        number of timesteps.
         """
+
+        def cell_generator(cell_file):
+            for line in cell_file:
+                line = line.strip()
+                if line.startswith("#"):
+                    continue
+                split = line.split()
+                A = [float(x) for x in split[2:5]]
+                B = [float(x) for x in split[5:8]]
+                C = [float(x) for x in split[8:11]]
+                result = np.array([A, B, C])*factor
+                yield result
+
         result = Result()
 
         # Determine if the cell is printed during simulation steps
-        cell_file = self.parser.get_file_handle("cell")
-        if cell_file:
-            logger.debug("Cell motion file found.")
-            result.unit = ureg.angstrom
+        cell_output_file = self.parser.get_file_handle("cell_output")
+        A = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/A")
+        B = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/B")
+        C = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/C")
+        ABC = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ABC")
+        abg = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
+        cell_input_file = self.parser.get_file_handle("cell_input")
 
-            def cell_generator():
-                for line in cell_file:
-                    line = line.strip()
-                    if line.startswith("#"):
-                        continue
-                    split = line.split()
-                    A = [float(x) for x in split[2:5]]
-                    B = [float(x) for x in split[5:8]]
-                    C = [float(x) for x in split[8:11]]
-                    result = np.array([A, B, C])
-                    yield result
-            result.value_iterable = cell_generator()
+        # Multiplication factor
+        multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/MULTIPLE_UNIT_CELL")
+        factors = [int(x) for x in multiples.split()]
+        factor = np.prod(np.array(factors))
+
+        # Separate file from e.g. NPT
+        if cell_output_file:
+            logger.debug("Cell output file found.")
+            result.unit = "angstrom"
+            result.value_iterable = cell_generator(cell_output_file)
             return result
 
-        else:
+        # Cartesian cell vectors
+        elif A and B and C:
+            logger.debug("Cartesian cell vectors found.")
             # Cell given as three vectors
-            A = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/A")
-            B = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/B")
-            C = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/C")
-            A_unit = self.get_cp2k_unit("FORCE_EVAL/SUBSYS/CELL/A")
-            B_unit = self.get_cp2k_unit("FORCE_EVAL/SUBSYS/CELL/B")
-            C_unit = self.get_cp2k_unit("FORCE_EVAL/SUBSYS/CELL/C")
+            A_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/A")
+            B_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/B")
+            C_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/C")
 
-            A = [float(x) for x in A.split()]
-            print A
-            print B
-            print C
-            print A_unit
-            print B_unit
-            print C_unit
+            A = np.array([float(x) for x in A.split()])
+            B = np.array([float(x) for x in B.split()])
+            C = np.array([float(x) for x in C.split()])
 
-            # if A and B and C:
-                # cell = np.empty((3, 3))
-                # return
+            # Convert already here as the different vectors may have different units
+            A = convert_unit(A, A_unit)
+            B = convert_unit(B, B_unit)
+            C = convert_unit(C, C_unit)
 
-            # # Cell given as three lengths and three angles
-            # ABC = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ABC")
-            # abg = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
+            cell = np.empty((3, 3))
+            cell[0, :] = A
+            cell[1, :] = B
+            cell[2, :] = C
+            result.value = cell*factor
+            return result
 
-            # # Cell given in external file
-            # cell_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_FORMAT")
-            # cell_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
+        # Cell vector magnitudes and angles
+        elif ABC and abg:
+            logger.debug("Cell vectors defined with angles and magnitudes found.")
+            # Cell given as three vectors
+            ABC_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/ABC")
+            abg_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
 
-            # # Multiplication factor
-            # factor = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
+            angles = np.array([float(x) for x in abg.split()])
+            magnitudes = np.array([float(x) for x in ABC.split()])
+            a = magnitudes[0]
+            b = magnitudes[1]
+            c = magnitudes[2]
+
+            # Convert angles to radians
+            angles = (angles*ureg(abg_unit)).to(ureg.radian).magnitude
+            alpha = angles[0]
+            beta = angles[1]
+            gamma = angles[2]
+
+            A = np.array((a, 0, 0))
+            B = np.array((b*math.cos(gamma), b*math.sin(gamma), 0))
+            b_x = B[0]
+            b_y = B[1]
+            c_x = c*math.cos(beta)
+            c_y = 1.0/b_y*(b*c*math.cos(alpha) - b_x*c_x)
+            c_z = math.sqrt(c**2 - c_x**2 - c_y**2)
+            C = np.array((c_x, c_y, c_z))
+
+            cell = np.zeros((3, 3))
+            cell[0, :] = A
+            cell[1, :] = B
+            cell[2, :] = C
+            result.value = cell*factor
+            result.unit = ABC_unit
+            return result
+
+        # Separate cell input file
+        elif cell_input_file:
+            logger.debug("Separate cell input file found.")
+            filename = cell_input_file.name
+            if filename.endswith(".cell"):
+                logger.debug("CP2K specific cell input file format found.")
+                result.value = cell_generator(cell_input_file).next()
+                result.unit = "angstrom"
+                return result
+            else:
+                logger.error("The XSC cell file format is not yet supported.")
+
+        # No cell found
+        else:
+            logger.error("Could not find cell declaration.")
 
 
 #===============================================================================

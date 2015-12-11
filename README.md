@@ -131,8 +131,8 @@ Although CP2K often doesn't care about the file extensions, using them enables
 the parser to automatically identify the files and makes it perform better
 (only needs to decompress part of files in HDF5). Please use these default file
 extensions:
- - Output file: .out
- - Input file: .inp
+ - Output file: .out (Only one)
+ - Input file: .inp (Only one. If you have "include" files, use some other extension e.g. .inc)
  - XYZ coordinate files: .xyz
  - Protein Data Bank files: .pdb
  - Crystallographic Information Files: .cif
