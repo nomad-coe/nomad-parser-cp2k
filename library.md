@@ -65,7 +65,7 @@ class MyParserImplementation1():
         result.
         """
         result = Result()
-        result.unit = ureg.joule
+        result.unit = "joule"
         result.value = 2.0
         return result
 
@@ -76,7 +76,7 @@ class MyParserImplementation1():
         one example on how to avoid loading the entire file into memory.
         """
         result = Result()
-        result.unit = ureg.newton
+        result.unit = "newton"
         xyz_string = self.parser.get_file_contents("forces")
         forces = []
         i_forces = []
@@ -127,7 +127,7 @@ class MyParserImplementation1():
                 yield np.array(i_forces)
 
         result = Result()
-        result.unit = ureg.angstrom
+        result.unit = "angstrom"
         result.value_iterable = position_generator()
         return result
 ```
@@ -149,7 +149,7 @@ class MyParserImplementation2(MyParserImplementation1):
     def energy(self):
         """The energy unit has changed in this version."""
         result = Result()
-        result.unit = ureg.hartree
+        result.unit = "hartree"
         result.value = "2.0"
         return result
 ```
