@@ -29,9 +29,10 @@ def scan_path_for_files(path):
 #===============================================================================
 def get_parser(path, test_mode=True, stream=sys.stdout):
     files = scan_path_for_files(path)
+    metaInfoPath = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../nomad-meta-info/meta_info/nomad_meta_info/cp2k.nomadmetainfo.json"))
     json_input = {
         "version": "nomadparsein.json 1.0",
-        "metaInfoFile": os.path.join(os.path.dirname(__file__), 'metainfo.json'),
+        "metaInfoFile": metaInfoPath,
         "tmpDir": "/home",
         "metainfoToKeep": [],
         "metainfoToSkip": [],
@@ -45,4 +46,4 @@ def get_parser(path, test_mode=True, stream=sys.stdout):
 if __name__ == '__main__':
     path = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
     parser = get_parser(path)
-    parser.parse_all()
+    parser.parse()
