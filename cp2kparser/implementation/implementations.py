@@ -1,90 +1,65 @@
+import re
 import os
-import re2 as re
-from cp2kparser.generics.nomadparser import NomadParser
-from cp2kparser.implementation.regexs import *
-from cp2kparser.engines.regexengine import RegexEngine
-from cp2kparser.engines.csvengine import CSVEngine
-from cp2kparser.engines.cp2kinputengine import CP2KInputEngine
-from cp2kparser.engines.xmlengine import XMLEngine
-from nomadcore.coordinate_reader import CoordinateReader
-from nomadcore.unit_conversion.unit_conversion import convert_unit, ureg
-from nomadcore.simple_parser import SimpleMatcher as SM
-from cp2kparser.engines.cp2kinputenginedata.input_tree import CP2KInput
-import numpy as np
 import logging
-import sys
+from cp2kparser.engines.csvengine import CSVEngine
+from cp2kparser.implementation.cp2kinputparsers import CP2KInputEngine
+from cp2kparser.implementation.outputparsers import *
+from nomadcore.coordinate_reader import CoordinateReader
+from cp2kparser.generics.nomadparser import NomadParser
 logger = logging.getLogger(__name__)
-import math
 
 
 #===============================================================================
-class CP2KParser(NomadParser):
-    """The interface for a NoMaD CP2K parser. All parsing actions will go
-    through this class.
+class CP2KImplementation262(NomadParser):
+    """Defines the basic functions that are used to map results to the
+    corresponding NoMaD quantities.
 
-    The CP2K version 2.6.2 was used as a reference for this basic
-    implementation. For other versions there should be classes that extend from
-    this.
+    This class provides the basic implementations and for a version specific
+    updates and additions please make a new class that inherits from this.
+
+    The functions that return certain quantities are tagged with a prefix '_Q_'
+    to be able to automatically determine which quantities have at least some
+    level of support. With the tag they can be also looped through.
     """
-    def __init__(self, input_json_string, stream=sys.stdout, test_mode=False):
+    def __init__(self, parser_context):
 
         # Initialize the base class
-        NomadParser.__init__(self, input_json_string, stream, test_mode)
+        NomadParser.__init__(self, parser_context)
 
         # Engines are created here
         self.csvengine = CSVEngine(self)
-        self.regexengine = RegexEngine(self)
-        self.xmlengine = XMLEngine(self)
         self.inputengine = CP2KInputEngine()
         self.atomsengine = CoordinateReader()
+        self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)]()
 
-        self.version_number = None
-        self.implementation = None
         self.input_tree = None
-        self.regexs = None
         self.extended_input = None
 
         self.determine_file_ids_pre_setup()
         self.input_preprocessor()
-        self.setup_version()
         self.determine_file_ids_post_setup()
 
-    def setup_version(self):
-        """Setups the version by looking at the output file and the version
-        specified in it.
+    def determine_file_ids_pre_setup(self):
+        """First resolve the files that can be identified by extension.
         """
-        # Determine the CP2K version from the output file
-        beginning = self.read_part_of_file("output", 2048)
-        version_regex = re.compile(r"CP2K\|\ version\ string:\s+CP2K\ version\ (\d+\.\d+\.\d+)\n")
-        self.version_number = version_regex.search(beginning).groups()[0].replace('.', '')
-        self.inputengine.setup_version_number(self.version_number)
-        self.input_tree = self.inputengine.parse(self.extended_input)
-        version_name = '_' + self.version_number + '_'
+        # Input and output files
+        for file_path in self.files.iterkeys():
+            if file_path.endswith(".inp"):
+                self.setup_file_id(file_path, "input")
+            if file_path.endswith(".out"):
+                self.setup_file_id(file_path, "output")
 
-        # Search for a version specific regex class
-        class_name = "CP2K{}Regexs".format(version_name)
-        self.regexs = globals().get(class_name)
-        if self.regexs:
-            logger.debug("Using version specific regexs '{}'.".format(class_name))
-            self.regexs = self.regexs()
-        else:
-            logger.debug("Using default regexs.")
-            self.regexs = globals()["CP2KRegexs"]()
-
-        # Search for a version specific implementation
-        class_name = "CP2K{}Implementation".format(version_name)
-        class_object = globals().get(class_name)
-        if class_object:
-            logger.debug("Using version specific implementation '{}'.".format(class_name))
-            self.implementation = class_object(self)
-        else:
-            logger.debug("Using default implementation.")
-            self.implementation = globals()["CP2KImplementation"](self)
-
-    def read_part_of_file(self, file_id, size=1024):
-        fh = self.get_file_handle(file_id)
-        buffer = fh.read(size)
-        return buffer
+        # Include files
+        input_file = self.get_file_contents("input")
+        for line in input_file.split("\n"):
+            line = line.strip()
+            if line.startswith("@INCLUDE") or line.startswith("@include"):
+                split = line.split(None, 1)
+                filename = split[1]
+                if filename.startswith(('\"', '\'')) and filename.endswith(('\"', '\'')):
+                    filename = filename[1:-1]
+                filepath = self.search_file(filename)
+                self.setup_file_id(filepath, "include")
 
     def input_preprocessor(self):
         """Preprocess the input file. Concatenate .inc files into the main input file and
@@ -167,29 +142,8 @@ class CP2KParser(NomadParser):
             input_variables_replaced.append(new_line)
 
         self.extended_input = '\n'.join(input_variables_replaced)
-        # print self.extended_input
-
-    def determine_file_ids_pre_setup(self):
-        """First resolve the files that can be identified by extension.
-        """
-        # Input and output files
-        for file_path in self.files.iterkeys():
-            if file_path.endswith(".inp"):
-                self.setup_file_id(file_path, "input")
-            if file_path.endswith(".out"):
-                self.setup_file_id(file_path, "output")
-
-        # Include files
-        input_file = self.get_file_contents("input")
-        for line in input_file.split("\n"):
-            line = line.strip()
-            if line.startswith("@INCLUDE") or line.startswith("@include"):
-                split = line.split(None, 1)
-                filename = split[1]
-                if filename.startswith(('\"', '\'')) and filename.endswith(('\"', '\'')):
-                    filename = filename[1:-1]
-                filepath = self.search_file(filename)
-                self.setup_file_id(filepath, "include")
+        self.inputengine.setup_version(self.version_id)
+        self.input_tree = self.inputengine.parse(self.extended_input)
 
     def determine_file_ids_post_setup(self):
         """Determines the file id's after the CP2K verion has been set
@@ -313,105 +267,26 @@ class CP2KParser(NomadParser):
         return folders
 
     def parse(self):
-        self.implementation.parse()
-
-    # def get_all_quantities(self):
-        # """Parse all supported quantities."""
-        # for method in self.get_supported_quantities:
-            # self.get_quantity(method)
-
-    # def start_parsing(self, name):
-        # """Inherited from NomadParser.
-        # """
-        # # Ask the implementation for the quantity
-        # function = getattr(self.implementation, "_Q_" + name)
-        # if function:
-            # return function()
-        # else:
-            # logger.error("The function for quantity '{}' is not defined".format(name))
-
-    # def get_supported_quantities(self):
-        # """Inherited from NomadParser.
-        # """
-        # supported_quantities = []
-        # implementation_methods = [method for method in dir(self.implementation) if callable(getattr(self.implementation, method))]
-        # for method in implementation_methods:
-            # if method.startswith("_Q_"):
-                # method = method[3:]
-                # supported_quantities.append(method)
-
-        # return supported_quantities
-
-
-#===============================================================================
-class CP2KImplementation(object):
-    """Defines the basic functions that are used to map results to the
-    corresponding NoMaD quantities.
-
-    This class provides the basic implementations and for a version specific
-    updates and additions please make a new class that inherits from this.
-
-    The functions that return certain quantities are tagged with a prefix '_Q_'
-    to be able to automatically determine which quantities have at least some
-    level of support. With the tag they can be also looped through.
-    """
-    def __init__(self, parser):
-        self.parser = parser
-        self.regexs = parser.regexs
-        self.regexengine = parser.regexengine
-        self.csvengine = parser.csvengine
-        self.atomsengine = parser.atomsengine
-        self.input_tree = parser.input_tree
-
-        # Define the output parsing tree for this version
-        self.outputstructure = SM(
-            name='root',
-            startReStr="",
-            subMatchers=[
-                SM(
-                    name='new_run',
-                    startReStr=r" DBCSR\| Multiplication driver",
-                    endReStr="[.\*]+PROGRAM STOPPED IN",
-                    required=True,
-                    sections=['section_run'],
-                    subMatchers=[
-                        SM(
-                            name="run_datetime",
-                            startReStr=r"[\*\s]+PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
-                        ),
-                        SM(
-                            name="version",
-                            startReStr=r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)",
-                        ),
-                        SM(
-                            name="svn_revision",
-                            startReStr=r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)",
-                        )
-                    ]
-                )
-            ]
-        )
-
-    def parse(self):
         """Parses everything that can be found from the given files. The
         results are outputted to std.out by using the backend. The scala layer
         will the take on from that.
         """
         # Write the starting bracket
-        self.parser.stream.write("[")
+        self.stream.write("[")
 
         # Use the SimpleMatcher to extract most of the results
         parserInfo = {"name": "cp2k-parser", "version": "1.0"}
-        outputfilename = self.parser.get_file_handle("output").name
-        metainfoenv = self.parser.metainfoenv
-        backend = self.parser.backend
-        outputstructure = self.outputstructure
-        self.parser.parse_file(outputfilename, outputstructure, metainfoenv, backend, parserInfo)
+        outputfilename = self.get_file_handle("output").name
+        metainfoenv = self.metainfoenv
+        backend = self.backend
+        outputstructure = self.outputparser.outputstructure
+        cachingLevelForMetaName = self.outputparser.cachingLevelForMetaName
+        self.parse_file(outputfilename, outputstructure, metainfoenv, backend, parserInfo, cachingLevelForMetaName)
 
         # Then extract the things that cannot be extracted by the SimpleMatcher
 
         # Write the ending bracket
-        self.parser.stream.write("]\n")
+        self.stream.write("]\n")
 
     # def dateconverter(datestring):
 
@@ -758,7 +633,7 @@ class CP2KImplementation(object):
             logger.error("Could not find cell declaration.")
 
 
-#===============================================================================
-class CP2K_262_Implementation(CP2KImplementation):
-    def __init__(self, parser):
-        CP2KImplementation.__init__(self, parser)
+# #===============================================================================
+# class CP2K_262_Implementation(CP2KImplementation):
+    # def __init__(self, parser):
+        # CP2KImplementation.__init__(self, parser)

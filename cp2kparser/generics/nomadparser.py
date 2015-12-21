@@ -1,13 +1,11 @@
-import json
 import os
 import logging
-logger = logging.getLogger(__name__)
-from abc import ABCMeta, abstractmethod
-from nomadcore.parser_backend import JsonParseEventsWriterBackend
-from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile
-from nomadcore.local_meta_info import loadJsonFile
 import StringIO
 import sys
+from abc import ABCMeta, abstractmethod
+from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile
+from nomadcore.caching_backend import CachingLevel, ActiveBackend
+logger = logging.getLogger(__name__)
 
 
 #===============================================================================
@@ -28,102 +26,28 @@ class NomadParser(object):
     interface that can be expected from each parser, but leaves the
     implementation details to the developer.
 
-    To initialize a NomadParser, you need to give it a JSON string in the
-    constructor. JSON is used because it is language-agnostic and can easily given
-    as a run argument for the parser. An example of the JSON file might look like
-    this:
-
-        {
-            "metaInfoFile": "/home/metainfo.json"
-            "tmpDir": "/home",
-            "metainfoToKeep": ["energy"],
-            "metainfoToSkip": ["particle_forces"],
-            "files": {
-                "/home/output.out": "output",
-                "/home/input.inp": "input",
-                "/home/coords.xyz": ""
-            }
-        }
-
-    Here is an explanation of the different attributes:
-        - metaInfoFile: The metainfo JSON file path containing the metainfo definitions
-          used by this parser
-        - tmpDir: A temporary directory for data
-        - metainfoToKeep: What metainfo should be parsed. If empty, tries to
-          parse everything except the ones specified in 'metainfoToSkip'
-        - metainfoToSkip: A list of metainfos that should be ignored
-        - files: Dictionary of files. The key is the path to the file, and the
-          value is an optional identifier that can be provided or later
-          determined by the parser.
-
     Attributes:
-        input_json_string: A string containing the JSON input.
-        input_json_object: The JSON string decoded as an accessible object.
         files: A dictionary of file paths as keys and id's as values. These ids's only include
         the ones given at initialization in the input JSON."
-        tmp_dir: Temporary directory location.
-        metainfo_file: Path to the file where the metainfos are declared
-        meta_info_to_keep:
-        meta_info_to_skip:
         file_ids: A dictionary containing all the assigned id's as keys and their
-        respective filepaths as values.
-        test_mode: A boolean for turning on test mode. In test mode the parsed
-        values are not converted to SI or formatted as JSON and they are not
-        sent to the backend but returned directly as one possibly large value.
-        backend: An object responsible for the JSON formatting and sending the
-        results to the scala layer.
+        metainfoenv: A dictionary for the metainfos
+        backend: An object responsible for the JSON formatting, unit conversion
+        and sending the results to the scala layer.
     """
+
     __metaclass__ = ABCMeta
 
-    def __init__(self, input_json_string, stream=sys.stdout, test_mode=False):
-        self.input_json_string = input_json_string
-        self.input_json_object = None
-        self.files = {}
-        self.tmp_dir = None
-        self.metainfo_file = None
-        self.metainfoenv = None
-        self.metainfos = {}
-        self.metainfo_to_keep = None
-        self.metainfo_to_skip = None
-        self.file_ids = {}
-        self.results = {}
-        self.filepaths_wo_id = None
-        self.test_mode = test_mode
-        self.backend = None
-        self.stream = stream
+    def __init__(self, parser_context):
+        self.files = parser_context.files
+        self.metainfoenv = parser_context.metainfoenv
+        self.backend = parser_context.backend
+        self.stream = parser_context.stream
+        self.version_id = parser_context.version_id
 
         self._file_handles = {}
         self._file_contents = {}
         self._file_sizes = {}
-
-        self.analyze_input_json()
-        self.setup_given_file_ids()
-
-    def analyze_input_json(self):
-        """Analyze the validity of the JSON string given as input.
-        """
-        # Try to decode the input JSON
-        try:
-            self.input_json_object = json.loads(self.input_json_string)
-        except ValueError as e:
-            logger.error("Error in decoding the given JSON input: {}".format(e))
-
-        # See if the needed attributes exist
-        self.metainfo_file = self.input_json_object.get("metaInfoFile")
-        if self.metainfo_file is None:
-            logger.error("No metainfo file path specified.")
-        self.tmp_dir = self.input_json_object.get("tmpDir")
-        if self.tmp_dir is None:
-            logger.error("No temporary folder specified.")
-        self.files = self.input_json_object.get("files")
-        if self.files is None:
-            logger.error("No files specified.")
-        self.metainfo_to_keep = self.input_json_object.get("metainfoToKeep")
-        self.metainfo_to_skip = self.input_json_object.get("metainfoToSkip")
-
-        # Try to decode the metainfo file and setup the backend
-        self.metainfoenv, warnings = loadJsonFile(self.metainfo_file)
-        self.backend = JsonParseEventsWriterBackend(self.metainfoenv, self.stream)
+        self.file_ids = {}
 
     def setup_given_file_ids(self):
         """Saves the file id's that were given in the JSON input.
@@ -133,23 +57,23 @@ class NomadParser(object):
                 self.setup_file_id(path, file_id)
 
     @abstractmethod
-    def setup_version(self):
-        """Do some version specific setup work. The parsers will have to
-        support many versions of the same code and the results of different
-        versions may have to be parsed differently.
-
-        With this function you should determine the version of the software,
-        and setup the version specific implementation of the parser.
-        """
-        pass
-
-    @abstractmethod
     def parse(self):
         """Start the parsing. Will try to parse everything unless given special
         rules (metaInfoToKeep, metaInfoToSkip)."""
         pass
 
-    def parse_file(self, fileToParse, mainFileDescription, metaInfoEnv, backend, parserInfo):
+    def parse_file(
+            self,
+            fileToParse,
+            mainFileDescription,
+            metaInfoEnv,
+            backend,
+            parserInfo,
+            cachingLevelForMetaName={},
+            defaultDataCachingLevel=CachingLevel.ForwardAndCache,
+            defaultSectionCachingLevel=CachingLevel.Forward,
+            superContext=None,
+            onClose={}):
         """Uses the SimpleParser utilities to to parse a file.
 
         Args:
@@ -166,6 +90,15 @@ class NomadParser(object):
         # Verify the metainfo
         if not parserBuilder.verifyMetaInfo(sys.stderr):
             sys.exit(1)
+
+        # Setup the backend that caches ond handles triggers
+        backend = ActiveBackend.activeBackend(
+            metaInfoEnv=metaInfoEnv,
+            cachingLevelForMetaName=cachingLevelForMetaName,
+            defaultDataCachingLevel=defaultDataCachingLevel,
+            defaultSectionCachingLevel=defaultSectionCachingLevel,
+            onClose=onClose,
+            superBackend=backend)
 
         # Compile the SimpleMatcher tree
         parserBuilder.compile()
@@ -310,6 +243,19 @@ class NomadParser(object):
             size = fh.tell()
             self._file_sizes[file_id] = size
         return size
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # @abstractmethod
     # def get_supported_quantities(self):

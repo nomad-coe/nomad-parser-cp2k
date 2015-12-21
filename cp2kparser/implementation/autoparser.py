@@ -1,6 +1,6 @@
 import os
 import json
-from cp2kparser.implementation.parser import CP2KParser
+from cp2kparser.implementation.cp2kparserbuilder import CP2KParserBuilder
 import sys
 
 
@@ -33,12 +33,11 @@ def get_parser(path, test_mode=True, stream=sys.stdout):
     json_input = {
         "version": "nomadparsein.json 1.0",
         "metaInfoFile": metaInfoPath,
-        "tmpDir": "/home",
         "metainfoToKeep": [],
         "metainfoToSkip": [],
         "files": files
     }
-    parser = CP2KParser(json.dumps(json_input), test_mode=test_mode, stream=stream)
+    parser = CP2KParserBuilder(json.dumps(json_input), stream=stream).build_parser()
     return parser
 
 

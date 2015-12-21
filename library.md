@@ -1,10 +1,20 @@
-## NomadParser
+## More Complex Parsing Scenarios
 
-The NomadParser class can be used as a base class for parsers in the NoMaD
-project. The NomadParser class will automatically convert results to SI units,
-format the results as JSON and push them to the backend. It will also validate
-that the results match the type and shape defined for the quantity in the
-metainfo file. A minimal example of a class that inherits NomadParser:
+The utilities in simple_parser.py can be used alone to make a parser in many
+cases. The SimpleMatchers provide a very nice declarative way to define the
+parsing process and takes care of unit conversion and pushing the results to
+the scala layer.
+
+Still you may find it useful to have additional help in handling more complex
+scenarios. During the parser development you may encounter these questions:
+    - How to manage different versions of the parsed code?
+    - How to handle multiple files?
+    - How to integrate all this with the functionality that is provided in simple_parser.py?
+
+The NomadParser class is meant help in structuring your code. It uses the same
+input and output format as the mainFunction in simple_parser.py. Here is a
+minimal example of a parser that subclasses NomadParser Here is a minimal
+example of a parser that subclasses NomadParser:
 
 ```python
 class MyParser(NomadParser):
@@ -18,17 +28,6 @@ class MyParser(NomadParser):
         self.version = None
         self.implementation = None
         self.setup_version()
-        # You would typically also setup some file id's here to help handling
-        # the files. In this example the id's are already given in the JSON
-        # input. To register a file you can call 'setup_file_id()'
-
-    def start_parsing(self, name):
-        """Asks the implementation object to give the result object by calling
-        the function corresponding to the quantity name (=metaname). The
-        NomadParser then automatically handles the conversion, validation and
-        saving of the results.
-        """
-        return getattr(self.implementation, name)()
 
     def setup_version(self):
         """The parsers should be able to support different version of the same
@@ -39,8 +38,11 @@ class MyParser(NomadParser):
         self.version = "1"
         self.implementation = globals()["MyParserImplementation{}".format(self.version)](self)
 
-    def get_supported_quantities(self):
-        return self.implementation.supported_quantities
+    def parse(self):
+        """After the version has been identified and an implementation is
+        setup, you can start parsing.
+        """
+        return getattr(self.implementation, name)()
 ```
 
 The class MyParser only defines how to setup a parser based on the given input.
