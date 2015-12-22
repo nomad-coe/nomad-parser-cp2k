@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 
 #===============================================================================
-class CP2KInputEngine(object):
+class CP2KInputParser(object):
     """Used to parse out a CP2K input file.
 
     When given a file handle to a CP2K input file, this class attemts to parse

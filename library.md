@@ -7,7 +7,7 @@ the scala layer.
 
 Still you may find it useful to have additional help in handling more complex
 scenarios. During the parser development you may encounter these questions:
-    - How to manage different versions of the parsed code?
+    - How to manage different versions fo the parsed code that may even have completely different syntax?
     - How to handle multiple files?
     - How to integrate all this with the functionality that is provided in simple_parser.py?
 

@@ -3,13 +3,13 @@ import logging
 import StringIO
 import sys
 from abc import ABCMeta, abstractmethod
-from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile
+from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile, extractOnCloseTriggers
 from nomadcore.caching_backend import CachingLevel, ActiveBackend
 logger = logging.getLogger(__name__)
 
 
 #===============================================================================
-class NomadParser(object):
+class Parser(object):
     """The base class for parsers in the NoMaD project.
 
     What you can expect from this class:
@@ -38,11 +38,12 @@ class NomadParser(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, parser_context):
-        self.files = parser_context.files
-        self.metainfoenv = parser_context.metainfoenv
-        self.backend = parser_context.backend
-        self.stream = parser_context.stream
-        self.version_id = parser_context.version_id
+
+        # Copy all the attributes from the parser_context object
+        attributes = dir(parser_context)
+        for attribute in attributes:
+            if not attribute.startswith("__"):
+                setattr(self, attribute, getattr(parser_context, attribute))
 
         self._file_handles = {}
         self._file_contents = {}
@@ -91,6 +92,16 @@ class NomadParser(object):
         if not parserBuilder.verifyMetaInfo(sys.stderr):
             sys.exit(1)
 
+        # Gather onClose functions from supercontext
+        if superContext:
+            onClose = dict(onClose)
+            for attr, callback in extractOnCloseTriggers(superContext).items():
+                oldCallbacks = onClose.get(attr, None)
+                if oldCallbacks:
+                    oldCallbacks.append(callback)
+                else:
+                    onClose[attr] = [callback]
+
         # Setup the backend that caches ond handles triggers
         backend = ActiveBackend.activeBackend(
             metaInfoEnv=metaInfoEnv,
@@ -137,7 +148,7 @@ class NomadParser(object):
         else:
             logger.error("Trying to setup an id for an undefined path. See that the path was written correctly and it was given in the files attribute of the JSON string.")
 
-    def get_filepath_by_id(self, file_id):
+    def get_filepath_by_id(self, file_id, show_warning=True):
         """Get the file paths that were registered with the given id.
         """
         value = self.file_ids.get(file_id)
@@ -147,22 +158,26 @@ class NomadParser(object):
                 if n == 1:
                     return value[0]
                 elif n == 0:
-                    logger.warning("No files set with id '{}'".format(file_id))
+                    if show_warning:
+                        logger.warning("No files set with id '{}'".format(file_id))
                     return None
                 else:
-                    logger.debug("Multiple files set with id '{}'".format(file_id))
+                    if show_warning:
+                        logger.debug("Multiple files set with id '{}'".format(file_id))
                     return value
         else:
-            logger.warning("No files set with id '{}'".format(file_id))
+            if show_warning:
+                logger.warning("No files set with id '{}'".format(file_id))
 
-    def get_file_handle(self, file_id):
+    def get_file_handle(self, file_id, show_warning=True):
         """Get the handle for a single file with the given id. Uses cached result
         if available. Always seeks to beginning of file before returning it.
         """
         # Get the filepath(s)
-        path = self.get_filepath_by_id(file_id)
+        path = self.get_filepath_by_id(file_id, show_warning)
         if not path:
-            logger.warning("No filepaths registered to id '{}'. Register id's with setup_file_id().".format(file_id))
+            if show_warning:
+                logger.warning("No filepaths registered to id '{}'. Register id's with setup_file_id().".format(file_id))
             return
 
         if isinstance(path, list):
@@ -186,12 +201,12 @@ class NomadParser(object):
         handle.seek(0, os.SEEK_SET)
         return handle
 
-    def get_file_handles(self, file_id):
+    def get_file_handles(self, file_id, show_warning=True):
         """Get the handles for multiple files with the given id. Uses cached result
         if available. Always seeks to beginning of files before returning them.
         """
         # Get the filepath(s)
-        paths = self.get_filepath_by_id(file_id)
+        paths = self.get_filepath_by_id(file_id, show_warning)
         if not paths:
             return
         if not isinstance(paths, list):
@@ -243,19 +258,6 @@ class NomadParser(object):
             size = fh.tell()
             self._file_sizes[file_id] = size
         return size
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     # @abstractmethod
     # def get_supported_quantities(self):

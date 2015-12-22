@@ -2,36 +2,30 @@ import re
 import os
 import logging
 from cp2kparser.engines.csvengine import CSVEngine
-from cp2kparser.implementation.cp2kinputparsers import CP2KInputEngine
+from cp2kparser.implementation.cp2kinputparser import CP2KInputParser
+from cp2kparser.implementation.cp2kinputenginedata.input_tree import CP2KInput
 from cp2kparser.implementation.outputparsers import *
 from nomadcore.coordinate_reader import CoordinateReader
-from cp2kparser.generics.nomadparser import NomadParser
+from cp2kparser.generics.parser import Parser
 logger = logging.getLogger(__name__)
 
 
 #===============================================================================
-class CP2KImplementation262(NomadParser):
-    """Defines the basic functions that are used to map results to the
-    corresponding NoMaD quantities.
-
-    This class provides the basic implementations and for a version specific
-    updates and additions please make a new class that inherits from this.
-
-    The functions that return certain quantities are tagged with a prefix '_Q_'
-    to be able to automatically determine which quantities have at least some
-    level of support. With the tag they can be also looped through.
+class CP2KImplementation262(Parser):
+    """The default implementation for a CP2K parser based on version 2.6.2.
     """
     def __init__(self, parser_context):
 
         # Initialize the base class
-        NomadParser.__init__(self, parser_context)
+        Parser.__init__(self, parser_context)
 
-        # Engines are created here
+        # Initialize the parsing tools. The input and output parsers need to
+        # know the version id.
         self.csvengine = CSVEngine(self)
-        self.inputengine = CP2KInputEngine()
         self.atomsengine = CoordinateReader()
-        self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)]()
-
+        self.inputparser = CP2KInputParser()
+        self.inputparser.setup_version(self.version_id)
+        self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)](self, self.metainfo_to_keep, self.metainfo_to_skip)
         self.input_tree = None
         self.extended_input = None
 
@@ -40,7 +34,8 @@ class CP2KImplementation262(NomadParser):
         self.determine_file_ids_post_setup()
 
     def determine_file_ids_pre_setup(self):
-        """First resolve the files that can be identified by extension.
+        """Resolve the input and output files based on extension and the
+        include files by looking for @INCLUDE commands in the input file.
         """
         # Input and output files
         for file_path in self.files.iterkeys():
@@ -62,12 +57,11 @@ class CP2KImplementation262(NomadParser):
                 self.setup_file_id(filepath, "include")
 
     def input_preprocessor(self):
-        """Preprocess the input file. Concatenate .inc files into the main input file and
-        explicitly state all variables.
+        """Preprocess the input file. Concatenate .inc files into the main
+        input file and explicitly state all variables.
         """
-
         # Merge include files to input
-        include_files = self.get_file_handles("include")
+        include_files = self.get_file_handles("include", show_warning=False)
         input_file = self.get_file_contents("input")
         input_lines = input_file.split("\n")
         extended_input = input_lines[:]  # Make a copy
@@ -106,8 +100,6 @@ class CP2KImplementation262(NomadParser):
             else:
                 input_set_removed.append(line)
 
-        # print '\n'.join(input_set_removed)
-
         # Place the variables
         variable_pattern = r"\@\{(\w+)\}|@(\w+)"
         compiled = re.compile(variable_pattern)
@@ -142,12 +134,11 @@ class CP2KImplementation262(NomadParser):
             input_variables_replaced.append(new_line)
 
         self.extended_input = '\n'.join(input_variables_replaced)
-        self.inputengine.setup_version(self.version_id)
-        self.input_tree = self.inputengine.parse(self.extended_input)
+        self.input_tree = self.inputparser.parse(self.extended_input)
 
     def determine_file_ids_post_setup(self):
         """Determines the file id's after the CP2K verion has been set
-        up.
+        up. This includes force files, coordinate files, cell files, etc.
         """
         # Determine the presence of force file
         force_path = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
@@ -210,6 +201,9 @@ class CP2KImplementation262(NomadParser):
             self.setup_file_id(file_path, "cell_input")
 
     def normalize_cp2k_path(self, path, extension, name=""):
+        """The paths in CP2K input can be given in many ways. This function
+        tries to normalize these paths to a common form.
+        """
         if name:
             name = "-" + name
         logger.debug("Normalizing trajectory path")
@@ -226,15 +220,15 @@ class CP2KImplementation262(NomadParser):
         """Searches the list of given files for a file that is defined in the
         CP2K input file.
 
-        First compares the basenames, and if multiple matches found descends
+        First compares the filename, and if multiple matches found descends
         the path until only only one or zero matches found.
         """
         matches = {}
         resolvable = [x for x in self.files.iterkeys() if x not in self.file_ids.itervalues()]
 
+        searched_parts = self.split_path(path)
         for file_path in resolvable:
             available_parts = self.split_path(file_path)
-            searched_parts = self.split_path(path)
             for i_part, part in enumerate(searched_parts):
                 if part == available_parts[i_part]:
                     matches[file_path] = i_part
@@ -247,13 +241,14 @@ class CP2KImplementation262(NomadParser):
             return
         else:
             sorted_list = [(k, v) in sorted(mydict.items(), key=lambda (k, v): v[1])]
-            # sorted_list = sorted(mathes, key=lambda k: matches[k])
             if (sorted_list[0][1] == sorted_list[1][1]):
                 logger.error("When searching for file '{}', multiple matches were found. Could not determine which file to use based on their path.")
             else:
                 return sorted_list[0][0]
 
     def split_path(self, path):
+        """Splits a path into components and returns them in a reversed order.
+        """
         folders = []
         while 1:
             path, folder = os.path.split(path)
@@ -281,89 +276,19 @@ class CP2KImplementation262(NomadParser):
         backend = self.backend
         outputstructure = self.outputparser.outputstructure
         cachingLevelForMetaName = self.outputparser.cachingLevelForMetaName
-        self.parse_file(outputfilename, outputstructure, metainfoenv, backend, parserInfo, cachingLevelForMetaName)
+        self.parse_file(outputfilename, outputstructure, metainfoenv, backend, parserInfo, cachingLevelForMetaName, superContext=self.outputparser)
 
         # Then extract the things that cannot be extracted by the SimpleMatcher
 
         # Write the ending bracket
         self.stream.write("]\n")
 
-    # def dateconverter(datestring):
-
-    def _Q_energy_total(self):
-        """Return the total energy from the bottom of the input file"""
-        result = Result()
-        result.unit = "hartree"
-        result.value = float(self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output")))
-        return result
-
-    def _Q_XC_functional(self):
-        """Returns the type of the XC functional.
-
-        Can currently only determine version if they are declared as parameters
-        for XC_FUNCTIONAL or via activating subsections of XC_FUNCTIONAL.
-
-        Returns:
-            A string containing the final result that should
-            belong to the list defined in NoMaD wiki.
-        """
-        result = Result()
-
-        # First try to look at the shortcut
-        xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
-        if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
-            logger.debug("Shortcut defined for XC_FUNCTIONAL")
-
-            # If PBE, check version
-            if xc_shortcut == "PBE":
-                pbe_version = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE/PARAMETRIZATION")
-                result.value = {
-                        'ORIG': "GGA_X_PBE",
-                        'PBESOL': "GGA_X_PBE_SOL",
-                        'REVPBE': "GGA_X_PBE_R",
-                }.get(pbe_version, "GGA_X_PBE")
-                return result
-
-            result.value = {
-                    'B3LYP': "HYB_GGA_XC_B3LYP",
-                    'BEEFVDW': None,
-                    'BLYP': "GGA_C_LYP_GGA_X_B88",
-                    'BP': None,
-                    'HCTH120': None,
-                    'OLYP': None,
-                    'LDA': "LDA_XC_TETER93",
-                    'PADE': "LDA_XC_TETER93",
-                    'PBE0': None,
-                    'TPSS': None,
-            }.get(xc_shortcut, None)
-            return result
-        else:
-            logger.debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
-
-        # Look at the subsections and determine what part have been activated
-
-        # Becke88
-        xc_components = []
-        becke_88 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
-        if becke_88 == "TRUE":
-            xc_components.append("GGA_X_B88")
-
-        # Becke 97
-        becke_97 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
-        if becke_97 == "TRUE":
-            becke_97_param = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
-            becke_97_result = {
-                    'B97GRIMME': None,
-                    'B97_GRIMME': None,
-                    'ORIG': "GGA_XC_B97",
-                    'WB97X-V': None,
-            }.get(becke_97_param, None)
-            if becke_97_result is not None:
-                xc_components.append(becke_97_result)
-
-        # Return an alphabetically sorted and joined list of the xc components
-        result.value = "_".join(sorted(xc_components))
-        return result
+    # def _Q_energy_total(self):
+        # """Return the total energy from the bottom of the input file"""
+        # result = Result()
+        # result.unit = "hartree"
+        # result.value = float(self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output")))
+        # return result
 
     def _Q_particle_forces(self):
         """Return the forces that are controlled by
@@ -417,67 +342,65 @@ class CP2KImplementation262(NomadParser):
             result.value_iterable = iterator
             return result
 
-    def _Q_particle_number(self):
-        """Return the number of particles in the system.
-
-        CP2K output doesn't automatically print the number of atoms. For this
-        reason this function has to look at the initial configuration and
-        calculate the number from it. The initial configuration is something
-        that must be present for all calculations.
+    def get_initial_atom_positions_and_unit(self):
+        """Returns the starting configuration of the atoms in the system.
         """
-        result = Result()
-        result.cache = True
+        unit = "angstrom"
 
         # Check where the coordinates are specified
         coord_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
         if not coord_format:
             coord_format = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
 
-        # Check if the unit cell is multiplied programmatically
-        multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
-        if not multiples:
-            multiples = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
-        factors = [int(x) for x in multiples.split()]
-        factor = np.prod(np.array(factors))
-
         # See if the coordinates are provided in the input file
         if coord_format == "OFF":
             logger.debug("Using coordinates from the input file.")
             coords = self.input_tree.get_default_keyword("FORCE_EVAL/SUBSYS/COORD")
-            coords.strip()
-            n_particles = coords.count("\n")
-            result.value = factor*n_particles
+            coords = coords.strip().split('\n')
+            positions = []
+            for line in coords:
+                components = [float(x) for x in line.split()[1:]]
+                positions.append(components)
+            positions = np.array(positions)
+            return positions, unit
+
         elif coord_format in ["CP2K", "G96", "XTL", "CRD"]:
             msg = "Tried to read the number of atoms from the initial configuration, but the parser does not yet support the '{}' format that is used by file '{}'.".format(coord_format, self.parser.file_ids["initial_coordinates"])
             logger.warning(msg)
-            result.error_message = msg
-            result.code = ResultCode.fail
         else:
             # External file, use AtomsEngine
             init_coord_file = self.parser.get_file_handle("initial_coordinates")
             if coord_format == "XYZ":
-                n_particles = self.atomsengine.n_atoms(init_coord_file, format="xyz")
+                iter_pos = self.atomsengine.iread(init_coord_file, format="xyz")
             if coord_format == "CIF":
-                n_particles = self.atomsengine.n_atoms(init_coord_file, format="cif")
+                iter_pos = self.atomsengine.iread(init_coord_file, format="cif")
             if coord_format == "PDB":
-                n_particles = self.atomsengine.n_atoms(init_coord_file, format="pdb")
+                iter_pos = self.atomsengine.iread(init_coord_file, format="pdb")
+            return next(iter_pos), unit
 
-        result.value = factor*n_particles
-        return result
+        # # Check if the unit cell is multiplied programmatically
+        # multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
+        # if not multiples:
+            # multiples = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
+        # factors = [int(x) for x in multiples.split()]
+        # factor = np.prod(np.array(factors))
 
-    def _Q_particle_position(self):
-        """Returns the particle positions (trajectory).
+    def get_atom_positions_and_unit(self):
+        """Returns the atom positions and unit that were calculated during the
+        simulation.
         """
-        result = Result()
-
         # Determine the unit
         unit_path = "MOTION/PRINT/TRAJECTORY/UNIT"
         unit = self.input_tree.get_keyword(unit_path)
-        unit = unit.lower()
-        result.unit = CP2KInput.decode_cp2k_unit(unit)
+        # unit = unit.lower()
+        unit = CP2KInput.decode_cp2k_unit(unit)
 
         # Read the trajectory
-        traj_file = self.parser.get_file_handle("trajectory")
+        traj_file = self.get_file_handle("trajectory", show_warning=False)
+        if not traj_file:
+            logger.debug("No trajectory file detected.")
+            return None, None
+
         input_file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
         file_format = {
             "XYZ": "xyz",
@@ -491,9 +414,9 @@ class CP2KImplementation262(NomadParser):
 
         # Use a custom implementation for the CP2K specific weird formats
         if file_format == "pdb-cp2k":
-            traj_iter = self.parser.csvengine.iread(traj_file, columns=[3, 4, 5], comments=["TITLE", "AUTHOR", "REMARK", "CRYST"], separator="END")
+            traj_iter = self.csvengine.iread(traj_file, columns=[3, 4, 5], comments=["TITLE", "AUTHOR", "REMARK", "CRYST"], separator="END")
         elif file_format == "atomic":
-            n_atoms = self.parser.get_result_object("particle_number").value
+            n_atoms = self.get_result_object("particle_number").value
 
             def atomic_generator():
                 conf = []
@@ -511,11 +434,10 @@ class CP2KImplementation262(NomadParser):
         else:
             traj_iter = self.atomsengine.iread(traj_file, format=file_format)
 
-        # Return the iterator
-        result.value_iterable = traj_iter
-        return result
+        # Return the iterator and unit
+        return (traj_iter, unit)
 
-    def _Q_cell(self):
+    def get_cell(self):
         """The cell size can be static or dynamic if e.g. doing NPT. If the
         cell size changes, outputs an Nx3x3 array where N is typically the
         number of timesteps.
@@ -532,8 +454,6 @@ class CP2KImplementation262(NomadParser):
                 C = [float(x) for x in split[8:11]]
                 result = np.array([A, B, C])*factor
                 yield result
-
-        result = Result()
 
         # Determine if the cell is printed during simulation steps
         cell_output_file = self.parser.get_file_handle("cell_output")
@@ -632,6 +552,64 @@ class CP2KImplementation262(NomadParser):
         else:
             logger.error("Could not find cell declaration.")
 
+    def get_functionals(self):
+        """Used to search the input file for a functional definition
+        """
+        # First try to look at the shortcut
+        xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
+        if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
+            logger.debug("Shortcut defined for XC_FUNCTIONAL")
+
+            # If PBE, check version
+            if xc_shortcut == "PBE":
+                pbe_version = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE/PARAMETRIZATION")
+                result.value = {
+                        'ORIG': "GGA_X_PBE",
+                        'PBESOL': "GGA_X_PBE_SOL",
+                        'REVPBE': "GGA_X_PBE_R",
+                }.get(pbe_version, "GGA_X_PBE")
+                return result
+
+            result.value = {
+                    'B3LYP': "HYB_GGA_XC_B3LYP",
+                    'BEEFVDW': None,
+                    'BLYP': "GGA_C_LYP_GGA_X_B88",
+                    'BP': None,
+                    'HCTH120': None,
+                    'OLYP': None,
+                    'LDA': "LDA_XC_TETER93",
+                    'PADE': "LDA_XC_TETER93",
+                    'PBE0': None,
+                    'TPSS': None,
+            }.get(xc_shortcut, None)
+            return result
+        else:
+            logger.debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
+
+        # Look at the subsections and determine what part have been activated
+
+        # Becke88
+        xc_components = []
+        becke_88 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
+        if becke_88 == "TRUE":
+            xc_components.append("GGA_X_B88")
+
+        # Becke 97
+        becke_97 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
+        if becke_97 == "TRUE":
+            becke_97_param = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
+            becke_97_result = {
+                    'B97GRIMME': None,
+                    'B97_GRIMME': None,
+                    'ORIG': "GGA_XC_B97",
+                    'WB97X-V': None,
+            }.get(becke_97_param, None)
+            if becke_97_result is not None:
+                xc_components.append(becke_97_result)
+
+        # Return an alphabetically sorted and joined list of the xc components
+        result.value = "_".join(sorted(xc_components))
+        return result
 
 # #===============================================================================
 # class CP2K_262_Implementation(CP2KImplementation):
