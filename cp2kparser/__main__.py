@@ -1,8 +1,5 @@
 import os
-import logging
-from cp2kparser.implementation.autoparser import get_parser
+from cp2kparser.implementation.autoparser import parse_path
 
-# logging.basicConfig(level=logging.INFO)
 path = os.getcwd()
-parser = get_parser(path)
-parser.parse()
+parse_path(path)

@@ -5,8 +5,9 @@ from cp2kparser.engines.csvengine import CSVEngine
 from cp2kparser.implementation.cp2kinputparser import CP2KInputParser
 from cp2kparser.implementation.cp2kinputenginedata.input_tree import CP2KInput
 from cp2kparser.implementation.outputparsers import *
-from nomadcore.coordinate_reader import CoordinateReader
 from cp2kparser.generics.parser import Parser
+from nomadcore.coordinate_reader import CoordinateReader
+from nomadcore.unit_conversion.unit_conversion import convert_unit
 logger = logging.getLogger(__name__)
 
 
@@ -437,120 +438,120 @@ class CP2KImplementation262(Parser):
         # Return the iterator and unit
         return (traj_iter, unit)
 
-    def get_cell(self):
-        """The cell size can be static or dynamic if e.g. doing NPT. If the
-        cell size changes, outputs an Nx3x3 array where N is typically the
-        number of timesteps.
-        """
+    # def get_cell(self):
+        # """The cell size can be static or dynamic if e.g. doing NPT. If the
+        # cell size changes, outputs an Nx3x3 array where N is typically the
+        # number of timesteps.
 
-        def cell_generator(cell_file):
-            for line in cell_file:
-                line = line.strip()
-                if line.startswith("#"):
-                    continue
-                split = line.split()
-                A = [float(x) for x in split[2:5]]
-                B = [float(x) for x in split[5:8]]
-                C = [float(x) for x in split[8:11]]
-                result = np.array([A, B, C])*factor
-                yield result
+        # Returns:
+            # Tuple containing the cell as 3x3 array and the unit.
+        # """
 
-        # Determine if the cell is printed during simulation steps
-        cell_output_file = self.parser.get_file_handle("cell_output")
-        A = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/A")
-        B = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/B")
-        C = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/C")
-        ABC = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ABC")
-        abg = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
-        cell_input_file = self.parser.get_file_handle("cell_input")
+        # def cell_generator(cell_file):
+            # for line in cell_file:
+                # line = line.strip()
+                # if line.startswith("#"):
+                    # continue
+                # split = line.split()
+                # A = [float(x) for x in split[2:5]]
+                # B = [float(x) for x in split[5:8]]
+                # C = [float(x) for x in split[8:11]]
+                # result = np.array([A, B, C])*factor
+                # yield result, "angstrom"
 
-        # Multiplication factor
-        multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/MULTIPLE_UNIT_CELL")
-        factors = [int(x) for x in multiples.split()]
-        factor = np.prod(np.array(factors))
+        # # Determine if the cell is printed during simulation steps
+        # cell_output_file = self.get_file_handle("cell_output", show_warning=False)
+        # A = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/A")
+        # B = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/B")
+        # C = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/C")
+        # ABC = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ABC")
+        # abg = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
+        # cell_input_file = self.get_file_handle("cell_input", show_warning=False)
 
-        # Separate file from e.g. NPT
-        if cell_output_file:
-            logger.debug("Cell output file found.")
-            result.unit = "angstrom"
-            result.value_iterable = cell_generator(cell_output_file)
-            return result
+        # # Multiplication factor
+        # multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/MULTIPLE_UNIT_CELL")
+        # factors = [int(x) for x in multiples.split()]
+        # factor = np.prod(np.array(factors))
 
-        # Cartesian cell vectors
-        elif A and B and C:
-            logger.debug("Cartesian cell vectors found.")
-            # Cell given as three vectors
-            A_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/A")
-            B_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/B")
-            C_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/C")
+        # # Separate file from e.g. NPT
+        # if cell_output_file:
+            # logger.debug("Cell output file found.")
+            # result = cell_generator(cell_output_file)
+            # return result, "angstrom"
 
-            A = np.array([float(x) for x in A.split()])
-            B = np.array([float(x) for x in B.split()])
-            C = np.array([float(x) for x in C.split()])
+        # # Cartesian cell vectors
+        # elif A and B and C:
+            # logger.debug("Cartesian cell vectors found.")
+            # # Cell given as three vectors
+            # A_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/A")
+            # B_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/B")
+            # C_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/C")
 
-            # Convert already here as the different vectors may have different units
-            A = convert_unit(A, A_unit)
-            B = convert_unit(B, B_unit)
-            C = convert_unit(C, C_unit)
+            # A = np.array([float(x) for x in A.split()])
+            # B = np.array([float(x) for x in B.split()])
+            # C = np.array([float(x) for x in C.split()])
 
-            cell = np.empty((3, 3))
-            cell[0, :] = A
-            cell[1, :] = B
-            cell[2, :] = C
-            result.value = cell*factor
-            return result
+            # # Convert already here as the different vectors may have different units
+            # A = convert_unit(A, A_unit)
+            # B = convert_unit(B, B_unit)
+            # C = convert_unit(C, C_unit)
 
-        # Cell vector magnitudes and angles
-        elif ABC and abg:
-            logger.debug("Cell vectors defined with angles and magnitudes found.")
-            # Cell given as three vectors
-            ABC_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/ABC")
-            abg_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
+            # cell = np.empty((3, 3))
+            # cell[0, :] = A
+            # cell[1, :] = B
+            # cell[2, :] = C
+            # result = cell*factor
+            # return result, "meter"
 
-            angles = np.array([float(x) for x in abg.split()])
-            magnitudes = np.array([float(x) for x in ABC.split()])
-            a = magnitudes[0]
-            b = magnitudes[1]
-            c = magnitudes[2]
+        # # Cell vector magnitudes and angles
+        # elif ABC and abg:
+            # logger.debug("Cell vectors defined with angles and magnitudes found.")
+            # # Cell given as three vectors
+            # ABC_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/ABC")
+            # abg_unit = self.input_tree.get_unit("FORCE_EVAL/SUBSYS/CELL/ALPHA_BETA_GAMMA")
 
-            # Convert angles to radians
-            angles = (angles*ureg(abg_unit)).to(ureg.radian).magnitude
-            alpha = angles[0]
-            beta = angles[1]
-            gamma = angles[2]
+            # angles = np.array([float(x) for x in abg.split()])
+            # magnitudes = np.array([float(x) for x in ABC.split()])
+            # a = magnitudes[0]
+            # b = magnitudes[1]
+            # c = magnitudes[2]
 
-            A = np.array((a, 0, 0))
-            B = np.array((b*math.cos(gamma), b*math.sin(gamma), 0))
-            b_x = B[0]
-            b_y = B[1]
-            c_x = c*math.cos(beta)
-            c_y = 1.0/b_y*(b*c*math.cos(alpha) - b_x*c_x)
-            c_z = math.sqrt(c**2 - c_x**2 - c_y**2)
-            C = np.array((c_x, c_y, c_z))
+            # # Convert angles to radians
+            # angles = (angles*ureg(abg_unit)).to(ureg.radian).magnitude
+            # alpha = angles[0]
+            # beta = angles[1]
+            # gamma = angles[2]
 
-            cell = np.zeros((3, 3))
-            cell[0, :] = A
-            cell[1, :] = B
-            cell[2, :] = C
-            result.value = cell*factor
-            result.unit = ABC_unit
-            return result
+            # A = np.array((a, 0, 0))
+            # B = np.array((b*math.cos(gamma), b*math.sin(gamma), 0))
+            # b_x = B[0]
+            # b_y = B[1]
+            # c_x = c*math.cos(beta)
+            # c_y = 1.0/b_y*(b*c*math.cos(alpha) - b_x*c_x)
+            # c_z = math.sqrt(c**2 - c_x**2 - c_y**2)
+            # C = np.array((c_x, c_y, c_z))
 
-        # Separate cell input file
-        elif cell_input_file:
-            logger.debug("Separate cell input file found.")
-            filename = cell_input_file.name
-            if filename.endswith(".cell"):
-                logger.debug("CP2K specific cell input file format found.")
-                result.value = cell_generator(cell_input_file).next()
-                result.unit = "angstrom"
-                return result
-            else:
-                logger.error("The XSC cell file format is not yet supported.")
+            # cell = np.zeros((3, 3))
+            # cell[0, :] = A
+            # cell[1, :] = B
+            # cell[2, :] = C
+            # result = cell*factor
+            # return result, ABC_unit
 
-        # No cell found
-        else:
-            logger.error("Could not find cell declaration.")
+        # # Separate cell input file
+        # elif cell_input_file:
+            # logger.debug("Separate cell input file found.")
+            # filename = cell_input_file.name
+            # if filename.endswith(".cell"):
+                # logger.debug("CP2K specific cell input file format found.")
+                # result = cell_generator(cell_input_file).next()
+                # return result, "angstrom"
+            # else:
+                # logger.error("The XSC cell file format is not yet supported.")
+
+        # # No cell found
+        # else:
+            # logger.error("Could not find cell declaration.")
 
     def get_functionals(self):
         """Used to search the input file for a functional definition

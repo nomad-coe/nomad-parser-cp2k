@@ -123,6 +123,10 @@ existing profiling tools such as
 which you can plug into your scripts very easily.
 
 # Manual for uploading a CP2K calculation
+The print level (GLOBAL/PRINT_LEVEL) of a CP2K run will afect how much
+information can be parsed from it. Try to use print levels MEDIUM and above to
+get best parsing results.
+
 All the files that are needed to run the calculation should be included in the
 upload, including the basis set and potential files. The folder structure does
 not matter, as the whole directory is searced for relevant files.

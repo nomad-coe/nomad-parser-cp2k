@@ -43,10 +43,9 @@ class CP2KOutputParser262(object):
                             startReStr=r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)",
                         ),
                         SM(
-                            name="system",
+                            name="system_description",
                             startReStr="",
-                            forwardMatch=True,
-                            sections=["section_system_description"],
+                            sections=["cp2k_system_description"],
                             subMatchers=[
                                 SM(
                                     name="cell",
@@ -68,38 +67,38 @@ class CP2KOutputParser262(object):
                                         ),
                                     ]
                                 ),
+                                # SM(
+                                    # name="positions",
+                                    # sections=["cp2k_section_atom_position"],
+                                    # startReStr="",
+                                # ),
                                 SM(
-                                    name="positions",
-                                    sections=["cp2k_section_atom_position"],
-                                    startReStr="",
-                                )
-                            ]
-                        ),
-                        SM(
-                            name="functionals",
-                            startReStr=" FUNCTIONAL\|",
-                            forwardMatch=True,
-                            sections=["section_method", "cp2k_section_functionals"],
-                            subMatchers=[
-                                SM(
-                                    name="functional",
-                                    repeats=True,
-                                    startReStr=" FUNCTIONAL\| (?P<cp2k_functional_name>[\w\d\W]+):"
-                                )
-                            ]
-                        ),
-                        SM(
-                            name="numbers",
-                            startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
-                            sections=["cp2k_section_numbers"],
-                            subMatchers=[
-                                SM(
-                                    name="number_of_atoms",
-                                    startReStr="\s+- Atoms:\s+(?P<cp2k_atom_number>\d+)"
+                                    name="functionals",
+                                    startReStr=" FUNCTIONAL\|",
+                                    forwardMatch=True,
+                                    sections=["section_method", "cp2k_section_functionals"],
+                                    subMatchers=[
+                                        SM(
+                                            name="functional",
+                                            repeats=True,
+                                            startReStr=" FUNCTIONAL\| (?P<cp2k_functional_name>[\w\d\W]+):"
+                                        )
+                                    ]
                                 ),
                                 SM(
-                                    name="number_of_shell_sets",
-                                    startReStr="\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)"
+                                    name="numbers",
+                                    startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
+                                    sections=["cp2k_section_numbers"],
+                                    subMatchers=[
+                                        SM(
+                                            name="number_of_atoms",
+                                            startReStr="\s+- Atoms:\s+(?P<cp2k_atom_number>\d+)"
+                                        ),
+                                        SM(
+                                            name="number_of_shell_sets",
+                                            startReStr="\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)"
+                                        )
+                                    ]
                                 )
                             ]
                         )
@@ -113,6 +112,7 @@ class CP2KOutputParser262(object):
             'cp2k_cell_vector_b': CachingLevel.Cache,
             'cp2k_cell_vector_c': CachingLevel.Cache,
             'cp2k_section_cell': CachingLevel.Cache,
+            'cp2k_system_description': CachingLevel.Cache,
             'cp2k_section_atom_position': CachingLevel.Cache,
             'cp2k_functional_name': CachingLevel.Cache,
             'cp2k_section_functionals': CachingLevel.Cache,
@@ -122,26 +122,36 @@ class CP2KOutputParser262(object):
         }
 
     # The trigger functions
-    def onClose_cp2k_section_cell(self, backend, gIndex, section):
+    def onClose_cp2k_system_description(self, backend, gIndex, section):
         """When the cell definition finishes, gather the results to a 3x3
         matrix. Or if not present, ask the cp2kparser for help.
         """
-        # Get the cell vector strings
-        a = section["cp2k_cell_vector_a"][0]
-        b = section["cp2k_cell_vector_b"][0]
-        c = section["cp2k_cell_vector_c"][0]
+        # Open the common system description section
+        backend.openSection("section_system_description")
 
-        # Extract the components and put into numpy array
-        a_comp = a.split()
-        b_comp = b.split()
-        c_comp = c.split()
+        cell = section["cp2k_section_cell"]
+        if cell:
+            cell = cell[0]
 
-        cell = np.zeros((3, 3))
-        cell[0, :] = a_comp
-        cell[1, :] = b_comp
-        cell[2, :] = c_comp
+            # Get the cell vector strings
+            a = cell["cp2k_cell_vector_a"][0]
+            b = cell["cp2k_cell_vector_b"][0]
+            c = cell["cp2k_cell_vector_c"][0]
 
-        backend.addArrayValues("cell", cell)
+            # Extract the components and put into numpy array
+            a_comp = a.split()
+            b_comp = b.split()
+            c_comp = c.split()
+
+            cell = np.zeros((3, 3))
+            cell[0, :] = a_comp
+            cell[1, :] = b_comp
+            cell[2, :] = c_comp
+
+            backend.addArrayValues("cell", cell)
+
+        # Close the common system description section
+        backend.closeSection("section_system_description", 0)
 
     def onClose_cp2k_section_functionals(self, backend, gIndex, section):
         """When all the functional definitions have been gathered, matches them

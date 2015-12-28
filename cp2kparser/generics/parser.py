@@ -27,19 +27,18 @@ class Parser(object):
     implementation details to the developer.
 
     Attributes:
-        files: A dictionary of file paths as keys and id's as values. These ids's only include
-        the ones given at initialization in the input JSON."
-        file_ids: A dictionary containing all the assigned id's as keys and their
-        metainfoenv: A dictionary for the metainfos
-        backend: An object responsible for the JSON formatting, unit conversion
-        and sending the results to the scala layer.
+        See the ParserContext class for more details about the attributes.
+        _file_handles: A "private" dictionary containing the cached file handles
+        _file_handles: A "private" dictionary containing the cached file contents
+        _file_handles: A "private" dictionary containing the cached file sizes
+        file_ids: A dictionary containing the mapping between file ids and filepaths
     """
 
     __metaclass__ = ABCMeta
 
     def __init__(self, parser_context):
 
-        # Copy all the attributes from the parser_context object
+        # Copy all the attributes from the ParserContext object
         attributes = dir(parser_context)
         for attribute in attributes:
             if not attribute.startswith("__"):
@@ -258,6 +257,31 @@ class Parser(object):
             size = fh.tell()
             self._file_sizes[file_id] = size
         return size
+
+
+
+
+
+
+    # @staticmethod
+    # @abstractmethod
+    # def get_allowed_filenames(self):
+        # """Return a dictionary containing keys that represent certain file
+        # extensions. Files with these extensions are of interest to this parser
+        # implementation. This information is implementation specific and will
+        # probably be provided by some other entity (text file?, scala wrapper?)
+        # in the final architecture. Useful for testing.
+        # """
+        # return {
+            # ".inp",
+            # ".out",
+            # ".xyz",
+            # ".cif",
+            # ".pdb",
+            # ".dcd",
+            # ".cell",
+            # ".inc",
+        # }
 
     # @abstractmethod
     # def get_supported_quantities(self):
