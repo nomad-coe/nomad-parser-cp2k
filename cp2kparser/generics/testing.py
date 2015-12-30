@@ -3,12 +3,13 @@ Tools for testing a nomad parser.
 """
 
 import os
+import sys
 import json
 import numpy as np
 
 
 #===============================================================================
-def get_parser(path, metainfopath, parserbuilderclass, stream):
+def get_parser(path, metainfopath, parserbuilderclass, metainfo_to_keep=[], metainfo_to_skip=[], stream=sys.stdout):
     """Initialize a parser that is able to parse the contents in the given path.
 
     Args:
@@ -26,8 +27,8 @@ def get_parser(path, metainfopath, parserbuilderclass, stream):
     json_input = {
         "version": "nomadparsein.json 1.0",
         "metaInfoFile": metainfopath,
-        "metainfoToKeep": [],
-        "metainfoToSkip": [],
+        "metainfoToKeep": metainfo_to_keep,
+        "metainfoToSkip": metainfo_to_skip,
         "files": files
     }
     parser = parserbuilderclass(json.dumps(json_input), stream=stream).build_parser()
@@ -54,7 +55,7 @@ def get_metainfo(metaname, json_list):
             # Return value if present
             values = event.get("value")
             if values:
-                return values
+                yield values
 
             # Return reshaped flatvalues if present
             flat_values = event.get("flatValues")
@@ -62,4 +63,4 @@ def get_metainfo(metaname, json_list):
 
             if flat_values and shape:
                 shaped_values = np.reshape(flat_values, shape)
-                return shaped_values
+                yield shaped_values

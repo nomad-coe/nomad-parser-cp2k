@@ -4,6 +4,18 @@ import numpy as np
 
 
 #===============================================================================
+class MetaInfo(object):
+    def __init__(self, name, description="", dtypeStr="c", shape=[], dependencies=[]):
+        self.name = name
+        self.description = description
+        self.dtypeStr = dtypeStr
+        self.shape = shape
+        if not isinstance(dependencies, list):
+            dependencies = [dependencies]
+        self.dependencies = dependencies
+
+
+#===============================================================================
 class CP2KOutputParser262(object):
     """The object that goes through the CP2K output file and parses everything
     it can using the SimpleParser architecture.
@@ -17,86 +29,121 @@ class CP2KOutputParser262(object):
         self.cp2kparser = cp2kparser
         self.metaInfoToKeep = metaInfoToKeep
         self.metaInfoToSkip = metaInfoToSkip
+        self.f_regex = "-?\d+\.\d+(E+|-\d+)?"
 
         # Define the output parsing tree for this version
         self.outputstructure = SM(
-            name='root',
             startReStr="",
             subMatchers=[
                 SM(
-                    name='new_run',
                     startReStr=r" DBCSR\| Multiplication driver",
                     endReStr="[.\*]+PROGRAM STOPPED IN",
                     required=True,
                     sections=['section_run'],
                     subMatchers=[
                         SM(
-                            name="run_datetime",
                             startReStr=r"[\*\s]+PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
                         ),
                         SM(
-                            name="version",
                             startReStr=r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)",
                         ),
                         SM(
-                            name="svn_revision",
                             startReStr=r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)",
                         ),
+                        # System Description
                         SM(
-                            name="system_description",
                             startReStr="",
                             sections=["cp2k_system_description"],
+                            otherMetaInfo=["atom_number"],
+                            dependencies={"atom_number": ["cp2k_atom_number"]},
                             subMatchers=[
                                 SM(
-                                    name="cell",
                                     startReStr=" CELL\|",
                                     forwardMatch=True,
                                     sections=["cp2k_section_cell"],
                                     subMatchers=[
                                         SM(
-                                            name="cell_a",
                                             startReStr=" CELL\| Vector a \[angstrom\]:\s+(?P<cp2k_cell_vector_a>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
                                         ),
                                         SM(
-                                            name="cell_b",
                                             startReStr=" CELL\| Vector b \[angstrom\]:\s+(?P<cp2k_cell_vector_b>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
                                         ),
                                         SM(
-                                            name="cell_c",
                                             startReStr=" CELL\| Vector c \[angstrom\]:\s+(?P<cp2k_cell_vector_c>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
                                         ),
                                     ]
                                 ),
-                                # SM(
-                                    # name="positions",
-                                    # sections=["cp2k_section_atom_position"],
-                                    # startReStr="",
-                                # ),
                                 SM(
-                                    name="functionals",
                                     startReStr=" FUNCTIONAL\|",
                                     forwardMatch=True,
                                     sections=["section_method", "cp2k_section_functionals"],
+                                    otherMetaInfo=["XC_functional"],
+                                    dependencies={"XC_functional": ["cp2k_functional_name"]},
                                     subMatchers=[
                                         SM(
-                                            name="functional",
                                             repeats=True,
                                             startReStr=" FUNCTIONAL\| (?P<cp2k_functional_name>[\w\d\W]+):"
                                         )
                                     ]
                                 ),
                                 SM(
-                                    name="numbers",
                                     startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
                                     sections=["cp2k_section_numbers"],
                                     subMatchers=[
                                         SM(
-                                            name="number_of_atoms",
                                             startReStr="\s+- Atoms:\s+(?P<cp2k_atom_number>\d+)"
                                         ),
                                         SM(
-                                            name="number_of_shell_sets",
                                             startReStr="\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)"
+                                        )
+                                    ]
+                                )
+                            ]
+                        ),
+                        # Molecular Dynamics
+                        SM(
+                            startReStr=" MD| Molecular Dynamics Protocol",
+                            forwardMatch=True,
+                            sections=["cp2k_section_md"],
+                            subMatchers=[
+                                SM(
+                                    repeats=True,
+                                    startReStr=" ENERGY| Total FORCE_EVAL",
+                                    sections=["cp2k_section_md_step"],
+                                    subMatchers=[
+                                        SM(
+                                            startReStr=" ATOMIC FORCES in \[a\.u\.\]",
+                                            sections=["cp2k_section_md_forces"],
+                                            subMatchers=[
+                                                SM(
+                                                    startReStr="\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
+                                                    sections=["cp2k_section_md_force_atom"],
+                                                    repeats=True,
+                                                )
+                                            ]
+                                        ),
+                                        SM(
+                                            startReStr=" STEP NUMBER\s+=\s+(?P<cp2k_md_step_number>\d+)"
+                                        ),
+                                        SM(
+                                            startReStr=" TIME \[fs\]\s+=\s+(?P<cp2k_md_step_time>\d+\.\d+)"
+                                        ),
+                                        SM(
+                                            startReStr=" TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.f_regex)
+                                        ),
+                                        SM(
+                                            startReStr=" i =",
+                                            sections=["cp2k_section_md_coordinates"],
+                                            otherMetaInfo=["cp2k_md_coordinates"],
+                                            dependencies={"cp2k_md_coordinates": ["cp2k_md_coordinate_atom_string"]},
+                                            subMatchers=[
+                                                SM(
+                                                    startReStr=" \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
+                                                    endReStr="\n",
+                                                    sections=["cp2k_section_md_coordinate_atom"],
+                                                    repeats=True,
+                                                )
+                                            ]
                                         )
                                     ]
                                 )
@@ -119,6 +166,16 @@ class CP2KOutputParser262(object):
             'cp2k_section_numbers': CachingLevel.Cache,
             'cp2k_atom_number': CachingLevel.Cache,
             'cp2k_shell_sets': CachingLevel.Cache,
+
+            'cp2k_section_md_coordinates': CachingLevel.Cache,
+            'cp2k_section_md_coordinate_atom': CachingLevel.Cache,
+            'cp2k_md_coordinate_atom_string': CachingLevel.Cache,
+            'cp2k_md_coordinate_atom_float': CachingLevel.Cache,
+
+            'cp2k_section_md_forces': CachingLevel.Cache,
+            'cp2k_section_md_force_atom': CachingLevel.Cache,
+            'cp2k_md_force_atom_string': CachingLevel.Cache,
+            'cp2k_md_force_atom_float': CachingLevel.Cache,
         }
 
     # The trigger functions
@@ -129,6 +186,7 @@ class CP2KOutputParser262(object):
         # Open the common system description section
         backend.openSection("section_system_description")
 
+        # Get the cell information
         cell = section["cp2k_section_cell"]
         if cell:
             cell = cell[0]
@@ -148,7 +206,16 @@ class CP2KOutputParser262(object):
             cell[1, :] = b_comp
             cell[2, :] = c_comp
 
-            backend.addArrayValues("cell", cell)
+            backend.addArrayValues("cell", cell, unit="angstrom")
+
+        # Get the number of atoms
+        numbers = section["cp2k_section_numbers"]
+        if numbers:
+            numbers = numbers[0]
+            n_atoms = numbers["cp2k_atom_number"]
+            if n_atoms:
+                n_atoms = n_atoms[0]
+                backend.addValue("atom_number", n_atoms)
 
         # Close the common system description section
         backend.closeSection("section_system_description", 0)
@@ -187,7 +254,36 @@ class CP2KOutputParser262(object):
         positions, unit = self.cp2kparser.get_initial_atom_positions_and_unit()
         backend.addArrayValues("atom_position", positions)
 
-    # def onClose_section_run(self, backend, gIndex, section):
-        # """At the end the parser is able to place the final cached values into
-        # the backend.
-        # """
+    def onClose_cp2k_section_md_coordinate_atom(self, backend, gIndex, section):
+        """Given the string with the coordinate components for one atom, make it
+        into a numpy array of coordinate components and store for later
+        concatenation.
+        """
+        force_string = section["cp2k_md_coordinate_atom_string"][0]
+        components = np.array([float(x) for x in force_string.split()])
+        backend.addArrayValues("cp2k_md_coordinate_atom_float", components)
+
+    def onClose_cp2k_section_md_coordinates(self, backend, gIndex, section):
+        """When all the coordinates for individual atoms have been gathered,
+        concatenate them into one big array and forward to the backend.
+        """
+        forces = section["cp2k_md_coordinate_atom_float"]
+        forces = np.array(forces)
+        backend.addArrayValues("cp2k_md_coordinates", forces)
+
+    def onClose_cp2k_section_md_force_atom(self, backend, gIndex, section):
+        """Given the string with the force components for one atom, make it
+        into a numpy array of force components and store for later
+        concatenation.
+        """
+        force_string = section["cp2k_md_force_atom_string"][0]
+        components = np.array([float(x) for x in force_string.split()])
+        backend.addArrayValues("cp2k_md_force_atom_float", components)
+
+    def onClose_cp2k_section_md_forces(self, backend, gIndex, section):
+        """When all the forces for individual atoms have been gathered,
+        concatenate them into one big array and forward to the backend.
+        """
+        forces = section["cp2k_md_force_atom_float"]
+        forces = np.array(forces)
+        backend.addArrayValues("cp2k_md_forces", forces, unit="force_au")

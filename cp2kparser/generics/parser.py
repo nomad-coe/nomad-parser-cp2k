@@ -29,8 +29,8 @@ class Parser(object):
     Attributes:
         See the ParserContext class for more details about the attributes.
         _file_handles: A "private" dictionary containing the cached file handles
-        _file_handles: A "private" dictionary containing the cached file contents
-        _file_handles: A "private" dictionary containing the cached file sizes
+        _file_contents: A "private" dictionary containing the cached file contents
+        _file_sizes: A "private" dictionary containing the cached file sizes
         file_ids: A dictionary containing the mapping between file ids and filepaths
     """
 
@@ -67,6 +67,8 @@ class Parser(object):
             fileToParse,
             mainFileDescription,
             metaInfoEnv,
+            metaInfoToKeep,
+            metaInfoToSkip,
             backend,
             parserInfo,
             cachingLevelForMetaName={},
@@ -80,7 +82,7 @@ class Parser(object):
         Returns:
         """
         # Initialize the parser builder
-        parserBuilder = SimpleParserBuilder(mainFileDescription, metaInfoEnv)
+        parserBuilder = SimpleParserBuilder(mainFileDescription, metaInfoEnv, metaInfoToKeep)
         if logger.isEnabledFor(logging.DEBUG):
             s = StringIO.StringIO()
             s.write("matchers:")

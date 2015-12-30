@@ -172,7 +172,7 @@ class CP2KImplementation262(Parser):
 
         # Determine the presence of a trajectory file
         traj_file = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FILENAME")
-        if traj_file is not None:
+        if traj_file is not None and traj_file != "__STD_OUT__":
             file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
             extension = {
                 "PDB": "pdb",
@@ -275,9 +275,11 @@ class CP2KImplementation262(Parser):
         outputfilename = self.get_file_handle("output").name
         metainfoenv = self.metainfoenv
         backend = self.backend
+        metainfo_to_keep = self.metainfo_to_keep
+        metainfo_to_skip = self.metainfo_to_skip
         outputstructure = self.outputparser.outputstructure
         cachingLevelForMetaName = self.outputparser.cachingLevelForMetaName
-        self.parse_file(outputfilename, outputstructure, metainfoenv, backend, parserInfo, cachingLevelForMetaName, superContext=self.outputparser)
+        self.parse_file(outputfilename, outputstructure, metainfoenv, metainfo_to_keep, metainfo_to_skip, backend, parserInfo, cachingLevelForMetaName, superContext=self.outputparser)
 
         # Then extract the things that cannot be extracted by the SimpleMatcher
 
@@ -438,6 +440,70 @@ class CP2KImplementation262(Parser):
         # Return the iterator and unit
         return (traj_iter, unit)
 
+    def get_functionals(self):
+        """Used to search the input file for a functional definition
+        """
+        # First try to look at the shortcut
+        xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
+        if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
+            logger.debug("Shortcut defined for XC_FUNCTIONAL")
+
+            # If PBE, check version
+            if xc_shortcut == "PBE":
+                pbe_version = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE/PARAMETRIZATION")
+                result.value = {
+                        'ORIG': "GGA_X_PBE",
+                        'PBESOL': "GGA_X_PBE_SOL",
+                        'REVPBE': "GGA_X_PBE_R",
+                }.get(pbe_version, "GGA_X_PBE")
+                return result
+
+            result.value = {
+                    'B3LYP': "HYB_GGA_XC_B3LYP",
+                    'BEEFVDW': None,
+                    'BLYP': "GGA_C_LYP_GGA_X_B88",
+                    'BP': None,
+                    'HCTH120': None,
+                    'OLYP': None,
+                    'LDA': "LDA_XC_TETER93",
+                    'PADE': "LDA_XC_TETER93",
+                    'PBE0': None,
+                    'TPSS': None,
+            }.get(xc_shortcut, None)
+            return result
+        else:
+            logger.debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
+
+        # Look at the subsections and determine what part have been activated
+
+        # Becke88
+        xc_components = []
+        becke_88 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
+        if becke_88 == "TRUE":
+            xc_components.append("GGA_X_B88")
+
+        # Becke 97
+        becke_97 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
+        if becke_97 == "TRUE":
+            becke_97_param = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
+            becke_97_result = {
+                    'B97GRIMME': None,
+                    'B97_GRIMME': None,
+                    'ORIG': "GGA_XC_B97",
+                    'WB97X-V': None,
+            }.get(becke_97_param, None)
+            if becke_97_result is not None:
+                xc_components.append(becke_97_result)
+
+        # Return an alphabetically sorted and joined list of the xc components
+        result.value = "_".join(sorted(xc_components))
+        return result
+
+# #===============================================================================
+# class CP2K_262_Implementation(CP2KImplementation):
+    # def __init__(self, parser):
+        # CP2KImplementation.__init__(self, parser)
+
     # def get_cell(self):
         # """The cell size can be static or dynamic if e.g. doing NPT. If the
         # cell size changes, outputs an Nx3x3 array where N is typically the
@@ -552,67 +618,3 @@ class CP2KImplementation262(Parser):
         # # No cell found
         # else:
             # logger.error("Could not find cell declaration.")
-
-    def get_functionals(self):
-        """Used to search the input file for a functional definition
-        """
-        # First try to look at the shortcut
-        xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
-        if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
-            logger.debug("Shortcut defined for XC_FUNCTIONAL")
-
-            # If PBE, check version
-            if xc_shortcut == "PBE":
-                pbe_version = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE/PARAMETRIZATION")
-                result.value = {
-                        'ORIG': "GGA_X_PBE",
-                        'PBESOL': "GGA_X_PBE_SOL",
-                        'REVPBE': "GGA_X_PBE_R",
-                }.get(pbe_version, "GGA_X_PBE")
-                return result
-
-            result.value = {
-                    'B3LYP': "HYB_GGA_XC_B3LYP",
-                    'BEEFVDW': None,
-                    'BLYP': "GGA_C_LYP_GGA_X_B88",
-                    'BP': None,
-                    'HCTH120': None,
-                    'OLYP': None,
-                    'LDA': "LDA_XC_TETER93",
-                    'PADE': "LDA_XC_TETER93",
-                    'PBE0': None,
-                    'TPSS': None,
-            }.get(xc_shortcut, None)
-            return result
-        else:
-            logger.debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
-
-        # Look at the subsections and determine what part have been activated
-
-        # Becke88
-        xc_components = []
-        becke_88 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
-        if becke_88 == "TRUE":
-            xc_components.append("GGA_X_B88")
-
-        # Becke 97
-        becke_97 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
-        if becke_97 == "TRUE":
-            becke_97_param = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
-            becke_97_result = {
-                    'B97GRIMME': None,
-                    'B97_GRIMME': None,
-                    'ORIG': "GGA_XC_B97",
-                    'WB97X-V': None,
-            }.get(becke_97_param, None)
-            if becke_97_result is not None:
-                xc_components.append(becke_97_result)
-
-        # Return an alphabetically sorted and joined list of the xc components
-        result.value = "_".join(sorted(xc_components))
-        return result
-
-# #===============================================================================
-# class CP2K_262_Implementation(CP2KImplementation):
-    # def __init__(self, parser):
-        # CP2KImplementation.__init__(self, parser)
