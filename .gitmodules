@@ -1,0 +1,3 @@
+[submodule "cp2kparser/cp2kparser/metainfo"]
+	path = cp2kparser/cp2kparser/metainfo
+	url = git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-meta-info.git
