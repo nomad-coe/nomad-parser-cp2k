@@ -2,7 +2,7 @@ import sys
 import logging
 from nomadcore.local_meta_info import loadJsonFile
 from nomadcore.parser_backend import JsonParseEventsWriterBackend
-from nomadanalysis.local_backend import LocalBackend
+from nomadtoolkit.local_backend import LocalBackend
 
 
 logger = logging.getLogger(__name__)

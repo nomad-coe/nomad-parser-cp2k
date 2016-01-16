@@ -1,13 +1,12 @@
 import re
 import os
 import logging
-from ..engines.csvengine import CSVEngine
-from ..implementation.cp2kinputparsers import CP2KInputParser
-from ..implementation.cp2kinputenginedata.input_tree import CP2KInput
-from ..implementation.cp2koutputparsers import *
-from ..generics.parserimplementation import ParserImplementation
+from cp2kparser.implementation.csvparsing import CSVParser
+from cp2kparser.implementation.inputparsing import CP2KInputParser
+from cp2kparser.implementation.cp2kinputenginedata.input_tree import CP2KInput
+from cp2kparser.implementation.outputparsing import *
+from cp2kparser.utils.parserimplementation import ParserImplementation
 from nomadcore.coordinate_reader import CoordinateReader
-from nomadcore.unit_conversion.unit_conversion import convert_unit
 logger = logging.getLogger(__name__)
 
 
@@ -22,11 +21,11 @@ class CP2KImplementation262(ParserImplementation):
 
         # Initialize the parsing tools. The input and output parsers need to
         # know the version id.
-        self.csvengine = CSVEngine(self)
+        self.csvengine = CSVParser(self)
         self.atomsengine = CoordinateReader()
         self.inputparser = CP2KInputParser()
         self.inputparser.setup_version(self.version_id)
-        self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)](self, self.metainfos)
+        self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)](self, self.metainfo_to_keep)
         self.input_tree = None
         self.extended_input = None
 
@@ -273,11 +272,9 @@ class CP2KImplementation262(ParserImplementation):
         # Use the SimpleMatcher to extract most of the results
         parserInfo = {"name": "cp2k-parser", "version": "1.0"}
         outputfilename = self.get_file_handle("output").name
-        backend = self.backend
-        metainfos = self.metainfos
         outputstructure = self.outputparser.outputstructure
         cachingLevelForMetaName = self.outputparser.cachingLevelForMetaName
-        self.parse_file(outputfilename, outputstructure, metainfos, backend, parserInfo, cachingLevelForMetaName, superContext=self.outputparser)
+        self.parse_file(outputfilename, outputstructure, parserInfo, cachingLevelForMetaName, superContext=self.outputparser)
 
         # Then extract the things that cannot be extracted by the SimpleMatcher
 

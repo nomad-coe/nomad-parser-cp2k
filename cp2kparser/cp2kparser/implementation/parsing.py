@@ -1,7 +1,7 @@
 import re
 import logging
-from ..generics.parser import Parser
-from ..implementation.cp2kimplementations import *
+from cp2kparser.utils.parser import Parser
+from cp2kparser.implementation.implementations import *
 logger = logging.getLogger(__name__)
 
 
@@ -17,8 +17,9 @@ class CP2KParser(Parser):
     After the implementation has been setup, you can parse the files with
     parse().
     """
-    def __init__(self, dirpath=None, files=None, metainfo_path=None, backend=None):
-        Parser.__init__(self, dirpath, files, metainfo_path, backend)
+
+    def __init__(self, contents=None, metainfo_to_keep=None, backend=None):
+        Parser.__init__(self, contents, metainfo_to_keep, backend)
 
     def setup(self):
         """Setups the version by looking at the output file and the version
@@ -57,6 +58,25 @@ class CP2KParser(Parser):
             self.parser_context.version_id = "262"
             self.implementation = globals()["CP2KImplementation262"](self.parser_context)
 
+    def search_parseable_files(self, files):
+        """Searches the given path for files that are of interest to this
+        parser. Returns them as a list of path strings.
+        """
+        return files
+
     def parse(self):
         self.setup()
         self.implementation.parse()
+
+    def get_metainfo_filename(self):
+        """This function should return the name of the metainfo file that is
+        specific for this parser. This name is used by the Analyzer class in
+        the nomadtoolkit.
+        """
+        return "cp2k.nomadmetainfo.json"
+
+
+#===============================================================================
+# This is what gets run when the scala layer calls for this parser
+if __name__ == "__main__":
+    print "Moi"

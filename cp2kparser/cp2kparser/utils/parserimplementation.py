@@ -66,8 +66,6 @@ class ParserImplementation(object):
             self,
             fileToParse,
             mainFileDescription,
-            metainfos,
-            backend,
             parserInfo,
             cachingLevelForMetaName={},
             defaultDataCachingLevel=CachingLevel.ForwardAndCache,
@@ -79,8 +77,12 @@ class ParserImplementation(object):
         Args:
         Returns:
         """
+
+        metainfo_to_keep = self.metainfo_to_keep
+        backend = self.backend
+
         # Initialize the parser builder
-        parserBuilder = SimpleParserBuilder(mainFileDescription, backend.metaInfoEnv(), metainfos)
+        parserBuilder = SimpleParserBuilder(mainFileDescription, backend.metaInfoEnv(), metainfo_to_keep)
         if logger.isEnabledFor(logging.DEBUG):
             s = StringIO.StringIO()
             s.write("matchers:")

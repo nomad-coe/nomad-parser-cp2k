@@ -30,49 +30,9 @@
     ```
 
 # Structure
-Currently the python package is divided into three subpackages:
-- Engines: Classes for parsing different type of files
-- Generics: Generic utility classes and base classes
-- Implementation: The classes that actually define the parser functionality.
-
-## Engines
-Basically all the "engines", that is the modules that parse certain type of
-files, are reusable in other parsers. They could be put into a common
-repository where other developers can improve and extend them. One should also
-write tests for the engines that would validate their behaviour and ease the
-performance analysis.
-
-The engine classes work also as interfaces. You can change the engine behaviour
-while maintaining the same API in the parsers. For example one might improve
-the performance of an engine but if the function calls remain the same no other
-code has to be changed.
-
-Currently implemented engines that could be reused (not tested properly yet):
-- AtomsEngine: For reading various atomic coordinate files. Currently uses ASE
-  to read the files.
-- RegexEngine: For parsing text files with regular expressions. Uses the re2
-library if available (falls back to default python regex implementation if
-re2 not found).
-- CSVEngine: For parsing CSV-like files. Has a very
-flexible nature as you can specify comments, column delimiters, column
-indices and the patterns used to separate different configurations.
-- XMLEngine: For parsing XML files using XPath syntax.
-
-## Generics
-In the generics folder there is a module called nomadparser.py that defines a
-class called NomadParser. This acts as a base class for the cp2k parser defined
-in the implementation folder.
-
-The NomadParser class defines the interface which is eventually used by e.g.
-the scala code (will be modified later to conform to the common interface).
-This class is also responsible for some common tasks that are present in all
-parsers:
-
-- Unit conversion
-- JSON encoding
-- Caching
-- Time measurement for performance analysis
-- Providing file contents, sizes and handles
+Currently the python package is divided the following subpackages:
+- utils: Generic utility classes and base classes
+- implementation: The classes that actually define the parser functionality.
 
 # Tools and Methods
 

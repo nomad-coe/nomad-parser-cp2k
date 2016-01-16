@@ -17,7 +17,7 @@ else:
 
 
 #===============================================================================
-class CSVEngine(object):
+class CSVParser(object):
     """Used to parse out freeform CSV-like content.
     Currently only can parse floating point information.
 

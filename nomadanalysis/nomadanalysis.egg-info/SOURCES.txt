@@ -1,9 +1,0 @@
-setup.py
-nomadanalysis/__init__.py
-nomadanalysis/analyzer.py
-nomadanalysis.egg-info/PKG-INFO
-nomadanalysis.egg-info/SOURCES.txt
-nomadanalysis.egg-info/dependency_links.txt
-nomadanalysis.egg-info/not-zip-safe
-nomadanalysis.egg-info/requires.txt
-nomadanalysis.egg-info/top_level.txt

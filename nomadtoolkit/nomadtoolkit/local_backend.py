@@ -24,7 +24,7 @@ class LocalBackend(object):
         gIndex should be unique (no reopening of a closed section)"""
         self.__lastIndex[metaName] = gIndex
         self.__openSections.add((metaName, gIndex))
-        self.__jsonOutput({"event":"openSection", "metaName":metaName, "gIndex":gIndex})
+        self.__jsonOutput({"event": "openSection", "metaName": metaName, "gIndex": gIndex})
 
     def __jsonOutput(self, dic):
         pass
@@ -50,10 +50,10 @@ class LocalBackend(object):
     def metaInfoEnv(self):
         return self.__metaInfoEnv
 
-    def startedParsingSession(self, mainFileUri, parserInfo, parsingStatus = None, parsingErrors = None):
+    def startedParsingSession(self, mainFileUri, parserInfo, parsingStatus=None, parsingErrors=None):
         pass
 
-    def finishedParsingSession(self, parsingStatus, parsingErrors, mainFileUri = None, parserInfo = None):
+    def finishedParsingSession(self, parsingStatus, parsingErrors, mainFileUri=None, parserInfo=None):
         pass
 
 
