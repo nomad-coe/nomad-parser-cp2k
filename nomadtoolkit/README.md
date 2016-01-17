@@ -25,3 +25,35 @@ To install this toolkit run the included nomadtoolkit/setup.py file as follows:
 ```sh
 python setup.py develop --user
 ```
+
+# Usage
+
+## Analysis
+To access the parsed data locally you can use the Analyzer class. This class
+will take care reading the parsed data and providing it to the user. The usage
+is simple as:
+
+```python
+from nomadtoolkit import Analyzer
+from cp2kparser import CP2KParser
+
+dirpaths = "/home/lauri/Dropbox/nomad-dev/parser-cp2k/cp2kparser/cp2kparser/tests/cp2k_2.6.2/forces/outputfile/n"
+parser = CP2KParser(contents=dirpaths)
+analyzer = Analyzer(parser)
+results = analyzer.parse()
+```
+
+The results class is now a dictionary where you can access any parsed quantity
+by it's metainfo name. The metainfo viewer which is discussed next can help you
+to identify what the available metainfo names are.
+
+##Metainfo Viewer
+The toolkit contains a browser based metainfo viewer for inspection of the
+different metainfos. This tool is useful when the online resources are not
+accessible. After succesfull installation you can start the viewer with the following command:
+
+```sh
+python -m nomadtoolkit -v
+```
+
+ This will open your default browser for viewing the metainfos.

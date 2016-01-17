@@ -1,8 +1,8 @@
-import sys
+import os
 import logging
 from nomadcore.local_meta_info import loadJsonFile
-from nomadcore.parser_backend import JsonParseEventsWriterBackend
-from nomadtoolkit.local_backend import LocalBackend
+import nomadtoolkit.utils.config
+from nomadtoolkit.analysis.local_backend import LocalBackend
 
 
 logger = logging.getLogger(__name__)
@@ -11,6 +11,14 @@ logger = logging.getLogger(__name__)
 class Analyzer(object):
     def __init__(self, parser=None):
         self.parser = parser
+
+        # Use a local backend with the default metainfos
+        if not parser.parser_context.backend:
+            metadir = nomadtoolkit.utils.config.get_config("metaInfoPath")
+            default_metainfo_path = os.path.realpath(os.path.join(metadir, parser.get_metainfo_filename()))
+            metainfoenv, warnings = loadJsonFile(default_metainfo_path)
+            backend = LocalBackend(metainfoenv)
+            parser.parser_context.backend = backend
 
     def parse(self):
         if not self.parser:

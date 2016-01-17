@@ -1,9 +1,7 @@
 import os
 import logging
 from abc import ABCMeta, abstractmethod
-import nomadtoolkit.config
 from nomadcore.local_meta_info import loadJsonFile
-from nomadtoolkit.local_backend import LocalBackend
 logger = logging.getLogger(__name__)
 
 
@@ -49,14 +47,6 @@ class Parser(object):
         # Filter the files leaving only the parseable ones. Each parser can
         # specify which files are of interest or to include them all.
         self.parser_context.files = self.search_parseable_files(files)
-
-        # If no backend provided, create Local one with default metainfos
-        if not backend:
-            metadir = nomadtoolkit.config.get_config("metaInfoPath")
-            default_metainfo_path = os.path.realpath(os.path.join(metadir, self.get_metainfo_filename()))
-            metainfoenv, warnings = loadJsonFile(default_metainfo_path)
-            backend = LocalBackend(metainfoenv)
-            self.parser_context.backend = backend
 
     @abstractmethod
     def setup(self):

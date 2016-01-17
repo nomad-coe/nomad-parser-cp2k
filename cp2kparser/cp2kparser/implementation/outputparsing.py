@@ -53,7 +53,7 @@ class CP2KOutputParser262(object):
                         SM(
                             startReStr="",
                             sections=["cp2k_system_description"],
-                            otherMetaInfo=["atom_number"],
+                            otherMetaInfo=["number_of_atoms"],
                             dependencies={"atom_number": ["cp2k_atom_number"]},
                             subMatchers=[
                                 SM(
@@ -76,7 +76,7 @@ class CP2KOutputParser262(object):
                                     startReStr=" FUNCTIONAL\|",
                                     forwardMatch=True,
                                     sections=["section_method", "cp2k_section_functionals"],
-                                    otherMetaInfo=["XC_functional_scf"],
+                                    otherMetaInfo=["XC_functional"],
                                     subMatchers=[
                                         SM(
                                             repeats=True,
@@ -213,7 +213,7 @@ class CP2KOutputParser262(object):
             n_atoms = numbers["cp2k_atom_number"]
             if n_atoms:
                 n_atoms = n_atoms[0]
-                backend.addValue("atom_number", n_atoms)
+                backend.addValue("number_of_atoms", n_atoms)
 
         # Close the common system description section
         backend.closeSection("section_system_description", 0)
@@ -244,7 +244,7 @@ class CP2KOutputParser262(object):
         functionals = "_".join(sorted(functionals))
 
         # Push the functional string into the backend
-        backend.addValue('XC_functional_scf', functionals)
+        backend.addValue('XC_functional', functionals)
 
     def onClose_cp2k_section_atom_position(self, backend, gIndex, section):
         """Get the initial atomic positions from cp2kparser.

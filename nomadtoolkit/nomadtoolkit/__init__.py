@@ -1,1 +1,1 @@
-from nomadtoolkit.analysis import Analyzer
+from nomadtoolkit.analysis.analyzer import Analyzer

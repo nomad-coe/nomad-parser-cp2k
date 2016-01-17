@@ -1,2 +1,4 @@
 cp2kparser.egg-info
 *.pyc
+nomadtoolkit/nomadtoolkit/metaviewer/frontend/static/frontend/node_modules
+nomadtoolkit/nomadtoolkit/metaviewer/frontend/static/frontend/bower_components
