@@ -14,21 +14,6 @@
     python setup.py install --user
     ```
 
-- You can test if everything is running fine by running the test script in tests folder:
-
-    ```shell
-    cd cp2kparser/tests/cp2k_2.6.2
-    python run_tests.py
-    ```
-
-- If you want to try out parsing for a custom cp2k calculation, place all
-  relevant output and input files inside a common directory and run the
-  following command within that folder:
-
-    ```shell
-    python -m cp2kparser
-    ```
-
 # Structure
 Currently the python package is divided the following subpackages:
 - utils: Generic utility classes and base classes

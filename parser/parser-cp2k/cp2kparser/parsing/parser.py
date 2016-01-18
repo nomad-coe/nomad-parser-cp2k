@@ -1,7 +1,7 @@
 import re
 import logging
-from cp2kparser.utils.parser import Parser
-from cp2kparser.implementation.implementations import *
+from cp2kparser.utils.baseclasses import Parser
+from cp2kparser.parsing.implementations import *
 logger = logging.getLogger(__name__)
 
 
@@ -64,10 +64,6 @@ class CP2KParser(Parser):
         """
         return files
 
-    def parse(self):
-        self.setup()
-        self.implementation.parse()
-
     def get_metainfo_filename(self):
         """This function should return the name of the metainfo file that is
         specific for this parser. This name is used by the Analyzer class in
@@ -79,4 +75,7 @@ class CP2KParser(Parser):
 #===============================================================================
 # This is what gets run when the scala layer calls for this parser
 if __name__ == "__main__":
-    print "Moi"
+
+
+    cp2kparser = CP2KParser()
+    cp2kparser.scala_main_function()
