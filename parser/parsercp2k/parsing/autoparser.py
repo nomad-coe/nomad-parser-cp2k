@@ -1,8 +1,8 @@
 import sys
 import os
 import cStringIO
-from cp2kparser.implementation.cp2kparserversioner import CP2KParserVersioner
-from cp2kparser.generics.testing import get_parser
+from parsercp2k.implementation.cp2kparserversioner import CP2KParserVersioner
+from parsercp2k.generics.testing import get_parser
 
 
 #===============================================================================

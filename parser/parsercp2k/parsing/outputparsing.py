@@ -249,8 +249,9 @@ class CP2KOutputParser262(object):
     def onClose_cp2k_section_atom_position(self, backend, gIndex, section):
         """Get the initial atomic positions from cp2kparser.
         """
-        positions, unit = self.cp2kparser.get_initial_atom_positions_and_unit()
-        backend.addArrayValues("atom_position", positions)
+        pass
+        # positions, unit = self.cp2kparser.get_initial_atom_positions_and_unit()
+        # backend.addArrayValues("atom_position", positions)
 
     def onClose_cp2k_section_md_coordinate_atom(self, backend, gIndex, section):
         """Given the string with the coordinate components for one atom, make it

@@ -1,21 +1,20 @@
 import os
 import sys
-import json
 import logging
 import StringIO
-import argparse
 from abc import ABCMeta, abstractmethod
+from parsercp2k.parsing.outputparsing import *
 from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile, extractOnCloseTriggers
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
-from nomadcore.parser_backend import JsonParseEventsWriterBackend
 from nomadcore.caching_backend import CachingLevel, ActiveBackend
-from nomadcore.parse_streamed_dicts import ParseStreamedDicts
+from nomadcore.simple_parser import mainFunction
 logger = logging.getLogger(__name__)
 
 
 #===============================================================================
 class Parser(object):
-    """
+    """A base class for nomad parsers.
+
     Attributes:
         self.implementation: an object that actually does the parsing and is
             setup by this class based on the given contents.
@@ -45,21 +44,22 @@ class Parser(object):
             contents = [contents]
 
         # Figure out all the files from the contents
-        files = set()
-        for content in contents:
-            if os.path.isdir(content):
-                dir_files = set()
-                for filename in os.listdir(content):
-                    dir_files.add(os.path.join(content, filename))
-                files |= dir_files
-            elif os.path.isfile(content):
-                files.add(content)
-            else:
-                logger.error("The string '{}' is not a valid path.".format(content))
+        if contents:
+            files = set()
+            for content in contents:
+                if os.path.isdir(content):
+                    dir_files = set()
+                    for filename in os.listdir(content):
+                        dir_files.add(os.path.join(content, filename))
+                    files |= dir_files
+                elif os.path.isfile(content):
+                    files.add(content)
+                else:
+                    logger.error("The string '{}' is not a valid path.".format(content))
 
-        # Filter the files leaving only the parseable ones. Each parser can
-        # specify which files are of interest or to include them all.
-        self.parser_context.files = self.search_parseable_files(files)
+            # Filter the files leaving only the parseable ones. Each parser can
+            # specify which files are of interest or to include them all.
+            self.parser_context.files = self.search_parseable_files(files)
 
     @abstractmethod
     def setup(self):
@@ -95,40 +95,41 @@ class Parser(object):
         self.setup()
         if not self.implementation:
             logger.error("No parser implementation has been setup.")
+
+        # Write the starting bracket
+        self.backend.fileOut.write("[")
+
         self.implementation.parse()
+
+        # Write the ending bracket
+        self.backend.fileOut.write("]\n")
 
     def scala_main_function(self):
         """This function gets called when the scala calls for a parser.
         """
-        # Parse the command line options
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--specialize', help='Provide specialization information as the first JSON dictionary on stdin.')
-        parser.add_argument('--stream', type=str, nargs='+', help='Expects the files to parse via JSON dictionary on stdin.')
-        parser.add_argument('mainFilePath', type=str, nargs='+', help='Path to the main file.')
-        args = parser.parse_args()
+
+        # Get the outputparser class
+        outputparser = globals()["CP2KOutputParser{}".format("262")](None, None)
 
         # Setup the metainfos
         metaInfoPath = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../nomad-meta-info/meta_info/nomad_meta_info/{}".format(self.get_metainfo_filename())))
         metaInfoEnv, warnings = loadJsonFile(filePath=metaInfoPath, dependencyLoader=None, extraArgsHandling=InfoKindEl.ADD_EXTRA_ARGS, uri=None)
 
-        # Setup the JSON backend
-        backend = JsonParseEventsWriterBackend(metaInfoEnv, sys.stdout)
+        # Parser info
+        parserInfo = {'name': 'cp2k-parser', 'version': '1.0'}
 
-        # Setup the contents
-        contents = [args.mainFilePath]
-        # contents.extend(auxiliary_files)
+        # Adjust caching of metadata
+        cachingLevelForMetaName = outputparser.cachingLevelForMetaName
 
-        # Setup the specilalization info
-        dictReader = ParseStreamedDicts(sys.stdin)
-        if args.specialize:
-            specializationInfo = dictReader.readNextDict()
-            if specializationInfo is None or specializationInfo.get("type", "") != "nomad_parser_specialization_1_0":
-                raise Exception("expected a nomad_parser_specialization_1_0 as first dictionary, got " + json.dumps(specializationInfo))
-            metainfo_to_keep = specializationInfo.get("metaInfoToKeep")
+        # Supercontext is where the objet where the callback functions for
+        # section closing are found
+        superContext = outputparser
 
-        # Parse
-        self.initialize(contents, metainfo_to_keep, backend)
-        self.parse()
+        # Main file description is the SimpleParser tree
+        mainFileDescription = outputparser.outputstructure
+
+        # Use the main function from nomadcore
+        mainFunction(mainFileDescription, metaInfoEnv, parserInfo, superContext=superContext, cachingLevelForMetaName=cachingLevelForMetaName, onClose={})
 
 
 #===============================================================================

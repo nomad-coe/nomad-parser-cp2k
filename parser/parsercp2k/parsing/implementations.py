@@ -1,11 +1,11 @@
 import re
 import os
 import logging
-from cp2kparser.parsing.csvparsing import CSVParser
-from cp2kparser.parsing.inputparsing import CP2KInputParser
-from cp2kparser.parsing.cp2kinputenginedata.input_tree import CP2KInput
-from cp2kparser.parsing.outputparsing import *
-from cp2kparser.utils.baseclasses import ParserImplementation
+from parsercp2k.parsing.csvparsing import CSVParser
+from parsercp2k.parsing.inputparsing import CP2KInputParser
+from parsercp2k.parsing.cp2kinputenginedata.input_tree import CP2KInput
+from parsercp2k.parsing.outputparsing import *
+from parsercp2k.utils.baseclasses import ParserImplementation
 from nomadcore.coordinate_reader import CoordinateReader
 logger = logging.getLogger(__name__)
 
@@ -266,8 +266,6 @@ class CP2KImplementation262(ParserImplementation):
         results are outputted to std.out by using the backend. The scala layer
         will the take on from that.
         """
-        # Write the starting bracket
-        self.backend.fileOut.write("[")
 
         # Use the SimpleMatcher to extract most of the results
         parserInfo = {"name": "cp2k-parser", "version": "1.0"}
@@ -276,10 +274,6 @@ class CP2KImplementation262(ParserImplementation):
         cachingLevelForMetaName = self.outputparser.cachingLevelForMetaName
         self.parse_file(outputfilename, outputstructure, parserInfo, cachingLevelForMetaName, superContext=self.outputparser)
 
-        # Then extract the things that cannot be extracted by the SimpleMatcher
-
-        # Write the ending bracket
-        self.backend.fileOut.write("]\n")
 
     # def _Q_energy_total(self):
         # """Return the total energy from the bottom of the input file"""
@@ -288,211 +282,211 @@ class CP2KImplementation262(ParserImplementation):
         # result.value = float(self.regexengine.parse(self.regexs.energy_total, self.parser.get_file_handle("output")))
         # return result
 
-    def _Q_particle_forces(self):
-        """Return the forces that are controlled by
-        "FORCE_EVAL/PRINT/FORCES/FILENAME". These forces are typicalle printed
-        out during optimization or single point calculation.
+    # def _Q_particle_forces(self):
+        # """Return the forces that are controlled by
+        # "FORCE_EVAL/PRINT/FORCES/FILENAME". These forces are typicalle printed
+        # out during optimization or single point calculation.
 
-        Supports forces printed in the output file or in a single XYZ file.
-        """
-        result = Result()
-        result.unit = "force_au"
+        # Supports forces printed in the output file or in a single XYZ file.
+        # """
+        # result = Result()
+        # result.unit = "force_au"
 
-        # Determine if a separate force file is used or are the forces printed
-        # in the output file.
-        separate_file = True
-        filename = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
-        if not filename or filename == "__STD_OUT__":
-            separate_file = False
+        # # Determine if a separate force file is used or are the forces printed
+        # # in the output file.
+        # separate_file = True
+        # filename = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        # if not filename or filename == "__STD_OUT__":
+            # separate_file = False
 
-        # Look for the forces either in output or in separate file
-        if not separate_file:
-            logger.debug("Looking for forces in output file.")
-            forces = self.regexengine.parse(self.regexs.particle_forces, self.parser.get_file_handle("output"))
-            if forces is None:
-                msg = "No force configurations were found when searching the output file."
-                logger.warning(msg)
-                result.error_message = msg
-                result.code = ResultCode.fail
-                return result
+        # # Look for the forces either in output or in separate file
+        # if not separate_file:
+            # logger.debug("Looking for forces in output file.")
+            # forces = self.regexengine.parse(self.regexs.particle_forces, self.parser.get_file_handle("output"))
+            # if forces is None:
+                # msg = "No force configurations were found when searching the output file."
+                # logger.warning(msg)
+                # result.error_message = msg
+                # result.code = ResultCode.fail
+                # return result
 
-            # Insert force configuration into the array
-            i_conf = 0
-            force_array = None
-            for force_conf in forces:
-                iterator = self.csvengine.iread(force_conf, columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=None)
-                i_force_array = iterator.next()
+            # # Insert force configuration into the array
+            # i_conf = 0
+            # force_array = None
+            # for force_conf in forces:
+                # iterator = self.csvengine.iread(force_conf, columns=(-3, -2, -1), comments=("#", "ATOMIC", "SUM"), separator=None)
+                # i_force_array = iterator.next()
 
-                # Initialize the numpy array if not done yet
-                n_particles = i_force_array.shape[0]
-                n_dim = i_force_array.shape[1]
-                n_confs = len(forces)
-                force_array = np.empty((n_confs, n_particles, n_dim))
+                # # Initialize the numpy array if not done yet
+                # n_particles = i_force_array.shape[0]
+                # n_dim = i_force_array.shape[1]
+                # n_confs = len(forces)
+                # force_array = np.empty((n_confs, n_particles, n_dim))
 
-                force_array[i_conf, :, :] = i_force_array
-                i_conf += 1
+                # force_array[i_conf, :, :] = i_force_array
+                # i_conf += 1
 
-            result.value_iterable = force_array
-            return result
-        else:
-            logger.debug("Looking for forces in separate force file.")
-            iterator = self.csvengine.iread(self.parser.get_file_handle("forces"), columns=(-3, -2, -1), comments=("#", "SUM"), separator=r"\ ATOMIC FORCES in \[a\.u\.\]")
-            result.value_iterable = iterator
-            return result
+            # result.value_iterable = force_array
+            # return result
+        # else:
+            # logger.debug("Looking for forces in separate force file.")
+            # iterator = self.csvengine.iread(self.parser.get_file_handle("forces"), columns=(-3, -2, -1), comments=("#", "SUM"), separator=r"\ ATOMIC FORCES in \[a\.u\.\]")
+            # result.value_iterable = iterator
+            # return result
 
-    def get_initial_atom_positions_and_unit(self):
-        """Returns the starting configuration of the atoms in the system.
-        """
-        unit = "angstrom"
+    # def get_initial_atom_positions_and_unit(self):
+        # """Returns the starting configuration of the atoms in the system.
+        # """
+        # unit = "angstrom"
 
-        # Check where the coordinates are specified
-        coord_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
-        if not coord_format:
-            coord_format = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
+        # # Check where the coordinates are specified
+        # coord_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
+        # if not coord_format:
+            # coord_format = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
 
-        # See if the coordinates are provided in the input file
-        if coord_format == "OFF":
-            logger.debug("Using coordinates from the input file.")
-            coords = self.input_tree.get_default_keyword("FORCE_EVAL/SUBSYS/COORD")
-            coords = coords.strip().split('\n')
-            positions = []
-            for line in coords:
-                components = [float(x) for x in line.split()[1:]]
-                positions.append(components)
-            positions = np.array(positions)
-            return positions, unit
+        # # See if the coordinates are provided in the input file
+        # if coord_format == "OFF":
+            # logger.debug("Using coordinates from the input file.")
+            # coords = self.input_tree.get_default_keyword("FORCE_EVAL/SUBSYS/COORD")
+            # coords = coords.strip().split('\n')
+            # positions = []
+            # for line in coords:
+                # components = [float(x) for x in line.split()[1:]]
+                # positions.append(components)
+            # positions = np.array(positions)
+            # return positions, unit
 
-        elif coord_format in ["CP2K", "G96", "XTL", "CRD"]:
-            msg = "Tried to read the number of atoms from the initial configuration, but the parser does not yet support the '{}' format that is used by file '{}'.".format(coord_format, self.parser.file_ids["initial_coordinates"])
-            logger.warning(msg)
-        else:
-            # External file, use AtomsEngine
-            init_coord_file = self.parser.get_file_handle("initial_coordinates")
-            if coord_format == "XYZ":
-                iter_pos = self.atomsengine.iread(init_coord_file, format="xyz")
-            if coord_format == "CIF":
-                iter_pos = self.atomsengine.iread(init_coord_file, format="cif")
-            if coord_format == "PDB":
-                iter_pos = self.atomsengine.iread(init_coord_file, format="pdb")
-            return next(iter_pos), unit
+        # elif coord_format in ["CP2K", "G96", "XTL", "CRD"]:
+            # msg = "Tried to read the number of atoms from the initial configuration, but the parser does not yet support the '{}' format that is used by file '{}'.".format(coord_format, self.parser.file_ids["initial_coordinates"])
+            # logger.warning(msg)
+        # else:
+            # # External file, use AtomsEngine
+            # init_coord_file = self.parser.get_file_handle("initial_coordinates")
+            # if coord_format == "XYZ":
+                # iter_pos = self.atomsengine.iread(init_coord_file, format="xyz")
+            # if coord_format == "CIF":
+                # iter_pos = self.atomsengine.iread(init_coord_file, format="cif")
+            # if coord_format == "PDB":
+                # iter_pos = self.atomsengine.iread(init_coord_file, format="pdb")
+            # return next(iter_pos), unit
 
-        # # Check if the unit cell is multiplied programmatically
-        # multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
-        # if not multiples:
-            # multiples = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
-        # factors = [int(x) for x in multiples.split()]
-        # factor = np.prod(np.array(factors))
+        # # # Check if the unit cell is multiplied programmatically
+        # # multiples = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
+        # # if not multiples:
+            # # multiples = self.input_tree.get_keyword_default("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
+        # # factors = [int(x) for x in multiples.split()]
+        # # factor = np.prod(np.array(factors))
 
-    def get_atom_positions_and_unit(self):
-        """Returns the atom positions and unit that were calculated during the
-        simulation.
-        """
-        # Determine the unit
-        unit_path = "MOTION/PRINT/TRAJECTORY/UNIT"
-        unit = self.input_tree.get_keyword(unit_path)
-        # unit = unit.lower()
-        unit = CP2KInput.decode_cp2k_unit(unit)
+    # def get_atom_positions_and_unit(self):
+        # """Returns the atom positions and unit that were calculated during the
+        # simulation.
+        # """
+        # # Determine the unit
+        # unit_path = "MOTION/PRINT/TRAJECTORY/UNIT"
+        # unit = self.input_tree.get_keyword(unit_path)
+        # # unit = unit.lower()
+        # unit = CP2KInput.decode_cp2k_unit(unit)
 
-        # Read the trajectory
-        traj_file = self.get_file_handle("trajectory", show_warning=False)
-        if not traj_file:
-            logger.debug("No trajectory file detected.")
-            return None, None
+        # # Read the trajectory
+        # traj_file = self.get_file_handle("trajectory", show_warning=False)
+        # if not traj_file:
+            # logger.debug("No trajectory file detected.")
+            # return None, None
 
-        input_file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
-        file_format = {
-            "XYZ": "xyz",
-            "XMOL": "xyz",
-            "PDB": "pdb-cp2k",
-            "ATOMIC": "atomic",
-        }.get(input_file_format)
+        # input_file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
+        # file_format = {
+            # "XYZ": "xyz",
+            # "XMOL": "xyz",
+            # "PDB": "pdb-cp2k",
+            # "ATOMIC": "atomic",
+        # }.get(input_file_format)
 
-        if file_format is None:
-            logger.error("Unsupported trajectory file format '{}'.".format(input_file_format))
+        # if file_format is None:
+            # logger.error("Unsupported trajectory file format '{}'.".format(input_file_format))
 
-        # Use a custom implementation for the CP2K specific weird formats
-        if file_format == "pdb-cp2k":
-            traj_iter = self.csvengine.iread(traj_file, columns=[3, 4, 5], comments=["TITLE", "AUTHOR", "REMARK", "CRYST"], separator="END")
-        elif file_format == "atomic":
-            n_atoms = self.get_result_object("particle_number").value
+        # # Use a custom implementation for the CP2K specific weird formats
+        # if file_format == "pdb-cp2k":
+            # traj_iter = self.csvengine.iread(traj_file, columns=[3, 4, 5], comments=["TITLE", "AUTHOR", "REMARK", "CRYST"], separator="END")
+        # elif file_format == "atomic":
+            # n_atoms = self.get_result_object("particle_number").value
 
-            def atomic_generator():
-                conf = []
-                i = 0
-                for line in traj_file:
-                    line = line.strip()
-                    components = np.array([float(x) for x in line.split()])
-                    conf.append(components)
-                    i += 1
-                    if i == n_atoms:
-                        yield np.array(conf)
-                        conf = []
-                        i = 0
-            traj_iter = atomic_generator()
-        else:
-            traj_iter = self.atomsengine.iread(traj_file, format=file_format)
+            # def atomic_generator():
+                # conf = []
+                # i = 0
+                # for line in traj_file:
+                    # line = line.strip()
+                    # components = np.array([float(x) for x in line.split()])
+                    # conf.append(components)
+                    # i += 1
+                    # if i == n_atoms:
+                        # yield np.array(conf)
+                        # conf = []
+                        # i = 0
+            # traj_iter = atomic_generator()
+        # else:
+            # traj_iter = self.atomsengine.iread(traj_file, format=file_format)
 
-        # Return the iterator and unit
-        return (traj_iter, unit)
+        # # Return the iterator and unit
+        # return (traj_iter, unit)
 
-    def get_functionals(self):
-        """Used to search the input file for a functional definition
-        """
-        # First try to look at the shortcut
-        xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
-        if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
-            logger.debug("Shortcut defined for XC_FUNCTIONAL")
+    # def get_functionals(self):
+        # """Used to search the input file for a functional definition
+        # """
+        # # First try to look at the shortcut
+        # xc_shortcut = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
+        # if xc_shortcut is not None and xc_shortcut != "NONE" and xc_shortcut != "NO_SHORTCUT":
+            # logger.debug("Shortcut defined for XC_FUNCTIONAL")
 
-            # If PBE, check version
-            if xc_shortcut == "PBE":
-                pbe_version = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE/PARAMETRIZATION")
-                result.value = {
-                        'ORIG': "GGA_X_PBE",
-                        'PBESOL': "GGA_X_PBE_SOL",
-                        'REVPBE': "GGA_X_PBE_R",
-                }.get(pbe_version, "GGA_X_PBE")
-                return result
+            # # If PBE, check version
+            # if xc_shortcut == "PBE":
+                # pbe_version = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/PBE/PARAMETRIZATION")
+                # result.value = {
+                        # 'ORIG': "GGA_X_PBE",
+                        # 'PBESOL': "GGA_X_PBE_SOL",
+                        # 'REVPBE': "GGA_X_PBE_R",
+                # }.get(pbe_version, "GGA_X_PBE")
+                # return result
 
-            result.value = {
-                    'B3LYP': "HYB_GGA_XC_B3LYP",
-                    'BEEFVDW': None,
-                    'BLYP': "GGA_C_LYP_GGA_X_B88",
-                    'BP': None,
-                    'HCTH120': None,
-                    'OLYP': None,
-                    'LDA': "LDA_XC_TETER93",
-                    'PADE': "LDA_XC_TETER93",
-                    'PBE0': None,
-                    'TPSS': None,
-            }.get(xc_shortcut, None)
-            return result
-        else:
-            logger.debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
+            # result.value = {
+                    # 'B3LYP': "HYB_GGA_XC_B3LYP",
+                    # 'BEEFVDW': None,
+                    # 'BLYP': "GGA_C_LYP_GGA_X_B88",
+                    # 'BP': None,
+                    # 'HCTH120': None,
+                    # 'OLYP': None,
+                    # 'LDA': "LDA_XC_TETER93",
+                    # 'PADE': "LDA_XC_TETER93",
+                    # 'PBE0': None,
+                    # 'TPSS': None,
+            # }.get(xc_shortcut, None)
+            # return result
+        # else:
+            # logger.debug("No shortcut defined for XC_FUNCTIONAL. Looking into subsections.")
 
-        # Look at the subsections and determine what part have been activated
+        # # Look at the subsections and determine what part have been activated
 
-        # Becke88
-        xc_components = []
-        becke_88 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
-        if becke_88 == "TRUE":
-            xc_components.append("GGA_X_B88")
+        # # Becke88
+        # xc_components = []
+        # becke_88 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE88")
+        # if becke_88 == "TRUE":
+            # xc_components.append("GGA_X_B88")
 
-        # Becke 97
-        becke_97 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
-        if becke_97 == "TRUE":
-            becke_97_param = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
-            becke_97_result = {
-                    'B97GRIMME': None,
-                    'B97_GRIMME': None,
-                    'ORIG': "GGA_XC_B97",
-                    'WB97X-V': None,
-            }.get(becke_97_param, None)
-            if becke_97_result is not None:
-                xc_components.append(becke_97_result)
+        # # Becke 97
+        # becke_97 = self.input_tree.get_parameter("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97")
+        # if becke_97 == "TRUE":
+            # becke_97_param = self.input_tree.get_keyword("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL/BECKE97/PARAMETRIZATION")
+            # becke_97_result = {
+                    # 'B97GRIMME': None,
+                    # 'B97_GRIMME': None,
+                    # 'ORIG': "GGA_XC_B97",
+                    # 'WB97X-V': None,
+            # }.get(becke_97_param, None)
+            # if becke_97_result is not None:
+                # xc_components.append(becke_97_result)
 
-        # Return an alphabetically sorted and joined list of the xc components
-        result.value = "_".join(sorted(xc_components))
-        return result
+        # # Return an alphabetically sorted and joined list of the xc components
+        # result.value = "_".join(sorted(xc_components))
+        # return result
 
 # #===============================================================================
 # class CP2K_262_Implementation(CP2KImplementation):
