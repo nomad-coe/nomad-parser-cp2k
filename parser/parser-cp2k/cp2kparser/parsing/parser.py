@@ -1,8 +1,7 @@
 import re
 import logging
-import parsercp2k.setup_paths
-from parsercp2k.utils.baseclasses import Parser
-from parsercp2k.parsing.implementations import *
+from cp2kparser.utils.baseclasses import Parser
+from cp2kparser.parsing.implementations import *
 logger = logging.getLogger(__name__)
 
 
@@ -71,10 +70,3 @@ class CP2KParser(Parser):
         the nomadtoolkit.
         """
         return "cp2k.nomadmetainfo.json"
-
-
-#===============================================================================
-# This is what gets run when the scala layer calls for this parser
-if __name__ == "__main__":
-    cp2kparser = CP2KParser()
-    cp2kparser.scala_main_function()

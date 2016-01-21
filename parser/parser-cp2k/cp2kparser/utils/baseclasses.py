@@ -3,11 +3,8 @@ import sys
 import logging
 import StringIO
 from abc import ABCMeta, abstractmethod
-from parsercp2k.parsing.outputparsing import *
 from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile, extractOnCloseTriggers
-from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
 from nomadcore.caching_backend import CachingLevel, ActiveBackend
-from nomadcore.simple_parser import mainFunction
 logger = logging.getLogger(__name__)
 
 
@@ -16,8 +13,11 @@ class Parser(object):
     """A base class for nomad parsers.
 
     Attributes:
-        self.implementation: an object that actually does the parsing and is
+        implementation: an object that actually does the parsing and is
             setup by this class based on the given contents.
+        parser_context: A wrapper class for all the parser related information.
+            This is contructed here and then passed onto the different
+            implementations.
     """
     __metaclass__ = ABCMeta
     parser_name = None
@@ -97,39 +97,12 @@ class Parser(object):
             logger.error("No parser implementation has been setup.")
 
         # Write the starting bracket
-        self.backend.fileOut.write("[")
+        self.implementation.backend.fileOut.write("[")
 
         self.implementation.parse()
 
         # Write the ending bracket
-        self.backend.fileOut.write("]\n")
-
-    def scala_main_function(self):
-        """This function gets called when the scala calls for a parser.
-        """
-
-        # Get the outputparser class
-        outputparser = globals()["CP2KOutputParser{}".format("262")](None, None)
-
-        # Setup the metainfos
-        metaInfoPath = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../nomad-meta-info/meta_info/nomad_meta_info/{}".format(self.get_metainfo_filename())))
-        metaInfoEnv, warnings = loadJsonFile(filePath=metaInfoPath, dependencyLoader=None, extraArgsHandling=InfoKindEl.ADD_EXTRA_ARGS, uri=None)
-
-        # Parser info
-        parserInfo = {'name': 'cp2k-parser', 'version': '1.0'}
-
-        # Adjust caching of metadata
-        cachingLevelForMetaName = outputparser.cachingLevelForMetaName
-
-        # Supercontext is where the objet where the callback functions for
-        # section closing are found
-        superContext = outputparser
-
-        # Main file description is the SimpleParser tree
-        mainFileDescription = outputparser.outputstructure
-
-        # Use the main function from nomadcore
-        mainFunction(mainFileDescription, metaInfoEnv, parserInfo, superContext=superContext, cachingLevelForMetaName=cachingLevelForMetaName, onClose={})
+        self.implementation.backend.fileOut.write("]\n")
 
 
 #===============================================================================

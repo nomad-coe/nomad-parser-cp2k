@@ -1,11 +1,11 @@
 import re
 import os
 import logging
-from parsercp2k.parsing.csvparsing import CSVParser
-from parsercp2k.parsing.inputparsing import CP2KInputParser
-from parsercp2k.parsing.cp2kinputenginedata.input_tree import CP2KInput
-from parsercp2k.parsing.outputparsing import *
-from parsercp2k.utils.baseclasses import ParserImplementation
+from cp2kparser.parsing.csvparsing import CSVParser
+from cp2kparser.parsing.inputparsing import CP2KInputParser
+from cp2kparser.parsing.cp2kinputenginedata.input_tree import CP2KInput
+from cp2kparser.parsing.outputparsing import *
+from cp2kparser.utils.baseclasses import ParserImplementation
 from nomadcore.coordinate_reader import CoordinateReader
 logger = logging.getLogger(__name__)
 

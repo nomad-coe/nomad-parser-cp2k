@@ -204,7 +204,7 @@ class CP2KOutputParser262(object):
             cell[1, :] = b_comp
             cell[2, :] = c_comp
 
-            backend.addArrayValues("cell", cell, unit="angstrom")
+            backend.addArrayValues("simulation_cell", cell, unit="angstrom")
 
         # Get the number of atoms
         numbers = section["cp2k_section_numbers"]

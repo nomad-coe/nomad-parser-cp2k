@@ -1,0 +1,10 @@
+setup.py
+cp2karser.egg-info/PKG-INFO
+cp2karser.egg-info/SOURCES.txt
+cp2karser.egg-info/dependency_links.txt
+cp2karser.egg-info/not-zip-safe
+cp2karser.egg-info/requires.txt
+cp2karser.egg-info/top_level.txt
+cp2kparser/__init__.py
+cp2kparser/__main__.py
+cp2kparser/scalainterface.py

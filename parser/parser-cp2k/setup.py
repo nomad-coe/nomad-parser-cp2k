@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 def main():
     # Start package setup
     setup(
-        name="parsercp2k",
+        name="cp2karser",
         version="0.1",
         include_package_data=True,
         package_data={
@@ -15,7 +15,7 @@ def main():
         author="Lauri Himanen",
         author_email="lauri.himanen@gmail.com",
         license="GPL3",
-        packages=["parsercp2k"],
+        packages=["cp2kparser"],
         install_requires=[
             'pint',
             'numpy',
