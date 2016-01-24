@@ -3,6 +3,7 @@ This is the access point to the parser for the scala layer in the nomad project.
 """
 import os
 from cp2kparser import CP2KParser
+from cp2kparser.parsing.outputparsing import CP2KOutputParser262
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
 from nomadcore.simple_parser import mainFunction
 
@@ -11,10 +12,11 @@ from nomadcore.simple_parser import mainFunction
 # auxiliary files. Also the version identification is skipped and the structure
 # used in CP2K 2.6.2 is assumed.
 if __name__ == "__main__":
+
     cp2kparser = CP2KParser()
 
     # Get the outputparser class
-    outputparser = globals()["CP2KOutputParser{}".format("262")](None, None)
+    outputparser = globals()["CP2KOutputParser262"](None, None)
 
     # Setup the metainfos
     metaInfoPath = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../nomad-meta-info/meta_info/nomad_meta_info/{}".format(cp2kparser.get_metainfo_filename())))

@@ -28,7 +28,7 @@ class CP2KOutputParser262(object):
         """
         self.cp2kparser = cp2kparser
         self.metainfos = metainfos
-        self.f_regex = "-?\d+\.\d+(E+|-\d+)?"
+        self.f_regex = "-?\d+\.\d+(E+|-\d+)?"  # Regex for a floating point value
 
         # Define the output parsing tree for this version
         self.outputstructure = SM(
@@ -84,6 +84,15 @@ class CP2KOutputParser262(object):
                                         )
                                     ]
                                 ),
+                                # SM(
+                                    # startReStr=" MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
+                                    # subMatchers=[
+                                        # SM(
+                                            # repeats=True,
+                                            # startReStr="\s+\d+\s+\d+\s+(?P<cp2k_atom_label>\w+)\s+\d+\s+{}\s+{}\s+{}".format(self.f_regex)
+                                        # )
+                                    # ]
+                                # )
                                 SM(
                                     startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
                                     sections=["cp2k_section_numbers"],
