@@ -4,18 +4,6 @@ import numpy as np
 
 
 #===============================================================================
-class MetaInfo(object):
-    def __init__(self, name, description="", dtypeStr="c", shape=[], dependencies=[]):
-        self.name = name
-        self.description = description
-        self.dtypeStr = dtypeStr
-        self.shape = shape
-        if not isinstance(dependencies, list):
-            dependencies = [dependencies]
-        self.dependencies = dependencies
-
-
-#===============================================================================
 class CP2KOutputParser262(object):
     """The object that goes through the CP2K output file and parses everything
     it can using the SimpleParser architecture.
@@ -33,124 +21,111 @@ class CP2KOutputParser262(object):
         # Define the output parsing tree for this version
         self.outputstructure = SM(
             startReStr="",
+            sections=['section_run'],
             subMatchers=[
+                # SM(
+                    # sections=['cp2k_section_dbcsr'],
+                    # startReStr=r" DBCSR\| Multiplication driver",
+                # ),
+                # SM(
+                    # sections=['cp2k_section_startinformation'],
+                    # startReStr=r"[\*\s]+PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
+                    # forwardMatch=True,
+                    # subMatchers=[
+                        # SM(
+                            # startReStr=r"[\*\s]+PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
+                        # ),
+                        # SM(
+                            # startReStr=r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)",
+                            # sections=['program_info'],
+                        # ),
+                        # SM(
+                            # startReStr=r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)",
+                        # )
+                    # ]
+                # ),
                 SM(
-                    startReStr=r" DBCSR\| Multiplication driver",
-                    endReStr="[.\*]+PROGRAM STOPPED IN",
-                    required=True,
-                    sections=['section_run'],
+                    sections=["cp2k_section_cell"],
+                    startReStr=" CELL\|",
+                    forwardMatch=True,
                     subMatchers=[
                         SM(
-                            startReStr=r"[\*\s]+PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
+                            startReStr=" CELL\| Vector a \[angstrom\]:\s+(?P<cp2k_cell_vector_a>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
                         ),
                         SM(
-                            startReStr=r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)",
+                            startReStr=" CELL\| Vector b \[angstrom\]:\s+(?P<cp2k_cell_vector_b>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
                         ),
                         SM(
-                            startReStr=r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)",
+                            startReStr=" CELL\| Vector c \[angstrom\]:\s+(?P<cp2k_cell_vector_c>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
                         ),
-                        # System Description
+                    ]
+                ),
+                SM(
+                    sections=["cp2k_section_functional"],
+                    startReStr=" FUNCTIONAL\|",
+                    forwardMatch=True,
+                    otherMetaInfo=["XC_functional"],
+                    subMatchers=[
                         SM(
-                            startReStr="",
-                            sections=["cp2k_system_description"],
-                            otherMetaInfo=["number_of_atoms"],
-                            dependencies={"atom_number": ["cp2k_atom_number"]},
+                            repeats=True,
+                            startReStr=" FUNCTIONAL\| (?P<cp2k_functional_name>[\w\d\W]+):"
+                        )
+                    ]
+                ),
+                SM(
+                    sections=["cp2k_section_total_numbers"],
+                    startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
+                    subMatchers=[
+                        SM(
+                            startReStr="\s+- Atoms:\s+(?P<number_of_atoms>\d+)",
+                            sections=["section_system_description"]
+                        ),
+                        SM(
+                            startReStr="\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)"
+                        )
+                    ]
+                ),
+                SM(
+                    sections=["cp2k_section_md"],
+                    startReStr=" MD| Molecular Dynamics Protocol",
+                    forwardMatch=True,
+                    subMatchers=[
+                        SM(
+                            repeats=True,
+                            startReStr=" ENERGY\| Total FORCE_EVAL",
+                            sections=["cp2k_section_md_step"],
                             subMatchers=[
                                 SM(
-                                    startReStr=" CELL\|",
-                                    forwardMatch=True,
-                                    sections=["cp2k_section_cell"],
+                                    startReStr=" ATOMIC FORCES in \[a\.u\.\]",
+                                    sections=["cp2k_section_md_forces"],
                                     subMatchers=[
                                         SM(
-                                            startReStr=" CELL\| Vector a \[angstrom\]:\s+(?P<cp2k_cell_vector_a>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
-                                        ),
-                                        SM(
-                                            startReStr=" CELL\| Vector b \[angstrom\]:\s+(?P<cp2k_cell_vector_b>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
-                                        ),
-                                        SM(
-                                            startReStr=" CELL\| Vector c \[angstrom\]:\s+(?P<cp2k_cell_vector_c>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
-                                        ),
-                                    ]
-                                ),
-                                SM(
-                                    startReStr=" FUNCTIONAL\|",
-                                    forwardMatch=True,
-                                    sections=["section_method", "cp2k_section_functionals"],
-                                    otherMetaInfo=["XC_functional"],
-                                    subMatchers=[
-                                        SM(
+                                            startReStr="\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
+                                            sections=["cp2k_section_md_force_atom"],
                                             repeats=True,
-                                            startReStr=" FUNCTIONAL\| (?P<cp2k_functional_name>[\w\d\W]+):"
                                         )
                                     ]
                                 ),
-                                # SM(
-                                    # startReStr=" MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
-                                    # subMatchers=[
-                                        # SM(
-                                            # repeats=True,
-                                            # startReStr="\s+\d+\s+\d+\s+(?P<cp2k_atom_label>\w+)\s+\d+\s+{}\s+{}\s+{}".format(self.f_regex)
-                                        # )
-                                    # ]
-                                # )
                                 SM(
-                                    startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
-                                    sections=["cp2k_section_numbers"],
+                                    startReStr=" STEP NUMBER\s+=\s+(?P<cp2k_md_step_number>\d+)"
+                                ),
+                                SM(
+                                    startReStr=" TIME \[fs\]\s+=\s+(?P<cp2k_md_step_time>\d+\.\d+)"
+                                ),
+                                SM(
+                                    startReStr=" TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.f_regex)
+                                ),
+                                SM(
+                                    startReStr=" i =",
+                                    sections=["cp2k_section_md_coordinates"],
+                                    otherMetaInfo=["cp2k_md_coordinates"],
+                                    dependencies={"cp2k_md_coordinates": ["cp2k_md_coordinate_atom_string"]},
                                     subMatchers=[
                                         SM(
-                                            startReStr="\s+- Atoms:\s+(?P<cp2k_atom_number>\d+)"
-                                        ),
-                                        SM(
-                                            startReStr="\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)"
-                                        )
-                                    ]
-                                )
-                            ]
-                        ),
-                        # Molecular Dynamics
-                        SM(
-                            startReStr=" MD| Molecular Dynamics Protocol",
-                            forwardMatch=True,
-                            sections=["cp2k_section_md"],
-                            subMatchers=[
-                                SM(
-                                    repeats=True,
-                                    startReStr=" ENERGY\| Total FORCE_EVAL",
-                                    sections=["cp2k_section_md_step"],
-                                    subMatchers=[
-                                        SM(
-                                            startReStr=" ATOMIC FORCES in \[a\.u\.\]",
-                                            sections=["cp2k_section_md_forces"],
-                                            subMatchers=[
-                                                SM(
-                                                    startReStr="\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
-                                                    sections=["cp2k_section_md_force_atom"],
-                                                    repeats=True,
-                                                )
-                                            ]
-                                        ),
-                                        SM(
-                                            startReStr=" STEP NUMBER\s+=\s+(?P<cp2k_md_step_number>\d+)"
-                                        ),
-                                        SM(
-                                            startReStr=" TIME \[fs\]\s+=\s+(?P<cp2k_md_step_time>\d+\.\d+)"
-                                        ),
-                                        SM(
-                                            startReStr=" TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.f_regex)
-                                        ),
-                                        SM(
-                                            startReStr=" i =",
-                                            sections=["cp2k_section_md_coordinates"],
-                                            otherMetaInfo=["cp2k_md_coordinates"],
-                                            dependencies={"cp2k_md_coordinates": ["cp2k_md_coordinate_atom_string"]},
-                                            subMatchers=[
-                                                SM(
-                                                    startReStr=" \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
-                                                    endReStr="\n",
-                                                    sections=["cp2k_section_md_coordinate_atom"],
-                                                    repeats=True,
-                                                )
-                                            ]
+                                            startReStr=" \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
+                                            endReStr="\n",
+                                            sections=["cp2k_section_md_coordinate_atom"],
+                                            repeats=True,
                                         )
                                     ]
                                 )
@@ -160,14 +135,13 @@ class CP2KOutputParser262(object):
                 )
             ]
         )
+        #=======================================================================
         # The cache settings
         self.cachingLevelForMetaName = {
             'cp2k_cell_vector_a': CachingLevel.Cache,
             'cp2k_cell_vector_b': CachingLevel.Cache,
             'cp2k_cell_vector_c': CachingLevel.Cache,
             'cp2k_section_cell': CachingLevel.Cache,
-            'cp2k_system_description': CachingLevel.Cache,
-            'cp2k_section_atom_position': CachingLevel.Cache,
             'cp2k_functional_name': CachingLevel.Cache,
             'cp2k_section_functionals': CachingLevel.Cache,
             'cp2k_section_numbers': CachingLevel.Cache,
@@ -185,49 +159,36 @@ class CP2KOutputParser262(object):
             'cp2k_md_force_atom_float': CachingLevel.Cache,
         }
 
-    # The trigger functions
-    def onClose_cp2k_system_description(self, backend, gIndex, section):
+    #===========================================================================
+    # The functions that trigger when sections are closed
+    def onClose_cp2k_section_cell(self, backend, gIndex, section):
         """When the cell definition finishes, gather the results to a 3x3
         matrix. Or if not present, ask the cp2kparser for help.
         """
         # Open the common system description section
-        backend.openSection("section_system_description")
+        gIndex = backend.openSection("section_system_description")
 
-        # Get the cell information
-        cell = section["cp2k_section_cell"]
-        if cell:
-            cell = cell[0]
+        # Get the cell vector strings
+        a = section["cp2k_cell_vector_a"][0]
+        b = section["cp2k_cell_vector_b"][0]
+        c = section["cp2k_cell_vector_c"][0]
 
-            # Get the cell vector strings
-            a = cell["cp2k_cell_vector_a"][0]
-            b = cell["cp2k_cell_vector_b"][0]
-            c = cell["cp2k_cell_vector_c"][0]
+        # Extract the components and put into numpy array
+        a_comp = a.split()
+        b_comp = b.split()
+        c_comp = c.split()
 
-            # Extract the components and put into numpy array
-            a_comp = a.split()
-            b_comp = b.split()
-            c_comp = c.split()
+        cell = np.zeros((3, 3))
+        cell[0, :] = a_comp
+        cell[1, :] = b_comp
+        cell[2, :] = c_comp
 
-            cell = np.zeros((3, 3))
-            cell[0, :] = a_comp
-            cell[1, :] = b_comp
-            cell[2, :] = c_comp
-
-            backend.addArrayValues("simulation_cell", cell, unit="angstrom")
-
-        # Get the number of atoms
-        numbers = section["cp2k_section_numbers"]
-        if numbers:
-            numbers = numbers[0]
-            n_atoms = numbers["cp2k_atom_number"]
-            if n_atoms:
-                n_atoms = n_atoms[0]
-                backend.addValue("number_of_atoms", n_atoms)
+        backend.addArrayValues("simulation_cell", cell, unit="angstrom")
 
         # Close the common system description section
-        backend.closeSection("section_system_description", 0)
+        backend.closeSection("section_system_description", gIndex)
 
-    def onClose_cp2k_section_functionals(self, backend, gIndex, section):
+    def onClose_cp2k_section_functional(self, backend, gIndex, section):
         """When all the functional definitions have been gathered, matches them
         with the nomad correspondents and combines into one single string which
         is put into the backend.
@@ -253,12 +214,14 @@ class CP2KOutputParser262(object):
         functionals = "_".join(sorted(functionals))
 
         # Push the functional string into the backend
+        gIndex = backend.openSection("section_method")
         backend.addValue('XC_functional', functionals)
+        backend.closeSection("section_method", gIndex)
 
-    def onClose_cp2k_section_atom_position(self, backend, gIndex, section):
-        """Get the initial atomic positions from cp2kparser.
-        """
-        pass
+    # def onClose_cp2k_section_atom_position(self, backend, gIndex, section):
+        # """Get the initial atomic positions from cp2kparser.
+        # """
+        # pass
         # positions, unit = self.cp2kparser.get_initial_atom_positions_and_unit()
         # backend.addArrayValues("atom_position", positions)
 
@@ -295,3 +258,6 @@ class CP2KOutputParser262(object):
         forces = section["cp2k_md_force_atom_float"]
         forces = np.array(forces)
         backend.addArrayValues("cp2k_md_forces", forces, unit="force_au")
+
+    #===========================================================================
+    # adHoc functions that are used to do custom parsing.
