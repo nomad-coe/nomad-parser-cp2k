@@ -1,3 +1,4 @@
+import re
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.caching_backend import CachingLevel
 import numpy as np
@@ -10,55 +11,48 @@ class CP2KOutputParser262(object):
     """
 
     def __init__(self, cp2kparser, metainfos):
-        """Initialize an output parser. The outputparser will sometimes ask the
-        CP2KParser for information. E.g. the auxiliary coordinate files are
-        identified and read by the CP2KParser.
+        """Initialize an output parser.
         """
         self.cp2kparser = cp2kparser
         self.metainfos = metainfos
-        self.f_regex = "-?\d+\.\d+(E+|-\d+)?"  # Regex for a floating point value
+        self.f_regex = "-?\d+\.\d+(?:E+|-\d+)?"  # Regex for a floating point value
 
         # Define the output parsing tree for this version
         self.outputstructure = SM(
             startReStr="",
             sections=['section_run'],
             subMatchers=[
-                # SM(
-                    # sections=['cp2k_section_dbcsr'],
-                    # startReStr=r" DBCSR\| Multiplication driver",
-                # ),
-                # SM(
-                    # sections=['cp2k_section_startinformation'],
-                    # startReStr=r"[\*\s]+PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
-                    # forwardMatch=True,
-                    # subMatchers=[
-                        # SM(
-                            # startReStr=r"[\*\s]+PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
-                        # ),
-                        # SM(
-                            # startReStr=r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)",
-                            # sections=['program_info'],
-                        # ),
-                        # SM(
-                            # startReStr=r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)",
-                        # )
-                    # ]
-                # ),
                 SM(
-                    sections=["cp2k_section_cell"],
-                    startReStr=" CELL\|",
+                    sections=['cp2k_section_dbcsr'],
+                    startReStr=r" DBCSR\| Multiplication driver",
+                ),
+                SM(
+                    sections=['cp2k_section_startinformation'],
+                    startReStr=r" \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT",
                     forwardMatch=True,
                     subMatchers=[
                         SM(
-                            startReStr=" CELL\| Vector a \[angstrom\]:\s+(?P<cp2k_cell_vector_a>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
-                        ),
-                        SM(
-                            startReStr=" CELL\| Vector b \[angstrom\]:\s+(?P<cp2k_cell_vector_b>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
-                        ),
-                        SM(
-                            startReStr=" CELL\| Vector c \[angstrom\]:\s+(?P<cp2k_cell_vector_c>[\d\.]+\s+[\d\.]+\s+[\d\.]+)+"
+                            startReStr=r" \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
                         ),
                     ]
+                ),
+                SM(
+                    sections=['cp2k_section_programinformation'],
+                    startReStr=r" CP2K\|",
+                    forwardMatch=True,
+                    subMatchers=[
+                        SM(
+                            startReStr=r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)",
+                        ),
+                        SM(
+                            startReStr=r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)",
+                        ),
+                    ]
+                ),
+                SM(
+                    # sections=["cp2k_section_cell"],
+                    startReStr=" CELL\|",
+                    adHoc=self.adHoc_cp2k_section_cell()
                 ),
                 SM(
                     sections=["cp2k_section_functional"],
@@ -84,6 +78,11 @@ class CP2KOutputParser262(object):
                             startReStr="\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)"
                         )
                     ]
+                ),
+                SM(
+                    # sections=["cp2k_section_quickstep_atom_information"],
+                    startReStr=" MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
+                    adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
                 ),
                 SM(
                     sections=["cp2k_section_md"],
@@ -138,16 +137,7 @@ class CP2KOutputParser262(object):
         #=======================================================================
         # The cache settings
         self.cachingLevelForMetaName = {
-            'cp2k_cell_vector_a': CachingLevel.Cache,
-            'cp2k_cell_vector_b': CachingLevel.Cache,
-            'cp2k_cell_vector_c': CachingLevel.Cache,
-            'cp2k_section_cell': CachingLevel.Cache,
             'cp2k_functional_name': CachingLevel.Cache,
-            'cp2k_section_functionals': CachingLevel.Cache,
-            'cp2k_section_numbers': CachingLevel.Cache,
-            'cp2k_atom_number': CachingLevel.Cache,
-            'cp2k_shell_sets': CachingLevel.Cache,
-
             'cp2k_section_md_coordinates': CachingLevel.Cache,
             'cp2k_section_md_coordinate_atom': CachingLevel.Cache,
             'cp2k_md_coordinate_atom_string': CachingLevel.Cache,
@@ -161,33 +151,6 @@ class CP2KOutputParser262(object):
 
     #===========================================================================
     # The functions that trigger when sections are closed
-    def onClose_cp2k_section_cell(self, backend, gIndex, section):
-        """When the cell definition finishes, gather the results to a 3x3
-        matrix. Or if not present, ask the cp2kparser for help.
-        """
-        # Open the common system description section
-        gIndex = backend.openSection("section_system_description")
-
-        # Get the cell vector strings
-        a = section["cp2k_cell_vector_a"][0]
-        b = section["cp2k_cell_vector_b"][0]
-        c = section["cp2k_cell_vector_c"][0]
-
-        # Extract the components and put into numpy array
-        a_comp = a.split()
-        b_comp = b.split()
-        c_comp = c.split()
-
-        cell = np.zeros((3, 3))
-        cell[0, :] = a_comp
-        cell[1, :] = b_comp
-        cell[2, :] = c_comp
-
-        backend.addArrayValues("simulation_cell", cell, unit="angstrom")
-
-        # Close the common system description section
-        backend.closeSection("section_system_description", gIndex)
-
     def onClose_cp2k_section_functional(self, backend, gIndex, section):
         """When all the functional definitions have been gathered, matches them
         with the nomad correspondents and combines into one single string which
@@ -217,13 +180,6 @@ class CP2KOutputParser262(object):
         gIndex = backend.openSection("section_method")
         backend.addValue('XC_functional', functionals)
         backend.closeSection("section_method", gIndex)
-
-    # def onClose_cp2k_section_atom_position(self, backend, gIndex, section):
-        # """Get the initial atomic positions from cp2kparser.
-        # """
-        # pass
-        # positions, unit = self.cp2kparser.get_initial_atom_positions_and_unit()
-        # backend.addArrayValues("atom_position", positions)
 
     def onClose_cp2k_section_md_coordinate_atom(self, backend, gIndex, section):
         """Given the string with the coordinate components for one atom, make it
@@ -261,3 +217,74 @@ class CP2KOutputParser262(object):
 
     #===========================================================================
     # adHoc functions that are used to do custom parsing.
+    def adHoc_cp2k_section_cell(self):
+        """Used to extract the cell information.
+        """
+        def wrapper(parser):
+            # Read the lines containing the cell vectors
+            a_line = parser.fIn.readline()
+            b_line = parser.fIn.readline()
+            c_line = parser.fIn.readline()
+
+            # Define the regex that extracts the components and apply it to the lines
+            regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.f_regex)
+            regex_compiled = re.compile(regex_string)
+            a_result = regex_compiled.match(a_line)
+            b_result = regex_compiled.match(b_line)
+            c_result = regex_compiled.match(c_line)
+
+            # Convert the string results into a 3x3 numpy array
+            cell = np.zeros((3, 3))
+            cell[0, :] = [float(x) for x in a_result.groups()]
+            cell[1, :] = [float(x) for x in b_result.groups()]
+            cell[2, :] = [float(x) for x in c_result.groups()]
+
+            # Push the results to the correct section
+            gIndex = parser.backend.openSection("section_system_description")
+            parser.backend.addArrayValues("simulation_cell", cell, unit="angstrom")
+            parser.backend.closeSection("section_system_description", gIndex)
+
+        return wrapper
+
+    def adHoc_cp2k_section_quickstep_atom_information(self):
+        """Used to extract the initial atomic coordinates and names in the
+        Quickstep module.
+        """
+        def wrapper(parser):
+
+            # Define the regex that extracts the information
+            regex_string = r"\s+\d+\s+\d+\s+(\w+)\s+\d+\s+({0})\s+({0})\s+({0})".format(self.f_regex)
+            regex_compiled = re.compile(regex_string)
+
+            match = True
+            coordinates = []
+            labels = []
+
+            # Currently these three lines are not processed
+            parser.fIn.readline()
+            parser.fIn.readline()
+            parser.fIn.readline()
+
+            while match:
+                line = parser.fIn.readline()
+                result = regex_compiled.match(line)
+
+                if result:
+                    match = True
+                    label = result.groups()[0]
+                    labels.append(label)
+                    coordinate = [float(x) for x in result.groups()[1:]]
+                    coordinates.append(coordinate)
+                else:
+                    match = False
+            coordinates = np.array(coordinates)
+            labels = np.array(labels)
+
+            # If anything found, push the results to the correct section
+            if len(coordinates) != 0:
+                gIndex = parser.backend.openSection("section_system_description")
+                parser.backend.addArrayValues("atom_position", coordinates, unit="angstrom")
+                parser.backend.addArrayValues("atom_label", labels)
+                parser.backend.closeSection("section_system_description", gIndex)
+
+        return wrapper
