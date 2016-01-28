@@ -3,14 +3,17 @@ import sys
 import logging
 import StringIO
 from abc import ABCMeta, abstractmethod
-from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile, extractOnCloseTriggers
+from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile, extractOnCloseTriggers, PushbackLineFile
 from nomadcore.caching_backend import CachingLevel, ActiveBackend
 logger = logging.getLogger(__name__)
 
 
 #===============================================================================
 class Parser(object):
-    """A base class for nomad parsers.
+    """This class provides the interface for parsing. All the input is given to
+    this class (or typically a subclass) and the parsing is done by calling the
+    parse() method. The parsing output is determined by the backend object that
+    is given in the constructor as a dependency.
 
     Attributes:
         implementation: an object that actually does the parsing and is
@@ -18,9 +21,10 @@ class Parser(object):
         parser_context: A wrapper class for all the parser related information.
             This is contructed here and then passed onto the different
             implementations.
+        backend: An object to which the parser will give all the parsed data.
+            The backend will then determine where and when to output that data.
     """
     __metaclass__ = ABCMeta
-    parser_name = None
 
     def __init__(self, contents, metainfo_to_keep=None, backend=None):
         """
@@ -96,32 +100,13 @@ class Parser(object):
         if not self.implementation:
             logger.error("No parser implementation has been setup.")
 
-        # Write the starting bracket
-        self.implementation.backend.fileOut.write("[")
-
         self.implementation.parse()
-
-        # Write the ending bracket
-        self.implementation.backend.fileOut.write("]\n")
 
 
 #===============================================================================
 class ParserImplementation(object):
-    """The base class for parsers in the NoMaD project.
-
-    What you can expect from this class:
-
-        - Provides a starting point for the parser developers, but allows
-          freedom to do the actual implementation in any way you like.
-        - Automation and help with the unit conversion and JSON formatting.
-        - Tools for accessing file contents and file handles.
-        - Provides the push interface for results.
-        - Access to the SimpleParser architecture
-
-    This class defines a few abstract methods that each parser must implement
-    (actually raises a compilation error if you don't). This enforces a minimal
-    interface that can be expected from each parser, but leaves the
-    implementation details to the developer.
+    """The base class for a version specific parser implementation in. Provides
+    some useful tools for setting up file access.
 
     Attributes:
         See the ParserContext class for more details about the attributes.
@@ -130,12 +115,11 @@ class ParserImplementation(object):
         _file_sizes: A "private" dictionary containing the cached file sizes
         file_ids: A dictionary containing the mapping between file ids and filepaths
     """
-
-    __metaclass__ = ABCMeta
-
     def __init__(self, parser_context):
 
-        # Copy all the attributes from the ParserContext object
+        self.parser_context = parser_context
+
+        # Copy all the attributes from the ParserContext object for quick access
         attributes = dir(parser_context)
         for attribute in attributes:
             if not attribute.startswith("__"):
@@ -145,6 +129,7 @@ class ParserImplementation(object):
         self._file_contents = {}
         self._file_sizes = {}
         self.file_ids = {}
+        self.file_parsers = []
 
     def setup_given_file_ids(self):
         """Saves the file id's that were given in the JSON input.
@@ -153,82 +138,11 @@ class ParserImplementation(object):
             if file_id:
                 self.setup_file_id(path, file_id)
 
-    @abstractmethod
     def parse(self):
         """Start the parsing. Will try to parse everything unless given special
-        rules (metaInfoToKeep, metaInfoToSkip)."""
-        pass
-
-    def parse_file(
-            self,
-            fileToParse,
-            mainFileDescription,
-            parserInfo,
-            cachingLevelForMetaName={},
-            defaultDataCachingLevel=CachingLevel.ForwardAndCache,
-            defaultSectionCachingLevel=CachingLevel.Forward,
-            superContext=None,
-            onClose={}):
-        """Uses the SimpleParser utilities to to parse a file.
-
-        Args:
-        Returns:
-        """
-
-        metainfo_to_keep = self.metainfo_to_keep
-        backend = self.backend
-
-        # Initialize the parser builder
-        parserBuilder = SimpleParserBuilder(mainFileDescription, backend.metaInfoEnv(), metainfo_to_keep)
-        if logger.isEnabledFor(logging.DEBUG):
-            s = StringIO.StringIO()
-            s.write("matchers:")
-            parserBuilder.writeMatchers(s, 2)
-            logger.debug(s.getvalue())
-
-        # Verify the metainfo
-        if not parserBuilder.verifyMetaInfo(sys.stderr):
-            sys.exit(1)
-
-        # Gather onClose functions from supercontext
-        if superContext:
-            onClose = dict(onClose)
-            for attr, callback in extractOnCloseTriggers(superContext).items():
-                oldCallbacks = onClose.get(attr, None)
-                if oldCallbacks:
-                    oldCallbacks.append(callback)
-                else:
-                    onClose[attr] = [callback]
-
-        # Setup the backend that caches ond handles triggers
-        backend = ActiveBackend.activeBackend(
-            metaInfoEnv=backend.metaInfoEnv(),
-            cachingLevelForMetaName=cachingLevelForMetaName,
-            defaultDataCachingLevel=defaultDataCachingLevel,
-            defaultSectionCachingLevel=defaultSectionCachingLevel,
-            onClose=onClose,
-            superBackend=backend)
-
-        # Compile the SimpleMatcher tree
-        parserBuilder.compile()
-        if logger.isEnabledFor(logging.DEBUG):
-            s = StringIO.StringIO()
-            s.write("compiledMatchers:")
-            parserBuilder.writeCompiledMatchers(s, 2)
-            logger.debug(s.getvalue())
-
-        writeComma = False
-        outF = sys.stdout
-        parse_function = defaultParseFile(parserInfo)
-        uri = None
-        if uri is None and fileToParse:
-            uri = "file://" + fileToParse
-        if fileToParse:
-            if writeComma:
-                outF.write(", ")
-            else:
-                writeComma = True
-            parse_function(parserBuilder, uri, fileToParse, backend, self)
+        rules (metaInfoToKeep)."""
+        for file_parser in self.file_parsers:
+            file_parser.parse()
 
     def setup_file_id(self, path, file_id):
         """Used to map a simple identifier string to a file path. When a file
@@ -356,6 +270,90 @@ class ParserImplementation(object):
             size = fh.tell()
             self._file_sizes[file_id] = size
         return size
+
+
+#===============================================================================
+class FileParser(object):
+    """Base class for objects that parse certain type of files.  Typically a
+    subclass of ParserImplementation will initialize one FileParser per parsed
+    file. You can also assign a list of files to a FileParser if they are of
+    similar type or are otherwise connected to each other.
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self, files, parser_context):
+        if not isinstance(files, list):
+            files = [files]
+        self.files = files
+        if parser_context:
+            self.parser_context = parser_context
+            self.backend = parser_context.backend
+            self.metainfo_to_keep = parser_context.metainfo_to_keep
+            self.version_id = parser_context.version_id
+        self.root_matcher = None
+        self.caching_level_for_metaName = {}
+        self.default_data_caching_level = CachingLevel.ForwardAndCache
+        self.default_section_caching_level = CachingLevel.Forward
+        self.onClose = {}
+
+    def parse(self):
+        """Parser the information from the given file(s). By default uses the
+        SimpleParser scheme, if you want to use something else or customize the
+        process just override this method.
+        """
+        # If there is only one file assigned to this FileParser, and a
+        # root_matcher has been assigned, parse with the SimpleParser. Otherwise
+        # halt.
+        if len(self.files) != 1 or self.root_matcher is None:
+            logger.error("Could not use the default parsing implementation. If you want to use it wou must specify a root_matcher and only assign one file to the FileParser. If you need custom parsing you should override the parse() method.")
+            return
+
+        # Initialize the parser builder
+        parserBuilder = SimpleParserBuilder(self.root_matcher, self.backend.metaInfoEnv(), self.metainfo_to_keep)
+
+        # Verify the metainfo
+        if not parserBuilder.verifyMetaInfo(sys.stderr):
+            sys.exit(1)
+
+        # Gather onClose functions from supercontext
+        onClose = dict(self.onClose)
+        for attr, callback in extractOnCloseTriggers(self).items():
+            oldCallbacks = onClose.get(attr, None)
+            if oldCallbacks:
+                oldCallbacks.append(callback)
+            else:
+                onClose[attr] = [callback]
+
+        # Setup the backend that caches ond handles triggers
+        active_backend = ActiveBackend.activeBackend(
+            metaInfoEnv=self.backend.metaInfoEnv(),
+            cachingLevelForMetaName=self.caching_level_for_metaname,
+            defaultDataCachingLevel=self.default_data_caching_level,
+            defaultSectionCachingLevel=self.default_section_caching_level,
+            onClose=onClose,
+            superBackend=self.backend)
+
+        # Compile the SimpleMatcher tree
+        parserBuilder.compile()
+
+        fileToParse = self.files[0]
+        self.backend.fileOut.write("[")
+        uri = "file://" + fileToParse
+        parserInfo = {'name': 'cp2k-parser', 'version': '1.0'}
+        active_backend.startedParsingSession(uri, parserInfo)
+        with open(fileToParse, "r") as fIn:
+            parser = parserBuilder.buildParser(PushbackLineFile(fIn), active_backend, superContext=self)
+            parser.parse()
+        active_backend.finishedParsingSession("ParseSuccess", None)
+        self.backend.fileOut.write("]\n")
+
+    def get_metainfos(self):
+        """Get a list of all the metainfo names that are parsed by this
+        FileParser. This information is used by the ParserImplementation to
+        optimize the parsing process according to the given 'metainfo_to_keep'
+        list.
+        """
+        return self.root_matcher.allMetaNames()
 
 
 #===============================================================================

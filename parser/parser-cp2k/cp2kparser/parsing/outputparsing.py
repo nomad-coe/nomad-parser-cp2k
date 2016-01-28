@@ -1,24 +1,24 @@
 import re
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.caching_backend import CachingLevel
+from cp2kparser.utils.baseclasses import FileParser
 import numpy as np
 
 
 #===============================================================================
-class CP2KOutputParser262(object):
+class CP2KOutputParser262(FileParser):
     """The object that goes through the CP2K output file and parses everything
     it can using the SimpleParser architecture.
     """
 
-    def __init__(self, cp2kparser, metainfos):
+    def __init__(self, files, parser_context):
         """Initialize an output parser.
         """
-        self.cp2kparser = cp2kparser
-        self.metainfos = metainfos
+        FileParser.__init__(self, files, parser_context)
         self.f_regex = "-?\d+\.\d+(?:E+|-\d+)?"  # Regex for a floating point value
 
         # Define the output parsing tree for this version
-        self.outputstructure = SM(
+        self.root_matcher = SM(
             startReStr="",
             sections=['section_run'],
             subMatchers=[
@@ -136,7 +136,7 @@ class CP2KOutputParser262(object):
         )
         #=======================================================================
         # The cache settings
-        self.cachingLevelForMetaName = {
+        self.caching_level_for_metaname = {
             'cp2k_functional_name': CachingLevel.Cache,
             'cp2k_section_md_coordinates': CachingLevel.Cache,
             'cp2k_section_md_coordinate_atom': CachingLevel.Cache,

@@ -26,14 +26,14 @@ if __name__ == "__main__":
     parserInfo = {'name': 'cp2k-parser', 'version': '1.0'}
 
     # Adjust caching of metadata
-    cachingLevelForMetaName = outputparser.cachingLevelForMetaName
+    cachingLevelForMetaName = outputparser.caching_level_for_metaname
 
     # Supercontext is where the objet where the callback functions for
     # section closing are found
     superContext = outputparser
 
     # Main file description is the SimpleParser tree
-    mainFileDescription = outputparser.outputstructure
+    mainFileDescription = outputparser.root_matcher
 
     # Use the main function from nomadcore
     mainFunction(mainFileDescription, metaInfoEnv, parserInfo, superContext=superContext, cachingLevelForMetaName=cachingLevelForMetaName, onClose={})

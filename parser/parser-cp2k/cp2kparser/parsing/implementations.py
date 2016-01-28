@@ -25,7 +25,7 @@ class CP2KImplementation262(ParserImplementation):
         self.atomsengine = CoordinateReader()
         self.inputparser = CP2KInputParser()
         self.inputparser.setup_version(self.version_id)
-        self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)](self, self.metainfo_to_keep)
+        self.outputparser = None  #globals()["CP2KOutputParser{}".format(self.version_id)](file_path, self.parser_context)
         self.input_tree = None
         self.extended_input = None
 
@@ -43,6 +43,8 @@ class CP2KImplementation262(ParserImplementation):
                 self.setup_file_id(file_path, "input")
             if file_path.endswith(".out"):
                 self.setup_file_id(file_path, "output")
+                self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)](file_path, self.parser_context)
+                self.file_parsers.append(self.outputparser)
 
         # Include files
         input_file = self.get_file_contents("input")
@@ -260,20 +262,6 @@ class CP2KImplementation262(ParserImplementation):
                     folders.append(path)
                 break
         return folders
-
-    def parse(self):
-        """Parses everything that can be found from the given files. The
-        results are outputted to std.out by using the backend. The scala layer
-        will the take on from that.
-        """
-
-        # Use the SimpleMatcher to extract most of the results
-        parserInfo = {"name": "cp2k-parser", "version": "1.0"}
-        outputfilename = self.get_file_handle("output").name
-        outputstructure = self.outputparser.outputstructure
-        cachingLevelForMetaName = self.outputparser.cachingLevelForMetaName
-        self.parse_file(outputfilename, outputstructure, parserInfo, cachingLevelForMetaName, superContext=self.outputparser)
-
 
     # def _Q_energy_total(self):
         # """Return the total energy from the bottom of the input file"""
