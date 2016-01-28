@@ -17,7 +17,7 @@
 # Structure
 Currently the python package is divided the following subpackages:
 - utils: Generic utility classes and base classes
-- implementation: The classes that actually define the parser functionality.
+- parsing: The classes that actually define the parser functionality.
 
 # Tools and Methods
 

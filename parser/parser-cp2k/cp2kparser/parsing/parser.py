@@ -1,16 +1,13 @@
 import re
 import logging
 from cp2kparser.utils.baseclasses import Parser
-from cp2kparser.parsing.implementations import *
+from cp2kparser.parsing.versions.versionsetup import get_implementation_class
 logger = logging.getLogger(__name__)
 
 
 #===============================================================================
 class CP2KParser(Parser):
-    """Builds the correct parser by looking at the given files and the given
-    input.
-
-    This class handles the initial setup before any parsing can happen. It
+    """This class handles the initial setup before any parsing can happen. It
     determines which version of CP2K was used to generate the output and then
     sets up a correct implementation.
 
@@ -18,25 +15,30 @@ class CP2KParser(Parser):
     parse().
     """
 
-    def __init__(self, contents=None, metainfo_to_keep=None, backend=None):
-        Parser.__init__(self, contents, metainfo_to_keep, backend)
+    def __init__(self, contents=None, metainfo_to_keep=None, backend=None, main_file=None):
+        Parser.__init__(self, contents, metainfo_to_keep, backend, main_file)
 
     def setup(self):
         """Setups the version by looking at the output file and the version
         specified in it.
         """
-        # Search for the output file
-        count = 0
-        for filepath in self.parser_context.files:
-            if filepath.endswith(".out"):
-                count += 1
-                outputpath = filepath
-        if count > 1:
-            logger("Could not determine the correct outputfile because multiple files with extension '.out' were found.")
-            return
-        elif count == 0:
-            logger.error("No output file could be found. The outputfile should have a '.out' extension.")
-            return
+
+        # If a main file is provided, search it for a version number.
+        if self.parser_context.main_file is not None:
+            outputpath = self.parser_context.main_file
+        else:
+            # Search for the output file
+            count = 0
+            for filepath in self.parser_context.files:
+                if filepath.endswith(".out"):
+                    count += 1
+                    outputpath = filepath
+            if count > 1:
+                logger("Could not determine the correct outputfile because multiple files with extension '.out' were found.")
+                return
+            elif count == 0:
+                logger.error("No output file could be found. The outputfile should have a '.out' extension.")
+                return
 
         # Search for the version specification
         outputfile = open(outputpath, 'r')
@@ -48,15 +50,7 @@ class CP2KParser(Parser):
                 break
 
         # Search and initialize a version specific implementation
-        class_name = "CP2KImplementation{}".format(self.parser_context.version_id)
-        class_object = globals().get(class_name)
-        if class_object:
-            logger.debug("Using version specific implementation '{}'.".format(class_name))
-            self.implementation = class_object(self.parser_context)
-        else:
-            logger.debug("No version specific implementation found. Using the default implementation: {}".format(class_name))
-            self.parser_context.version_id = "262"
-            self.implementation = globals()["CP2KImplementation262"](self.parser_context)
+        self.implementation = get_implementation_class(self.parser_context.version_id)(self.parser_context)
 
     def search_parseable_files(self, files):
         """Searches the given path for files that are of interest to this

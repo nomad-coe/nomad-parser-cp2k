@@ -2,16 +2,16 @@ import re
 import os
 import logging
 from cp2kparser.parsing.csvparsing import CSVParser
-from cp2kparser.parsing.inputparsing import CP2KInputParser
+from .inputparsing import CP2KInputParser
+from .outputparser import CP2KOutputParser
 from cp2kparser.parsing.cp2kinputenginedata.input_tree import CP2KInput
-from cp2kparser.parsing.outputparsing import *
 from cp2kparser.utils.baseclasses import ParserImplementation
 from nomadcore.coordinate_reader import CoordinateReader
 logger = logging.getLogger(__name__)
 
 
 #===============================================================================
-class CP2KImplementation262(ParserImplementation):
+class CP2KImplementation(ParserImplementation):
     """The default implementation for a CP2K parser based on version 2.6.2.
     """
     def __init__(self, parser_context):
@@ -25,7 +25,6 @@ class CP2KImplementation262(ParserImplementation):
         self.atomsengine = CoordinateReader()
         self.inputparser = CP2KInputParser()
         self.inputparser.setup_version(self.version_id)
-        self.outputparser = None  #globals()["CP2KOutputParser{}".format(self.version_id)](file_path, self.parser_context)
         self.input_tree = None
         self.extended_input = None
 
@@ -37,14 +36,15 @@ class CP2KImplementation262(ParserImplementation):
         """Resolve the input and output files based on extension and the
         include files by looking for @INCLUDE commands in the input file.
         """
+
         # Input and output files
         for file_path in self.files:
             if file_path.endswith(".inp"):
                 self.setup_file_id(file_path, "input")
             if file_path.endswith(".out"):
                 self.setup_file_id(file_path, "output")
-                self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)](file_path, self.parser_context)
-                self.file_parsers.append(self.outputparser)
+                outputparser = CP2KOutputParser(file_path, self.parser_context)
+                self.file_parsers.append(outputparser)
 
         # Include files
         input_file = self.get_file_contents("input")
@@ -57,6 +57,22 @@ class CP2KImplementation262(ParserImplementation):
                     filename = filename[1:-1]
                 filepath = self.search_file(filename)
                 self.setup_file_id(filepath, "include")
+
+    # def determine_output_file(self):
+        # """Determine which of the given files is the output file.
+        # """
+        # # If a main file has been specified it is the output file.
+        # if self.parser_context.main_file is not None:
+            # self.setup_file_id(file_path, "output")
+        # # Otherwise try to determine by the file extension
+        # else:
+            # n_outfiles = 0
+            # for file_path in self.files:
+                # if file_path.endswith(".out"):
+                    # n_outfiles += 1
+                    # self.setup_file_id(file_path, "output")
+                    # self.outputparser = globals()["CP2KOutputParser{}".format(self.version_id)](file_path, self.parser_context)
+                    # self.file_parsers.append(self.outputparser)
 
     def input_preprocessor(self):
         """Preprocess the input file. Concatenate .inc files into the main

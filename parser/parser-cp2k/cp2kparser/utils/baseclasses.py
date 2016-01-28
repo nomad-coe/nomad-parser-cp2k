@@ -1,9 +1,8 @@
 import os
 import sys
 import logging
-import StringIO
 from abc import ABCMeta, abstractmethod
-from nomadcore.simple_parser import SimpleParserBuilder, defaultParseFile, extractOnCloseTriggers, PushbackLineFile
+from nomadcore.simple_parser import SimpleParserBuilder, extractOnCloseTriggers, PushbackLineFile
 from nomadcore.caching_backend import CachingLevel, ActiveBackend
 logger = logging.getLogger(__name__)
 
@@ -20,42 +19,54 @@ class Parser(object):
             setup by this class based on the given contents.
         parser_context: A wrapper class for all the parser related information.
             This is contructed here and then passed onto the different
-            implementations.
-        backend: An object to which the parser will give all the parsed data.
-            The backend will then determine where and when to output that data.
+            implementations and FileParsers.
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, contents, metainfo_to_keep=None, backend=None):
+    def __init__(self, contents, metainfo_to_keep=None, backend=None, main_file=None):
         """
-        Args:
-            contents: list of absolute filepaths as strings
-            metainfo_to_keep: list of metainfo names to parse as strings.
-            backend: the backend where the parsing results are outputted
+    Args:
+        contents: The contents to parse as a list of file and directory paths.
+            The given directory paths will be searched recursively for interesting
+            files.
+        metainfo_to_keep: A list of metainfo names. This list is used to
+            optimize the parsing process as optimally only the information relevant
+            to these metainfos will be parsed.
+        backend: An object to which the parser will give all the parsed data.
+            The backend will then determine where and when to output that data.
+        main_file: A special file that can be considered the main file.
+            Currently used in when interfacing to the scala environment in the
+            nomad project.
         """
-        self.initialize(contents, metainfo_to_keep, backend)
+        self.initialize(contents, metainfo_to_keep, backend, main_file)
 
-    def initialize(self, contents, metainfo_to_keep, backend):
+    def initialize(self, contents, metainfo_to_keep, backend, main_file):
         """Initialize the parser with the given environment.
         """
         self.parser_context = ParserContext()
         self.parser_context.backend = backend
         self.parser_context.metainfo_to_keep = metainfo_to_keep
+        self.parser_context.main_file = main_file
         self.implementation = None
 
         # If single path provided, make it into a list
         if isinstance(contents, basestring):
             contents = [contents]
 
-        # Figure out all the files from the contents
         if contents:
+            # Use a set as it will automatically ignore duplicates (nested
+            # folders may have been included)
             files = set()
+
             for content in contents:
+                # Add all files recursively from a directory
+                found_files = []
                 if os.path.isdir(content):
-                    dir_files = set()
-                    for filename in os.listdir(content):
-                        dir_files.add(os.path.join(content, filename))
-                    files |= dir_files
+                    for root, dirnames, filenames in os.walk(content):
+                        for filename in filenames:
+                            filename = os.path.join(root, filename)
+                            found_files.append(filename)
+                    files |= set(found_files)
                 elif os.path.isfile(content):
                     files.add(content)
                 else:
@@ -80,7 +91,7 @@ class Parser(object):
     def search_parseable_files(self, files):
         """From a list of filenames tries to guess which files are relevant to
         the parsing process. Essentially filters the files before they are sent
-        to the parser implementation.
+        to the parser implementation. By default does not do any filtering.
         """
         return files
 
@@ -282,6 +293,12 @@ class FileParser(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, files, parser_context):
+        """
+        Args:
+            files: A list of filenames that are parsed and analyzed by this
+                object.
+            parser_context: The parsing context that contains e.g. the backend.
+        """
         if not isinstance(files, list):
             files = [files]
         self.files = files
@@ -360,8 +377,9 @@ class FileParser(object):
 class ParserContext(object):
     """Contains everything needed to instantiate a parser implementation.
     """
-    def __init__(self, files=None, metainfo_to_keep=None, backend=None, version_id=None):
+    def __init__(self, files=None, metainfo_to_keep=None, backend=None, version_id=None, main_file=None):
         self.files = files
         self.version_id = version_id
         self.metainfo_to_keep = metainfo_to_keep
         self.backend = backend
+        self.main_file = main_file

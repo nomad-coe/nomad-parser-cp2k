@@ -84,6 +84,6 @@ class CP2KInputParser(object):
         cp2k_input.xml is version specific. By calling this function before
         parsing the correct file can be found.
         """
-        pickle_path = os.path.dirname(__file__) + "/cp2kinputenginedata/cp2k_{}/cp2k_input_tree.pickle".format(version_number)
+        pickle_path = os.path.dirname(__file__) + "/input_xml/cp2k_input_tree.pickle".format(version_number)
         input_tree_pickle_file = open(pickle_path, 'rb')
         self.input_tree = pickle.load(input_tree_pickle_file)

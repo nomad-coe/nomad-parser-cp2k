@@ -6,7 +6,7 @@ import numpy as np
 
 
 #===============================================================================
-class CP2KOutputParser262(FileParser):
+class CP2KOutputParser(FileParser):
     """The object that goes through the CP2K output file and parses everything
     it can using the SimpleParser architecture.
     """
