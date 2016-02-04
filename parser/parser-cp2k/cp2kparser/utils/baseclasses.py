@@ -372,6 +372,14 @@ class FileParser(object):
         """
         return self.root_matcher.allMetaNames()
 
+    def startedParsing(self, fInName, parser):
+        """Function is called when the parsing starts.
+
+        Get compiled parser.
+        Later one can compile a parser for parsing an external file.
+        """
+        self.parser = parser
+
 
 #===============================================================================
 class ParserContext(object):

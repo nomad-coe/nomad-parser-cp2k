@@ -1,23 +1,74 @@
 # CP2K NoMaD Parser
+This is the parser for [CP2K](https://www.cp2k.org/).
+It is part of the [NOMAD Laboratory](http://nomad-lab.eu).
 
-# QuickStart
-- Clone repository
+#Installation
 
-    ```shell
+## Within NOMAD
+When used within the NOMAD Laboratory, this parser will be available as a
+submodule of the nomad-lab-base repository. You can download the base repository
+with the command:
+
+```sh
+    git clone --recursive git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-lab-base.git
+```
+
+And the installation will be done according to the instruction found in
+https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-lab-base/wikis/how-to-write-a-parser#shell-commands
+
+## Standalone Installation
+The parser is also available as a standalone package within the repository:
+
+```sh
     git clone git@gitlab.mpcdf.mpg.de:nomad-lab/parser-cp2k.git
-    ```
+```
 
-- Run setup by running the setup.py script. For local, user specific install
-  without sudo permissions use (omit --user for a system-wide install):
+If used in this standalone mode you can use the installation script
+parser-cp2k/parser/parser-cp2k/setup.py with the folllowing command
 
-    ```shell
+```sh
     python setup.py install --user
-    ```
+```
 
-# Structure
-Currently the python package is divided the following subpackages:
-- utils: Generic utility classes and base classes
-- parsing: The classes that actually define the parser functionality.
+After the local install the parser will be available to python import under the name
+'cp2kparser'.
+
+# Usage
+
+## Within NOMAD
+The scala layer can access the parser throught the scalainterface.py file.
+
+## Standalone
+The parser can be used in a python only standalone mode with a separate
+'nomadtoolkit' package. In this local mode the parser can be like this:
+
+```python
+    from nomadtoolkit import Analyzer
+    from cp2kparser import CP2KParser
+
+    # Initialize the contents and the parser you want to use.
+    paths = "/home/lauri/Dropbox/nomad-dev/parser-cp2k/parser/parser-cp2k/cp2kparser/tests/cp2k_2.6.2/functionals/lda"
+    parser = CP2KParser(contents=paths)
+
+    # Initialize the analyzer. The analyzer will initialize the parser with a local
+    # backend so that the results will be available as a python dictionary.
+    analyzer = Analyzer(parser)
+    results = analyzer.parse()
+    cell = results["simulation_cell"]
+    n_atoms = results["number_of_atoms"]
+    atom_position = results["atom_position"]
+    atom_label = results["atom_label"]
+
+    print cell.value
+    print n_atoms.value
+    print atom_position.value
+    print atom_label.value
+```
+
+This standalone python-only mode is primarily for people who want to easily
+access the parser without the need to setup the whole "NOMAD Stack". It is also
+used when running unit tests. The nomadtoolkit package is currently used by the
+developer only and is thus not available through gitlab.
 
 # Tools and Methods
 
