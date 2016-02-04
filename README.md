@@ -2,7 +2,7 @@
 This is the parser for [CP2K](https://www.cp2k.org/).
 It is part of the [NOMAD Laboratory](http://nomad-lab.eu).
 
-#Installation
+# Installation
 
 ## Within NOMAD
 When used within the NOMAD Laboratory, this parser will be available as a
@@ -13,8 +13,7 @@ with the command:
     git clone --recursive git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-lab-base.git
 ```
 
-And the installation will be done according to the instruction found in
-https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-lab-base/wikis/how-to-write-a-parser#shell-commands
+And the installation will be done according to the instructions found [here](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-lab-base/wikis/how-to-write-a-parser#shell-commands)
 
 ## Standalone Installation
 The parser is also available as a standalone package within the repository:
