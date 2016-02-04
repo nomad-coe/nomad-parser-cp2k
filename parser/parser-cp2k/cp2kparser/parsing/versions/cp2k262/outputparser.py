@@ -10,12 +10,12 @@ class CP2KOutputParser(FileParser):
     """The object that goes through the CP2K output file and parses everything
     it can using the SimpleParser architecture.
     """
-
     def __init__(self, files, parser_context):
         """Initialize an output parser.
         """
         FileParser.__init__(self, files, parser_context)
-        self.f_regex = "-?\d+\.\d+(?:E+|-\d+)?"  # Regex for a floating point value
+        self.f_regex = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
+        self.i_regex = "-?\d+"  # Regex for an integer
 
         # Define the output parsing tree for this version
         self.root_matcher = SM(
@@ -80,9 +80,20 @@ class CP2KOutputParser(FileParser):
                     ]
                 ),
                 SM(
-                    # sections=["cp2k_section_quickstep_atom_information"],
                     startReStr=" MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
+                ),
+                # SCF
+                SM(
+                    sections=["section_single_configuration_calculation"],
+                    startReStr=" SCF WAVEFUNCTION OPTIMIZATION",
+                    subMatchers=[
+                        SM(
+                            sections=["section_scf_iteration"],
+                            startReStr=r"\s+\d+\s+\S+\s+{f}\s+{f}\s+{f}\s+(?P<energy_total_scf_iteration>{f})\s+{f}".format(f=self.f_regex),
+                            repeats=True,
+                        ),
+                    ]
                 ),
                 SM(
                     sections=["cp2k_section_md"],
