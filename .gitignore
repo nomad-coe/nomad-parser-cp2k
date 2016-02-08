@@ -1,4 +1,6 @@
-cp2kparser.egg-info
 *.pyc
-nomadtoolkit/nomadtoolkit/metaviewer/frontend/static/frontend/node_modules
-nomadtoolkit/nomadtoolkit/metaviewer/frontend/static/frontend/bower_components
+*.inp
+*.wfn
+test/examples/BASIS_SET
+test/examples/GTH_POTENTIALS
+parser/parser-cp2k/cp2kparser.egg-info
