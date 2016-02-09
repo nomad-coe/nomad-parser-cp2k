@@ -50,9 +50,9 @@ class CP2KOutputParser(FileParser):
                     ]
                 ),
                 SM(
-                    # sections=["cp2k_section_cell"],
                     startReStr=" CELL\|",
-                    adHoc=self.adHoc_cp2k_section_cell()
+                    adHoc=self.adHoc_cp2k_section_cell(),
+                    otherMetaInfo=["section_system_description", "simulation_cell"]
                 ),
                 SM(
                     sections=["cp2k_section_functional"],
@@ -71,8 +71,8 @@ class CP2KOutputParser(FileParser):
                     startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
                     subMatchers=[
                         SM(
+                            sections=["section_system_description"],
                             startReStr="\s+- Atoms:\s+(?P<number_of_atoms>\d+)",
-                            sections=["section_system_description"]
                         ),
                         SM(
                             startReStr="\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)"
@@ -80,8 +80,10 @@ class CP2KOutputParser(FileParser):
                     ]
                 ),
                 SM(
+                    sections=["section_system_description"],
                     startReStr=" MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
+                    otherMetaInfo=["atom_label", "atom_position"]
                 ),
                 # SCF
                 SM(
@@ -90,7 +92,7 @@ class CP2KOutputParser(FileParser):
                     subMatchers=[
                         SM(
                             sections=["section_scf_iteration"],
-                            startReStr=r"\s+\d+\s+\S+\s+{f}\s+{f}\s+{f}\s+(?P<energy_total_scf_iteration>{f})\s+{f}".format(f=self.f_regex),
+                            startReStr=r"\s+\d+\s+\S+\s+{f}\s+{f}\s+{f}\s+(?P<energy_total_scf_iteration__hartree>{f})\s+{f}".format(f=self.f_regex),
                             repeats=True,
                         ),
                     ]
@@ -293,9 +295,9 @@ class CP2KOutputParser(FileParser):
 
             # If anything found, push the results to the correct section
             if len(coordinates) != 0:
-                gIndex = parser.backend.openSection("section_system_description")
+                # gIndex = parser.backend.openSection("section_system_description")
                 parser.backend.addArrayValues("atom_position", coordinates, unit="angstrom")
                 parser.backend.addArrayValues("atom_label", labels)
-                parser.backend.closeSection("section_system_description", gIndex)
+                # parser.backend.closeSection("section_system_description", gIndex)
 
         return wrapper
