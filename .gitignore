@@ -52,3 +52,12 @@ TAGS
 
 lib/
 env/
+
+# CP2K files
+*.inp
+*.wfn
+test/unittests/BASIS_SET
+test/unittests/GTH_POTENTIALS
+
+# Setuptools install folder
+parser/parser-cp2k/cp2kparser.egg-info/
