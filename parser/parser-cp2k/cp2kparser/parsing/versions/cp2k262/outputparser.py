@@ -55,14 +55,17 @@ class CP2KOutputParser(FileParser):
                     otherMetaInfo=["section_system_description", "simulation_cell"]
                 ),
                 SM(
-                    sections=["cp2k_section_functional"],
+                    sections=["section_method"],
+                    otherMetaInfo=["XC_functional"],
                     startReStr=" FUNCTIONAL\|",
                     forwardMatch=True,
-                    otherMetaInfo=["XC_functional"],
                     subMatchers=[
                         SM(
+                            startReStr=" FUNCTIONAL\| ([\w\d\W\s]+):",
+                            forwardMatch=True,
                             repeats=True,
-                            startReStr=" FUNCTIONAL\| (?P<cp2k_functional_name>[\w\d\W]+):"
+                            sections=["section_XC_functionals"],
+                            adHoc=self.adHoc_section_XC_functionals()
                         )
                     ]
                 ),
@@ -150,7 +153,7 @@ class CP2KOutputParser(FileParser):
         #=======================================================================
         # The cache settings
         self.caching_level_for_metaname = {
-            'cp2k_functional_name': CachingLevel.Cache,
+            'section_XC_functionals': CachingLevel.ForwardAndCache,
             'cp2k_section_md_coordinates': CachingLevel.Cache,
             'cp2k_section_md_coordinate_atom': CachingLevel.Cache,
             'cp2k_md_coordinate_atom_string': CachingLevel.Cache,
@@ -164,35 +167,22 @@ class CP2KOutputParser(FileParser):
 
     #===========================================================================
     # The functions that trigger when sections are closed
-    def onClose_cp2k_section_functional(self, backend, gIndex, section):
+    def onClose_section_method(self, backend, gIndex, section):
         """When all the functional definitions have been gathered, matches them
         with the nomad correspondents and combines into one single string which
         is put into the backend.
         """
-        # Get the list of functional names
-        functional_names = section["cp2k_functional_name"]
+        functional_names = []
+        section_XC_functionals = section["section_XC_functionals"]
+        for functional in section_XC_functionals:
+            functional_name = functional["XC_functional_name"][0]
+            functional_names.append(functional_name)
 
-        # Define a mapping for the functionals
-        functional_map = {
-            "LYP": "GGA_C_LYP",
-            "BECKE88": "GGA_X_B88",
-            "PADE": "LDA_XC_TETER93",
-            "LDA": "LDA_XC_TETER93",
-            "BLYP": "HYB_GGA_XC_B3LYP",
-        }
-
-        # Match eatch cp2k functional name and sort the matches into a list
-        functionals = []
-        for name in functional_names:
-            match = functional_map.get(name)
-            if match:
-                functionals.append(match)
-        functionals = "_".join(sorted(functionals))
+        # Sort and concatenate the functional names
+        functionals = "_".join(sorted(functional_names))
 
         # Push the functional string into the backend
-        gIndex = backend.openSection("section_method")
         backend.addValue('XC_functional', functionals)
-        backend.closeSection("section_method", gIndex)
 
     def onClose_cp2k_section_md_coordinate_atom(self, backend, gIndex, section):
         """Given the string with the coordinate components for one atom, make it
@@ -230,6 +220,39 @@ class CP2KOutputParser(FileParser):
 
     #===========================================================================
     # adHoc functions that are used to do custom parsing.
+    def adHoc_section_XC_functionals(self):
+        """Used to extract the cell information.
+        """
+        def wrapper(parser):
+
+            # Define the regex that extracts the information
+            regex_string = " FUNCTIONAL\| ([\w\d\W\s]+):"
+            regex_compiled = re.compile(regex_string)
+
+            # Parse out the functional name
+            functional_name = None
+            line = parser.fIn.readline()
+            result = regex_compiled.match(line)
+
+            if result:
+                functional_name = result.groups()[0]
+
+            # Define a mapping for the functionals
+            functional_map = {
+                "LYP": "GGA_C_LYP",
+                "BECKE88": "GGA_X_B88",
+                "PADE": "LDA_XC_TETER93",
+                "LDA": "LDA_XC_TETER93",
+                "BLYP": "HYB_GGA_XC_B3LYP",
+            }
+
+            # If match found, add the functional definition to the backend
+            nomad_name = functional_map.get(functional_name)
+            if nomad_name is not None:
+                parser.backend.addValue('XC_functional_name', nomad_name)
+
+        return wrapper
+
     def adHoc_cp2k_section_cell(self):
         """Used to extract the cell information.
         """
@@ -295,9 +318,7 @@ class CP2KOutputParser(FileParser):
 
             # If anything found, push the results to the correct section
             if len(coordinates) != 0:
-                # gIndex = parser.backend.openSection("section_system_description")
                 parser.backend.addArrayValues("atom_position", coordinates, unit="angstrom")
                 parser.backend.addArrayValues("atom_label", labels)
-                # parser.backend.closeSection("section_system_description", gIndex)
 
         return wrapper
