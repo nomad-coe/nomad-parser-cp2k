@@ -20,7 +20,7 @@ class CP2KOutputParser(FileParser):
         # Define the output parsing tree for this version
         self.root_matcher = SM(
             startReStr="",
-            sections=['section_run'],
+            sections=['section_run', "section_system_description"],
             subMatchers=[
                 SM(
                     sections=['cp2k_section_dbcsr'],
@@ -52,7 +52,7 @@ class CP2KOutputParser(FileParser):
                 SM(
                     startReStr=" CELL\|",
                     adHoc=self.adHoc_cp2k_section_cell(),
-                    otherMetaInfo=["section_system_description", "simulation_cell"]
+                    otherMetaInfo=["simulation_cell"]
                 ),
                 SM(
                     sections=["section_method"],
@@ -74,7 +74,6 @@ class CP2KOutputParser(FileParser):
                     startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
                     subMatchers=[
                         SM(
-                            sections=["section_system_description"],
                             startReStr="\s+- Atoms:\s+(?P<number_of_atoms>\d+)",
                         ),
                         SM(
@@ -83,7 +82,6 @@ class CP2KOutputParser(FileParser):
                     ]
                 ),
                 SM(
-                    sections=["section_system_description"],
                     startReStr=" MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
                     otherMetaInfo=["atom_label", "atom_position"]
@@ -276,9 +274,7 @@ class CP2KOutputParser(FileParser):
             cell[2, :] = [float(x) for x in c_result.groups()]
 
             # Push the results to the correct section
-            gIndex = parser.backend.openSection("section_system_description")
             parser.backend.addArrayValues("simulation_cell", cell, unit="angstrom")
-            parser.backend.closeSection("section_system_description", gIndex)
 
         return wrapper
 
