@@ -86,15 +86,22 @@ class CP2KOutputParser(FileParser):
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
                     otherMetaInfo=["atom_label", "atom_position"]
                 ),
-                # SCF
+                # Single Configuration Calculation
                 SM(
                     sections=["section_single_configuration_calculation"],
                     startReStr=" SCF WAVEFUNCTION OPTIMIZATION",
                     subMatchers=[
                         SM(
                             sections=["section_scf_iteration"],
-                            startReStr=r"\s+\d+\s+\S+\s+{f}\s+{f}\s+{f}\s+(?P<energy_total_scf_iteration__hartree>{f})\s+{f}".format(f=self.f_regex),
+                            startReStr=r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<energy_total_scf_iteration__hartree>{0})\s+{0}".format(self.f_regex),
                             repeats=True,
+                        ),
+                        SM(
+                            startReStr=r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<energy_total__hartree>{0})".format(self.f_regex),
+                        ),
+                        SM(
+                            startReStr=r" ATOMIC FORCES in \[a\.u\.\]",
+                            adHoc=self.adHoc_atom_forces()
                         ),
                     ]
                 ),
@@ -316,5 +323,36 @@ class CP2KOutputParser(FileParser):
             if len(coordinates) != 0:
                 parser.backend.addArrayValues("atom_position", coordinates, unit="angstrom")
                 parser.backend.addArrayValues("atom_label", labels)
+
+        return wrapper
+
+    def adHoc_atom_forces(self):
+        """Used to extract the final atomic forces printed at the end of an
+        ENERGY_FORCE calculation is the PRINT setting is on.
+        """
+        def wrapper(parser):
+
+            # Uninterestring lines
+            parser.fIn.readline()
+            parser.fIn.readline()
+
+            end_str = " SUM"
+            end = False
+            force_array = []
+
+            # Loop through coordinates until the sum of forces is read
+            while not end:
+                line = parser.fIn.readline()
+                if line.startswith(end_str):
+                    end = True
+                else:
+                    forces = line.split()[-3:]
+                    forces = [float(x) for x in forces]
+                    force_array.append(forces)
+            force_array = np.array(force_array)
+
+            # If anything found, push the results to the correct section
+            if len(force_array) != 0:
+                parser.backend.addArrayValues("atom_forces", force_array, unit="force_au")
 
         return wrapper
