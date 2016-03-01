@@ -1,12 +1,22 @@
 package eu.nomad_lab.parsers
+
+import eu.{nomad_lab=>lab}
 import eu.nomad_lab.DefaultPythonInterpreter
 import org.{json4s => jn}
+import scala.collection.breakOut
 
 object Cp2kParser extends SimpleExternalParserGenerator(
   name = "Cp2kParser",
   parserInfo = jn.JObject(
     ("name" -> jn.JString("Cp2kParser")) ::
-      ("version" -> jn.JString("1.0")) :: Nil),
+      ("parserId" -> jn.JString("Cp2kParser" + lab.Cp2kVersionInfo.version)) ::
+      ("versionInfo" -> jn.JObject(
+        ("nomadCoreVersion" -> jn.JString(lab.NomadCoreVersionInfo.version)) ::
+          (lab.Cp2kVersionInfo.toMap.map{ case (key, value) =>
+            (key -> jn.JString(value.toString))
+          }(breakOut): List[(String, jn.JString)])
+      )) :: Nil
+  ),
   mainFileTypes = Seq("text/.*"),
   mainFileRe = """  \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s(?<cp2kStartedAt>.*)
  \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*
