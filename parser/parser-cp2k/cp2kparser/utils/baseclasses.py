@@ -312,6 +312,7 @@ class FileParser(object):
         self.default_data_caching_level = CachingLevel.ForwardAndCache
         self.default_section_caching_level = CachingLevel.Forward
         self.onClose = {}
+        self.caching_backend = None
 
     def parse(self):
         """Parser the information from the given file(s). By default uses the
@@ -342,7 +343,7 @@ class FileParser(object):
                 onClose[attr] = [callback]
 
         # Setup the backend that caches ond handles triggers
-        active_backend = ActiveBackend.activeBackend(
+        self.caching_backend = ActiveBackend.activeBackend(
             metaInfoEnv=self.backend.metaInfoEnv(),
             cachingLevelForMetaName=self.caching_level_for_metaname,
             defaultDataCachingLevel=self.default_data_caching_level,
@@ -357,11 +358,11 @@ class FileParser(object):
         self.backend.fileOut.write("[")
         uri = "file://" + fileToParse
         parserInfo = {'name': 'cp2k-parser', 'version': '1.0'}
-        active_backend.startedParsingSession(uri, parserInfo)
+        self.caching_backend.startedParsingSession(uri, parserInfo)
         with open(fileToParse, "r") as fIn:
-            parser = parserBuilder.buildParser(PushbackLineFile(fIn), active_backend, superContext=self)
+            parser = parserBuilder.buildParser(PushbackLineFile(fIn), self.caching_backend, superContext=self)
             parser.parse()
-        active_backend.finishedParsingSession("ParseSuccess", None)
+        self.caching_backend.finishedParsingSession("ParseSuccess", None)
         self.backend.fileOut.write("]\n")
 
     def get_metainfos(self):
