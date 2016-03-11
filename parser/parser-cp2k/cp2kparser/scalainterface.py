@@ -7,10 +7,8 @@ from cp2kparser.parsing.versions.cp2k262.outputparser import CP2KOutputParser
 from nomadcore.local_meta_info import loadJsonFile, InfoKindEl
 from nomadcore.simple_parser import mainFunction
 
-# This is what gets run when the scala layer calls for this parser. Currently
-# only the outputparser is used because the scala layer doesn't support
-# auxiliary files. Also the version identification is skipped and the structure
-# used in CP2K 2.6.2 is assumed.
+# This is what gets run when the scala layer calls for this parser. Version
+# identification is skipped and the structure used in CP2K 2.6.2 is assumed.
 if __name__ == "__main__":
 
     # Get the outputparser class

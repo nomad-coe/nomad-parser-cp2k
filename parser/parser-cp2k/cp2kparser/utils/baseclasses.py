@@ -2,24 +2,24 @@ import os
 import sys
 import logging
 from abc import ABCMeta, abstractmethod
-from nomadcore.simple_parser import SimpleParserBuilder, extractOnCloseTriggers, PushbackLineFile
+from nomadcore.simple_parser import SimpleParserBuilder, extractOnCloseTriggers, PushbackLineFile, AncillaryParser
 from nomadcore.caching_backend import CachingLevel, ActiveBackend
 logger = logging.getLogger(__name__)
 
 
 #===============================================================================
 class Parser(object):
-    """This class provides the interface for parsing. All the input is given to
-    this class (or typically a subclass) and the parsing is done by calling the
-    parse() method. The parsing output is determined by the backend object that
-    is given in the constructor as a dependency.
+    """This class provides the interface for local parsing. All the input is
+    given to this class (or typically a subclass) and the parsing is done by
+    calling the parse() method. The parsing output is determined by the backend
+    object that is given in the constructor as a dependency.
 
     Attributes:
         implementation: an object that actually does the parsing and is
             setup by this class based on the given contents.
         parser_context: A wrapper class for all the parser related information.
             This is contructed here and then passed onto the different
-            implementations and FileParsers.
+            implementations.
     """
     __metaclass__ = ABCMeta
 
@@ -115,61 +115,44 @@ class Parser(object):
 
 
 #===============================================================================
-class ParserImplementation(object):
-    """The base class for a version specific parser implementation in. Provides
-    some useful tools for setting up file access.
+class FileStorage(object):
+    """Used to map file paths to certain ID's. This helps in setting up the
+    Secondary parsers as you can associate file paths to simpler ID's that are
+    easier to use.
 
     Attributes:
-        See the ParserContext class for more details about the attributes.
         _file_handles: A "private" dictionary containing the cached file handles
         _file_contents: A "private" dictionary containing the cached file contents
         _file_sizes: A "private" dictionary containing the cached file sizes
         file_ids: A dictionary containing the mapping between file ids and filepaths
     """
-    def __init__(self, parser_context):
-
-        self.parser_context = parser_context
-
-        # Copy all the attributes from the ParserContext object for quick access
-        attributes = dir(parser_context)
-        for attribute in attributes:
-            if not attribute.startswith("__"):
-                setattr(self, attribute, getattr(parser_context, attribute))
-
+    def __init__(self):
         self._file_handles = {}
         self._file_contents = {}
         self._file_sizes = {}
         self.file_ids = {}
-        self.file_parsers = []
-
-    def setup_given_file_ids(self):
-        """Saves the file id's that were given in the JSON input.
-        """
-        for path, file_id in self.files.iteritems():
-            if file_id:
-                self.setup_file_id(path, file_id)
-
-    def parse(self):
-        """Start the parsing. Will try to parse everything unless given special
-        rules (metaInfoToKeep)."""
-        for file_parser in self.file_parsers:
-            file_parser.parse()
 
     def setup_file_id(self, path, file_id):
         """Used to map a simple identifier string to a file path. When a file
         id has been setup, you can easily access the file by using the
         functions get_file_handle() or get_file_contents()
         """
-        if path in self.files:
-            value = self.file_ids.get(file_id)
-            if value:
+        old = self.file_ids.get(file_id)
+        if old is not None:
+            raise LookupError("The path '{}' is already associated with id '{}'".format(old, file_id))
+        self.file_ids[file_id] = path
+
+    def add_file_id(self, path, file_id):
+        value = self.file_ids.get(file_id)
+        if value:
+            if isinstance(value, list):
                 value.append(path)
             else:
-                pathlist = []
-                pathlist.append(path)
-                self.file_ids[file_id] = pathlist
+                raise LookupError("You have already setup an unique file_path '{}' to this id.".format(value))
         else:
-            logger.error("Trying to setup an id for an undefined path. See that the path was written correctly and it was given in the files attribute of the JSON string.")
+            pathlist = []
+            pathlist.append(path)
+            self.file_ids[file_id] = pathlist
 
     def get_filepath_by_id(self, file_id, show_warning=True):
         """Get the file paths that were registered with the given id.
@@ -178,9 +161,7 @@ class ParserImplementation(object):
         if value:
             if isinstance(value, list):
                 n = len(value)
-                if n == 1:
-                    return value[0]
-                elif n == 0:
+                if n == 0:
                     if show_warning:
                         logger.warning("No files set with id '{}'".format(file_id))
                     return None
@@ -188,6 +169,8 @@ class ParserImplementation(object):
                     if show_warning:
                         logger.debug("Multiple files set with id '{}'".format(file_id))
                     return value
+            else:
+                return value
         else:
             if show_warning:
                 logger.warning("No files set with id '{}'".format(file_id))
@@ -284,30 +267,120 @@ class ParserImplementation(object):
 
 
 #===============================================================================
-class FileParser(object):
-    """Base class for objects that parse certain type of files.  Typically a
-    subclass of ParserImplementation will initialize one FileParser per parsed
-    file. You can also assign a list of files to a FileParser if they are of
-    similar type or are otherwise connected to each other.
-    """
-    __metaclass__ = ABCMeta
+class ParserImplementation(object):
+    """The base class for a version specific parser implementation in. Provides
+    some useful tools for setting up file access.
 
-    def __init__(self, files, parser_context):
+    Attributes:
+        parser_context: ParserContext object
+        file_storage: FileStorage object
+        main_parser: MainParser object
+    """
+    def __init__(self, parser_context):
+
+        self.parser_context = parser_context
+        self.file_storage = FileStorage()
+        self.main_parser = None
+
+        # Copy all the attributes from the ParserContext object for quick access
+        attributes = dir(parser_context)
+        for attribute in attributes:
+            if not attribute.startswith("__"):
+                setattr(self, attribute, getattr(parser_context, attribute))
+
+        # self.file_parsers = []
+
+    # def setup_given_file_ids(self):
+        # """Saves the file id's that were given in the JSON input.
+        # """
+        # for path, file_id in self.files.iteritems():
+            # if file_id:
+                # self.file_storage.setup_file_id(path, file_id)
+
+    def parse(self):
+        """Start the parsing. Will try to parse everything unless given special
+        rules (metaInfoToKeep)."""
+        self.main_parser.parse()
+        # for file_parser in self.file_parsers:
+            # file_parser.parse()
+
+
+#===============================================================================
+class HierarchicalParser(object):
+    """A base class for all parsers that do parsing based on the SimpleMatcher
+    hierarchy.
+
+    Attributes:
+        root_matcher: The root of this parsers SimpleMatcher tree.
+    """
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.root_matcher = None
+        self.caching_levels = {}
+        self.default_data_caching_level = CachingLevel.ForwardAndCache
+        self.default_section_caching_level = CachingLevel.Forward
+        self.onClose = {}
+        self.simple_parser = None
+
+
+#===============================================================================
+class SecondaryParser(HierarchicalParser):
+    """A base class for ancillary file parsers. Instantiated and run by a
+    MainParser.
+
+    Attributes:
+        ancillary_parser: An nomadcore.simple_parser.AncillaParser object
+    """
+    def __init__(self, file_path, simple_parser):
+        """
+        Args:
+            file_path: The path of the file to parse. Can be absolute or relative path.
+            simple_parser: The SimpleParser object that is does the actual
+                parsing. Shared with ther SecondaryParsers and the MainParser.
+        """
+        super(SecondaryParser, self).__init__(file_path)
+        self.simple_parser = simple_parser
+        self.ancillary_parser = None
+
+    def parse(self):
+        """Parser the given ancillary file in place.
+        """
+        self.ancillary_parser = AncillaryParser(self.root_matcher, self.simple_parser, self.caching_levels, self)
+
+        # Try opening the given file
+        try:
+            with open(self.file_path) as fIn:
+                self.ancillary_parser.parseFile(fIn)
+        except IOError:
+            dir_name, file_name = os.path.split(os.path.abspath(self.file_path))
+            logger.warning("Could not find file '{}' in directory '{}'. No data will be parsed from this file".format(dir_name, file_name))
+
+
+#===============================================================================
+class MainParser(HierarchicalParser):
+    """Base class for main parsers. Will call AncillaryParsers to parse additional
+    files. Typically this main parser is also tied to a file ("main file").
+
+    A subclass of ParserImplementation will initialize only one MainParser.
+
+    Attributes:
+        files: A list of file or directory paths that are used by this parser.
+        root_matcher
+    """
+
+    def __init__(self, file_path, parser_context):
         """
         Args:
             files: A list of filenames that are parsed and analyzed by this
                 object.
             parser_context: The parsing context that contains e.g. the backend.
         """
-        if not isinstance(files, list):
-            files = [files]
-        self.files = files
+        super(MainParser, self).__init__(file_path)
         if parser_context:
             self.parser_context = parser_context
             self.backend = parser_context.backend
             self.metainfo_to_keep = parser_context.metainfo_to_keep
             self.version_id = parser_context.version_id
-        self.root_matcher = None
         self.caching_level_for_metaName = {}
         self.default_data_caching_level = CachingLevel.ForwardAndCache
         self.default_section_caching_level = CachingLevel.Forward
@@ -319,13 +392,6 @@ class FileParser(object):
         SimpleParser scheme, if you want to use something else or customize the
         process just override this method.
         """
-        # If there is only one file assigned to this FileParser, and a
-        # root_matcher has been assigned, parse with the SimpleParser. Otherwise
-        # halt.
-        if len(self.files) != 1 or self.root_matcher is None:
-            logger.error("Could not use the default parsing implementation. If you want to use it wou must specify a root_matcher and only assign one file to the FileParser. If you need custom parsing you should override the parse() method.")
-            return
-
         # Initialize the parser builder
         parserBuilder = SimpleParserBuilder(self.root_matcher, self.backend.metaInfoEnv(), self.metainfo_to_keep)
 
@@ -354,12 +420,11 @@ class FileParser(object):
         # Compile the SimpleMatcher tree
         parserBuilder.compile()
 
-        fileToParse = self.files[0]
         self.backend.fileOut.write("[")
-        uri = "file://" + fileToParse
+        uri = "file://" + self.file_path
         parserInfo = {'name': 'cp2k-parser', 'version': '1.0'}
         self.caching_backend.startedParsingSession(uri, parserInfo)
-        with open(fileToParse, "r") as fIn:
+        with open(self.file_path, "r") as fIn:
             parser = parserBuilder.buildParser(PushbackLineFile(fIn), self.caching_backend, superContext=self)
             parser.parse()
         self.caching_backend.finishedParsingSession("ParseSuccess", None)
@@ -379,7 +444,7 @@ class FileParser(object):
         Get compiled parser.
         Later one can compile a parser for parsing an external file.
         """
-        self.parser = parser
+        self.simple_parser = parser
 
 
 #===============================================================================

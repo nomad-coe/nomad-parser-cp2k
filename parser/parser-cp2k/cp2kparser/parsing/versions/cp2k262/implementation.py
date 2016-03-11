@@ -4,7 +4,7 @@ import logging
 from cp2kparser.parsing.csvparsing import CSVParser
 from .inputparsing import CP2KInputParser
 from .outputparser import CP2KOutputParser
-from cp2kparser.parsing.cp2kinputenginedata.input_tree import CP2KInput
+# from cp2kparser.parsing.cp2kinputenginedata.input_tree import CP2KInput
 from cp2kparser.utils.baseclasses import ParserImplementation
 from nomadcore.coordinate_reader import CoordinateReader
 logger = logging.getLogger(__name__)
@@ -36,18 +36,17 @@ class CP2KImplementation(ParserImplementation):
         """Resolve the input and output files based on extension and the
         include files by looking for @INCLUDE commands in the input file.
         """
-
         # Input and output files
         for file_path in self.files:
-            if file_path.endswith(".inp"):
-                self.setup_file_id(file_path, "input")
             if file_path.endswith(".out"):
-                self.setup_file_id(file_path, "output")
-                outputparser = CP2KOutputParser(file_path, self.parser_context)
-                self.file_parsers.append(outputparser)
+                self.file_storage.setup_file_id(file_path, "output")
+                outputparser = CP2KOutputParser(file_path, self.file_storage, self.parser_context)
+                self.main_parser = outputparser
+            if file_path.endswith(".inp"):
+                self.file_storage.setup_file_id(file_path, "input")
 
         # Include files
-        input_file = self.get_file_contents("input")
+        input_file = self.file_storage.get_file_contents("input")
         for line in input_file.split("\n"):
             line = line.strip()
             if line.startswith("@INCLUDE") or line.startswith("@include"):
@@ -56,7 +55,7 @@ class CP2KImplementation(ParserImplementation):
                 if filename.startswith(('\"', '\'')) and filename.endswith(('\"', '\'')):
                     filename = filename[1:-1]
                 filepath = self.search_file(filename)
-                self.setup_file_id(filepath, "include")
+                self.file_storage.add_file_id(filepath, "include")
 
     # def determine_output_file(self):
         # """Determine which of the given files is the output file.
@@ -79,8 +78,8 @@ class CP2KImplementation(ParserImplementation):
         input file and explicitly state all variables.
         """
         # Merge include files to input
-        include_files = self.get_file_handles("include", show_warning=False)
-        input_file = self.get_file_contents("input")
+        include_files = self.file_storage.get_file_handles("include", show_warning=False)
+        input_file = self.file_storage.get_file_contents("input")
         input_lines = input_file.split("\n")
         extended_input = input_lines[:]  # Make a copy
         if include_files:
@@ -177,7 +176,7 @@ class CP2KImplementation(ParserImplementation):
 
             # Check against the given files
             file_path = self.search_file(force_path)
-            self.setup_file_id(file_path, "forces")
+            self.file_storage.setup_file_id(file_path, "forces")
 
         # Determine the presence of an initial coordinate file
         init_coord_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_NAME")
@@ -185,7 +184,7 @@ class CP2KImplementation(ParserImplementation):
             logger.debug("Initial coordinate file found.")
             # Check against the given files
             file_path = self.search_file(init_coord_file)
-            self.setup_file_id(file_path, "initial_coordinates")
+            self.file_storage.setup_file_id(file_path, "initial_coordinates")
 
         # Determine the presence of a trajectory file
         traj_file = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FILENAME")
@@ -201,7 +200,7 @@ class CP2KImplementation(ParserImplementation):
             logger.debug("Trajectory file found.")
             normalized_path = self.normalize_cp2k_path(traj_file, extension, "pos")
             file_path = self.search_file(normalized_path)
-            self.setup_file_id(file_path, "trajectory")
+            self.file_storage.setup_file_id(file_path, "trajectory")
 
         # Determine the presence of a cell output file
         cell_motion_file = self.input_tree.get_keyword("MOTION/PRINT/CELL/FILENAME")
@@ -210,13 +209,13 @@ class CP2KImplementation(ParserImplementation):
             extension = "cell"
             normalized_path = self.normalize_cp2k_path(cell_motion_file, extension)
             file_path = self.search_file(normalized_path)
-            self.setup_file_id(file_path, "cell_output")
+            self.file_storage.setup_file_id(file_path, "cell_output")
 
         # Determine the presence of a cell input file
         cell_input_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
         if cell_input_file is not None:
             file_path = self.search_file(cell_input_file)
-            self.setup_file_id(file_path, "cell_input")
+            self.file_storage.setup_file_id(file_path, "cell_input")
 
     def normalize_cp2k_path(self, path, extension, name=""):
         """The paths in CP2K input can be given in many ways. This function

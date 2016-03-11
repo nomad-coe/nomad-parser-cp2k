@@ -1,19 +1,19 @@
 import re
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.caching_backend import CachingLevel
-from cp2kparser.utils.baseclasses import FileParser
+from cp2kparser.utils.baseclasses import MainParser
 import numpy as np
 
 
 #===============================================================================
-class CP2KOutputParser(FileParser):
-    """The object that goes through the CP2K output file and parses everything
-    it can using the SimpleParser architecture.
+class CP2KOutputParser(MainParser):
+    """The main parser class.
     """
-    def __init__(self, files, parser_context):
+    def __init__(self, files, file_storage, parser_context):
         """Initialize an output parser.
         """
-        FileParser.__init__(self, files, parser_context)
+        super(CP2KOutputParser, self).__init__(files, parser_context)
+        self.file_storage = file_storage
         self.f_regex = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
         self.i_regex = "-?\d+"  # Regex for an integer
 
