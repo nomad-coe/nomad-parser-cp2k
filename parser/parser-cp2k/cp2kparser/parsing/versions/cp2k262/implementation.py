@@ -2,7 +2,7 @@ import re
 import os
 import logging
 from cp2kparser.parsing.csvparsing import CSVParser
-from .inputparsing import CP2KInputParser
+# from .inputparsing import CP2KInputParser
 from .outputparser import CP2KOutputParser
 # from cp2kparser.parsing.cp2kinputenginedata.input_tree import CP2KInput
 from cp2kparser.utils.baseclasses import ParserImplementation
@@ -23,14 +23,14 @@ class CP2KImplementation(ParserImplementation):
         # know the version id.
         self.csvengine = CSVParser(self)
         self.atomsengine = CoordinateReader()
-        self.inputparser = CP2KInputParser()
-        self.inputparser.setup_version(self.version_id)
+        # self.inputparser = CP2KInputParser()
+        # self.inputparser.setup_version(self.version_id)
         self.input_tree = None
         self.extended_input = None
 
         self.determine_file_ids_pre_setup()
-        self.input_preprocessor()
-        self.determine_file_ids_post_setup()
+        # self.input_preprocessor()
+        # self.determine_file_ids_post_setup()
 
     def determine_file_ids_pre_setup(self):
         """Resolve the input and output files based on extension and the
@@ -151,71 +151,71 @@ class CP2KImplementation(ParserImplementation):
             input_variables_replaced.append(new_line)
 
         self.extended_input = '\n'.join(input_variables_replaced)
-        self.input_tree = self.inputparser.parse(self.extended_input)
+        # self.input_tree = self.inputparser.parse(self.extended_input)
 
-    def determine_file_ids_post_setup(self):
-        """Determines the file id's after the CP2K verion has been set
-        up. This includes force files, coordinate files, cell files, etc.
-        """
-        # Determine the presence of force file
-        force_path = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
-        project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
-        if force_path is not None and force_path != "__STD_OUT__":
+    # def determine_file_ids_post_setup(self):
+        # """Determines the file id's after the CP2K verion has been set
+        # up. This includes force files, coordinate files, cell files, etc.
+        # """
+        # # Determine the presence of force file
+        # force_path = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        # project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
+        # if force_path is not None and force_path != "__STD_OUT__":
 
-            # The force path is not typically exactly as written in input
-            if force_path.startswith("="):
-                logger.debug("Using single force file.")
-                force_path = force_path[1:]
-            elif re.match(r".?/", force_path):
-                logger.debug("Using separate force file for each step.")
-                force_path = "{}-1_0.xyz".format(force_path)
-            else:
-                logger.debug("Using separate force file for each step.")
-                force_path = "{}-{}-1_0.xyz".format(project_name, force_path)
-            force_path = os.path.basename(force_path)
+            # # The force path is not typically exactly as written in input
+            # if force_path.startswith("="):
+                # logger.debug("Using single force file.")
+                # force_path = force_path[1:]
+            # elif re.match(r".?/", force_path):
+                # logger.debug("Using separate force file for each step.")
+                # force_path = "{}-1_0.xyz".format(force_path)
+            # else:
+                # logger.debug("Using separate force file for each step.")
+                # force_path = "{}-{}-1_0.xyz".format(project_name, force_path)
+            # force_path = os.path.basename(force_path)
 
-            # Check against the given files
-            file_path = self.search_file(force_path)
-            self.file_storage.setup_file_id(file_path, "forces")
+            # # Check against the given files
+            # file_path = self.search_file(force_path)
+            # self.file_storage.setup_file_id(file_path, "forces")
 
-        # Determine the presence of an initial coordinate file
-        init_coord_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_NAME")
-        if init_coord_file is not None:
-            logger.debug("Initial coordinate file found.")
-            # Check against the given files
-            file_path = self.search_file(init_coord_file)
-            self.file_storage.setup_file_id(file_path, "initial_coordinates")
+        # # Determine the presence of an initial coordinate file
+        # init_coord_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_NAME")
+        # if init_coord_file is not None:
+            # logger.debug("Initial coordinate file found.")
+            # # Check against the given files
+            # file_path = self.search_file(init_coord_file)
+            # self.file_storage.setup_file_id(file_path, "initial_coordinates")
 
-        # Determine the presence of a trajectory file
-        traj_file = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FILENAME")
-        if traj_file is not None and traj_file != "__STD_OUT__":
-            file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
-            extension = {
-                "PDB": "pdb",
-                "XYZ": "xyz",
-                "XMOL": "xyz",
-                "ATOMIC": "xyz",
-                "DCD": "dcd",
-            }[file_format]
-            logger.debug("Trajectory file found.")
-            normalized_path = self.normalize_cp2k_path(traj_file, extension, "pos")
-            file_path = self.search_file(normalized_path)
-            self.file_storage.setup_file_id(file_path, "trajectory")
+        # # Determine the presence of a trajectory file
+        # traj_file = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FILENAME")
+        # if traj_file is not None and traj_file != "__STD_OUT__":
+            # file_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
+            # extension = {
+                # "PDB": "pdb",
+                # "XYZ": "xyz",
+                # "XMOL": "xyz",
+                # "ATOMIC": "xyz",
+                # "DCD": "dcd",
+            # }[file_format]
+            # logger.debug("Trajectory file found.")
+            # normalized_path = self.normalize_cp2k_path(traj_file, extension, "pos")
+            # file_path = self.search_file(normalized_path)
+            # self.file_storage.setup_file_id(file_path, "trajectory")
 
-        # Determine the presence of a cell output file
-        cell_motion_file = self.input_tree.get_keyword("MOTION/PRINT/CELL/FILENAME")
-        if cell_motion_file is not None:
-            logger.debug("Cell file found.")
-            extension = "cell"
-            normalized_path = self.normalize_cp2k_path(cell_motion_file, extension)
-            file_path = self.search_file(normalized_path)
-            self.file_storage.setup_file_id(file_path, "cell_output")
+        # # Determine the presence of a cell output file
+        # cell_motion_file = self.input_tree.get_keyword("MOTION/PRINT/CELL/FILENAME")
+        # if cell_motion_file is not None:
+            # logger.debug("Cell file found.")
+            # extension = "cell"
+            # normalized_path = self.normalize_cp2k_path(cell_motion_file, extension)
+            # file_path = self.search_file(normalized_path)
+            # self.file_storage.setup_file_id(file_path, "cell_output")
 
-        # Determine the presence of a cell input file
-        cell_input_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
-        if cell_input_file is not None:
-            file_path = self.search_file(cell_input_file)
-            self.file_storage.setup_file_id(file_path, "cell_input")
+        # # Determine the presence of a cell input file
+        # cell_input_file = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/CELL_FILE_NAME")
+        # if cell_input_file is not None:
+            # file_path = self.search_file(cell_input_file)
+            # self.file_storage.setup_file_id(file_path, "cell_input")
 
     def normalize_cp2k_path(self, path, extension, name=""):
         """The paths in CP2K input can be given in many ways. This function
