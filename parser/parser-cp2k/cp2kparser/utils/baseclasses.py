@@ -393,7 +393,9 @@ class MainParser(HierarchicalParser):
         process just override this method.
         """
         # Initialize the parser builder
-        parserBuilder = SimpleParserBuilder(self.root_matcher, self.backend.metaInfoEnv(), self.metainfo_to_keep, units=self.parser_context.units)
+        default_units = self.parser_context.default_units
+        metainfo_units = self.parser_context.metainfo_units
+        parserBuilder = SimpleParserBuilder(self.root_matcher, self.backend.metaInfoEnv(), self.metainfo_to_keep, default_units=default_units, metainfo_units=metainfo_units)
 
         # Verify the metainfo
         if not parserBuilder.verifyMetaInfo(sys.stderr):
@@ -415,8 +417,9 @@ class MainParser(HierarchicalParser):
             defaultDataCachingLevel=self.default_data_caching_level,
             defaultSectionCachingLevel=self.default_section_caching_level,
             onClose=onClose,
-            superBackend=self.backend)
-        self.caching_backend.units = self.parser_context.units
+            superBackend=self.backend,
+            default_units=default_units,
+            metainfo_units=metainfo_units)
 
         # Compile the SimpleMatcher tree
         parserBuilder.compile()
@@ -452,10 +455,11 @@ class MainParser(HierarchicalParser):
 class ParserContext(object):
     """Contains everything needed to instantiate a parser implementation.
     """
-    def __init__(self, files=None, metainfo_to_keep=None, backend=None, version_id=None, main_file=None, units=None):
+    def __init__(self, files=None, metainfo_to_keep=None, backend=None, version_id=None, main_file=None, default_units=None, metainfo_units=None):
         self.files = files
         self.version_id = version_id
         self.metainfo_to_keep = metainfo_to_keep
         self.backend = backend
         self.main_file = main_file
-        self.units = units
+        self.default_units = default_units
+        self.metainfo_units = metainfo_units
