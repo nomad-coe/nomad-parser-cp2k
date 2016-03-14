@@ -18,50 +18,44 @@ class CP2KOutputParser(MainParser):
         self.i_regex = "-?\d+"  # Regex for an integer
 
         # Define the output parsing tree for this version
-        self.root_matcher = SM(
-            startReStr="",
+        self.root_matcher = SM("",
+            forwardMatch=True,
             sections=['section_run', "section_system_description"],
             subMatchers=[
-                SM(
+                SM( r" DBCSR\| Multiplication driver",
                     sections=['cp2k_section_dbcsr'],
-                    startReStr=r" DBCSR\| Multiplication driver",
                 ),
-                SM(
+                SM( r" \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
                     sections=['cp2k_section_startinformation'],
-                    startReStr=r" \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT",
-                    forwardMatch=True,
-                    subMatchers=[
-                        SM(
-                            startReStr=r" \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
-                        ),
-                    ]
                 ),
-                SM(
+                SM( r" CP2K\|",
                     sections=['cp2k_section_programinformation'],
-                    startReStr=r" CP2K\|",
                     forwardMatch=True,
                     subMatchers=[
-                        SM(
-                            startReStr=r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)",
-                        ),
-                        SM(
-                            startReStr=r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)",
-                        ),
+                        SM( r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)"),
+                        SM( r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)"),
                     ]
                 ),
-                SM(
-                    startReStr=" CELL\|",
+                SM( r" CP2K\| Input file name\s+(?P<cp2k_input_filename>.+$)",
+                    sections=['cp2k_section_filenames'],
+                    subMatchers=[
+                        SM( r" GLOBAL\| Basis set file name\s+(?P<cp2k_basis_set_filename>.+$)"),
+                        SM( r" GLOBAL\| Geminal file name\s+(?P<cp2k_geminal_filename>.+$)"),
+                        SM( r" GLOBAL\| Potential file name\s+(?P<cp2k_potential_filename>.+$)"),
+                        SM( r" GLOBAL\| MM Potential file name\s+(?P<cp2k_mm_potential_filename>.+$)"),
+                        SM( r" GLOBAL\| Coordinate file name\s+(?P<cp2k_coordinate_filename>.+$)"),
+                    ]
+                ),
+                SM( " CELL\|",
                     adHoc=self.adHoc_cp2k_section_cell(),
                     otherMetaInfo=["simulation_cell"]
                 ),
-                SM(
+                SM( " FUNCTIONAL\|",
                     sections=["section_method"],
                     otherMetaInfo=["XC_functional"],
-                    startReStr=" FUNCTIONAL\|",
                     forwardMatch=True,
                     subMatchers=[
-                        SM(
-                            startReStr=" FUNCTIONAL\| ([\w\d\W\s]+):",
+                        SM( " FUNCTIONAL\| ([\w\d\W\s]+):",
                             forwardMatch=True,
                             repeats=True,
                             sections=["section_XC_functionals"],
@@ -69,80 +63,58 @@ class CP2KOutputParser(MainParser):
                         )
                     ]
                 ),
-                SM(
+                SM( " TOTAL NUMBERS AND MAXIMUM NUMBERS",
                     sections=["cp2k_section_total_numbers"],
-                    startReStr=" TOTAL NUMBERS AND MAXIMUM NUMBERS",
                     subMatchers=[
-                        SM(
-                            startReStr="\s+- Atoms:\s+(?P<number_of_atoms>\d+)",
-                        ),
-                        SM(
-                            startReStr="\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)"
-                        )
+                        SM( "\s+- Atoms:\s+(?P<number_of_atoms>\d+)"),
+                        SM( "\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)")
                     ]
                 ),
-                SM(
-                    startReStr=" MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
+                SM( " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
                     otherMetaInfo=["atom_label", "atom_position"]
                 ),
                 # Single Configuration Calculation
-                SM(
+                SM( " SCF WAVEFUNCTION OPTIMIZATION",
                     sections=["section_single_configuration_calculation"],
-                    startReStr=" SCF WAVEFUNCTION OPTIMIZATION",
                     subMatchers=[
-                        SM(
+                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<energy_total_scf_iteration__hartree>{0})\s+{0}".format(self.f_regex),
                             sections=["section_scf_iteration"],
-                            startReStr=r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<energy_total_scf_iteration__hartree>{0})\s+{0}".format(self.f_regex),
                             repeats=True,
                         ),
-                        SM(
-                            startReStr=r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<energy_total__hartree>{0})".format(self.f_regex),
-                        ),
-                        SM(
-                            startReStr=r" ATOMIC FORCES in \[a\.u\.\]",
+                        SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<energy_total__hartree>{0})".format(self.f_regex)),
+                        SM( r" ATOMIC FORCES in \[a\.u\.\]"),
+                        SM( r" # Atom   Kind   Element          X              Y              Z",
                             adHoc=self.adHoc_atom_forces()
                         ),
                     ]
                 ),
-                SM(
+                SM( " MD| Molecular Dynamics Protocol",
                     sections=["cp2k_section_md"],
-                    startReStr=" MD| Molecular Dynamics Protocol",
                     forwardMatch=True,
                     subMatchers=[
-                        SM(
+                        SM( " ENERGY\| Total FORCE_EVAL",
                             repeats=True,
-                            startReStr=" ENERGY\| Total FORCE_EVAL",
                             sections=["cp2k_section_md_step"],
                             subMatchers=[
-                                SM(
-                                    startReStr=" ATOMIC FORCES in \[a\.u\.\]",
+                                SM( " ATOMIC FORCES in \[a\.u\.\]",
                                     sections=["cp2k_section_md_forces"],
                                     subMatchers=[
-                                        SM(
-                                            startReStr="\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
+                                        SM( "\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
                                             sections=["cp2k_section_md_force_atom"],
                                             repeats=True,
                                         )
                                     ]
                                 ),
-                                SM(
-                                    startReStr=" STEP NUMBER\s+=\s+(?P<cp2k_md_step_number>\d+)"
-                                ),
-                                SM(
-                                    startReStr=" TIME \[fs\]\s+=\s+(?P<cp2k_md_step_time>\d+\.\d+)"
-                                ),
-                                SM(
-                                    startReStr=" TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.f_regex)
-                                ),
-                                SM(
-                                    startReStr=" i =",
+                                SM( " STEP NUMBER\s+=\s+(?P<cp2k_md_step_number>\d+)"),
+                                SM( " TIME \[fs\]\s+=\s+(?P<cp2k_md_step_time>\d+\.\d+)"),
+                                SM( " TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.f_regex)),
+                                SM( " i =",
                                     sections=["cp2k_section_md_coordinates"],
                                     otherMetaInfo=["cp2k_md_coordinates"],
                                     dependencies={"cp2k_md_coordinates": ["cp2k_md_coordinate_atom_string"]},
                                     subMatchers=[
-                                        SM(
-                                            startReStr=" \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
+                                        SM( " \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
                                             endReStr="\n",
                                             sections=["cp2k_section_md_coordinate_atom"],
                                             repeats=True,
@@ -221,7 +193,7 @@ class CP2KOutputParser(MainParser):
         """
         forces = section["cp2k_md_force_atom_float"]
         forces = np.array(forces)
-        backend.addArrayValues("cp2k_md_forces", forces, unit="force_au")
+        backend.addArrayValues("cp2k_md_forces", forces, unit="forceAu")
 
     #===========================================================================
     # adHoc functions that are used to do custom parsing.
@@ -332,11 +304,7 @@ class CP2KOutputParser(MainParser):
         """
         def wrapper(parser):
 
-            # Uninterestring lines
-            parser.fIn.readline()
-            parser.fIn.readline()
-
-            end_str = " SUM"
+            end_str = " SUM OF ATOMIC FORCES"
             end = False
             force_array = []
 
@@ -353,6 +321,6 @@ class CP2KOutputParser(MainParser):
 
             # If anything found, push the results to the correct section
             if len(force_array) != 0:
-                parser.backend.addArrayValues("atom_forces", force_array, unit="force_au")
+                parser.backend.addArrayValues("atom_forces", force_array, unit="forceAu")
 
         return wrapper
