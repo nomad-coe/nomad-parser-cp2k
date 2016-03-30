@@ -1,8 +1,8 @@
 package eu.nomad_lab.parsers
 
-import eu.{nomad_lab=>lab}
+import eu.{ nomad_lab => lab }
 import eu.nomad_lab.DefaultPythonInterpreter
-import org.{json4s => jn}
+import org.{ json4s => jn }
 import scala.collection.breakOut
 
 object Cp2kParser extends SimpleExternalParserGenerator(
@@ -12,8 +12,9 @@ object Cp2kParser extends SimpleExternalParserGenerator(
       ("parserId" -> jn.JString("Cp2kParser" + lab.Cp2kVersionInfo.version)) ::
       ("versionInfo" -> jn.JObject(
         ("nomadCoreVersion" -> jn.JString(lab.NomadCoreVersionInfo.version)) ::
-          (lab.Cp2kVersionInfo.toMap.map{ case (key, value) =>
-            (key -> jn.JString(value.toString))
+          (lab.Cp2kVersionInfo.toMap.map {
+            case (key, value) =>
+              (key -> jn.JString(value.toString))
           }(breakOut): List[(String, jn.JString)])
       )) :: Nil
   ),
@@ -57,5 +58,6 @@ object Cp2kParser extends SimpleExternalParserGenerator(
   ) ++ DefaultPythonInterpreter.commonFiles(),
   dirMap = Map(
     "parser-cp2k" -> "parsers/cp2k/parser/parser-cp2k",
-    "nomad_meta_info" -> "nomad-meta-info/meta_info/nomad_meta_info") ++ DefaultPythonInterpreter.commonDirMapping()
+    "nomad_meta_info" -> "nomad-meta-info/meta_info/nomad_meta_info"
+  ) ++ DefaultPythonInterpreter.commonDirMapping()
 )
