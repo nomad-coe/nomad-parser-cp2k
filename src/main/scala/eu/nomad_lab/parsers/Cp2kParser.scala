@@ -52,6 +52,7 @@ object Cp2kParser extends SimpleExternalParserGenerator(
     "parser-cp2k/cp2kparser/parsing/csvparsing.py",
     "parser-cp2k/cp2kparser/setup_paths.py",
     "parser-cp2k/cp2kparser/scalainterface.py",
+    "nomad_meta_info/public.nomadmetainfo.json",
     "nomad_meta_info/common.nomadmetainfo.json",
     "nomad_meta_info/meta_types.nomadmetainfo.json",
     "nomad_meta_info/cp2k.nomadmetainfo.json"
