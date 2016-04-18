@@ -12,7 +12,7 @@ from nomadcore.simple_parser import mainFunction
 if __name__ == "__main__":
 
     # Get the outputparser class
-    outputparser = CP2KOutputParser(None, None)
+    outputparser = CP2KOutputParser(None, None, None)
 
     # Setup the metainfos
     metaInfoPath = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../../nomad-meta-info/meta_info/nomad_meta_info/cp2k.nomadmetainfo.json"))
