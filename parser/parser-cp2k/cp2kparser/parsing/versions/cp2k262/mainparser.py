@@ -6,14 +6,13 @@ import numpy as np
 
 
 #===============================================================================
-class CP2KOutputParser(MainParser):
+class CP2KMainParser(MainParser):
     """The main parser class.
     """
-    def __init__(self, files, file_storage, parser_context):
+    def __init__(self, file_path, parser_context):
         """Initialize an output parser.
         """
-        super(CP2KOutputParser, self).__init__(files, parser_context)
-        self.file_storage = file_storage
+        super(CP2KMainParser, self).__init__(file_path, parser_context)
         self.f_regex = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
         self.i_regex = "-?\d+"  # Regex for an integer
 
@@ -196,9 +195,10 @@ class CP2KOutputParser(MainParser):
         backend.addArrayValues("cp2k_md_forces", forces, unit="forceAu")
 
     #===========================================================================
-    # adHoc functions that are used to do custom parsing.
+    # adHoc functions that are used to do custom parsing. Primarily these
+    # functions are used for data that is formatted as a table or a list.
     def adHoc_section_XC_functionals(self):
-        """Used to extract the cell information.
+        """Used to extract the functional information.
         """
         def wrapper(parser):
 
