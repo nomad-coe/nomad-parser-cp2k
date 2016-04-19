@@ -28,30 +28,23 @@ overridden only where necesssary.
 The parser is designed to be usable also outside the NoMaD project as a
 separate python package. This standalone python-only mode is primarily for
 people who want to easily access the parser without the need to setup the whole
-"NOMAD Stack". It is also used when running unit tests. The nomadtoolkit
-package is currently used by the developer only and is thus not available
-through gitlab. Here is an example of the call syntax:
+"NOMAD Stack". It is also used when running unit tests. Here is an example of
+the call syntax:
 
 ```python
-    from nomadtoolkit import Analyzer
     from cp2kparser import CP2KParser
     import matplotlib.pyplot as mpl
 
-    #===============================================================================
-    # 1. Initialize a parser by giving a path to the calculation folder that
-    # contains all the relevant files.
-    path = "path/to/folder"
-    parser = CP2KParser(path)
-
-    # 2. Initialize the analyzer.
-    # By default all the quantities will be in SI. You can override the units here.
+    # 1. Initialize a parser by giving a path to the CP2K output file and a list of
+    # default units
+    path = "/home/lauri/Dropbox/nomad-dev/nomad-lab-base/parsers/cp2k/test/unittests/cp2k_2.6.2/energy_force/unittest.out"
     default_units = ["eV"]
-    analyzer = Analyzer(parser, default_units)
+    parser = CP2KParser(path, default_units=default_units)
 
-    # 3. Parse
-    results = analyzer.parse()
+    # 2. Parse
+    results = parser.parse()
 
-    # 4. Analyze the results
+    # 3. Query the results with using the id's created specifically for NOMAD.
     scf_energies = results["energy_total_scf_iteration"]
     mpl.plot(scf_energies)
     mpl.show()
