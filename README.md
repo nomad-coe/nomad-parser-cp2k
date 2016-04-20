@@ -28,8 +28,8 @@ overridden only where necesssary.
 The parser is designed to be usable also outside the NoMaD project as a
 separate python package. This standalone python-only mode is primarily for
 people who want to easily access the parser without the need to setup the whole
-"NOMAD Stack". It is also used when running unit tests. Here is an example of
-the call syntax:
+"NOMAD Stack". It is also used when running custom unit tests found in the
+folder "cp2k/test/unittests". Here is an example of the call syntax:
 
 ```python
     from cp2kparser import CP2KParser
@@ -37,7 +37,7 @@ the call syntax:
 
     # 1. Initialize a parser by giving a path to the CP2K output file and a list of
     # default units
-    path = "/home/lauri/Dropbox/nomad-dev/nomad-lab-base/parsers/cp2k/test/unittests/cp2k_2.6.2/energy_force/unittest.out"
+    path = "path/to/main.file"
     default_units = ["eV"]
     parser = CP2KParser(path, default_units=default_units)
 

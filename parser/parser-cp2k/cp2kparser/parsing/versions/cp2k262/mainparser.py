@@ -3,6 +3,8 @@ from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.caching_backend import CachingLevel
 from cp2kparser.utils.baseclasses import MainParser
 import numpy as np
+import logging
+logger = logging.getLogger("nomad.CP2KParser")
 
 
 #===============================================================================
@@ -13,8 +15,8 @@ class CP2KMainParser(MainParser):
         """Initialize an output parser.
         """
         super(CP2KMainParser, self).__init__(file_path, parser_context)
-        self.f_regex = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
-        self.i_regex = "-?\d+"  # Regex for an integer
+        self.regex_f = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
+        self.regex_i = "-?\d+"  # Regex for an integer
 
         # Define the output parsing tree for this version
         self.root_matcher = SM("",
@@ -49,11 +51,14 @@ class CP2KMainParser(MainParser):
                     adHoc=self.adHoc_cp2k_section_cell(),
                     otherMetaInfo=["simulation_cell"]
                 ),
-                SM( " FUNCTIONAL\|",
+                SM( " DFT\|",
                     sections=["section_method"],
-                    otherMetaInfo=["XC_functional"],
+                    otherMetaInfo=["XC_functional", "self_interaction_correction_method"],
                     forwardMatch=True,
                     subMatchers=[
+                        SM( " DFT\| Multiplicity\s+(?P<target_multiplicity>{})".format(self.regex_i)),
+                        SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regex_i)),
+                        SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
                         SM( " FUNCTIONAL\| ([\w\d\W\s]+):",
                             forwardMatch=True,
                             repeats=True,
@@ -73,15 +78,14 @@ class CP2KMainParser(MainParser):
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
                     otherMetaInfo=["atom_label", "atom_position"]
                 ),
-                # Single Configuration Calculation
                 SM( " SCF WAVEFUNCTION OPTIMIZATION",
                     sections=["section_single_configuration_calculation"],
                     subMatchers=[
-                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<energy_total_scf_iteration__hartree>{0})\s+{0}".format(self.f_regex),
+                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<energy_total_scf_iteration__hartree>{0})\s+{0}".format(self.regex_f),
                             sections=["section_scf_iteration"],
                             repeats=True,
                         ),
-                        SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<energy_total__hartree>{0})".format(self.f_regex)),
+                        SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<energy_total__hartree>{0})".format(self.regex_f)),
                         SM( r" ATOMIC FORCES in \[a\.u\.\]"),
                         SM( r" # Atom   Kind   Element          X              Y              Z",
                             adHoc=self.adHoc_atom_forces()
@@ -99,7 +103,7 @@ class CP2KMainParser(MainParser):
                                 SM( " ATOMIC FORCES in \[a\.u\.\]",
                                     sections=["cp2k_section_md_forces"],
                                     subMatchers=[
-                                        SM( "\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
+                                        SM( "\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.regex_f),
                                             sections=["cp2k_section_md_force_atom"],
                                             repeats=True,
                                         )
@@ -107,13 +111,13 @@ class CP2KMainParser(MainParser):
                                 ),
                                 SM( " STEP NUMBER\s+=\s+(?P<cp2k_md_step_number>\d+)"),
                                 SM( " TIME \[fs\]\s+=\s+(?P<cp2k_md_step_time>\d+\.\d+)"),
-                                SM( " TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.f_regex)),
+                                SM( " TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.regex_f)),
                                 SM( " i =",
                                     sections=["cp2k_section_md_coordinates"],
                                     otherMetaInfo=["cp2k_md_coordinates"],
                                     dependencies={"cp2k_md_coordinates": ["cp2k_md_coordinate_atom_string"]},
                                     subMatchers=[
-                                        SM( " \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.f_regex),
+                                        SM( " \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.regex_f),
                                             endReStr="\n",
                                             sections=["cp2k_section_md_coordinate_atom"],
                                             repeats=True,
@@ -130,6 +134,7 @@ class CP2KMainParser(MainParser):
         # The cache settings
         self.caching_level_for_metaname = {
             'section_XC_functionals': CachingLevel.ForwardAndCache,
+            'self_interaction_correction_method': CachingLevel.Cache,
             'cp2k_section_md_coordinates': CachingLevel.Cache,
             'cp2k_section_md_coordinate_atom': CachingLevel.Cache,
             'cp2k_md_coordinate_atom_string': CachingLevel.Cache,
@@ -148,17 +153,33 @@ class CP2KMainParser(MainParser):
         with the nomad correspondents and combines into one single string which
         is put into the backend.
         """
+        # Combine the functional names into a one big string that is placed
+        # into XC_functional
         functional_names = []
         section_XC_functionals = section["section_XC_functionals"]
+
         for functional in section_XC_functionals:
             functional_name = functional["XC_functional_name"][0]
             functional_names.append(functional_name)
 
-        # Sort and concatenate the functional names
         functionals = "_".join(sorted(functional_names))
-
-        # Push the functional string into the backend
         backend.addValue('XC_functional', functionals)
+
+        # Transform the CP2K self-interaction correction string to the NOMAD
+        # correspondent, and push directly to the superBackend to avoid caching
+        sic_cp2k = section["self_interaction_correction_method"][0]
+        sic_map = {
+            "NO": "",
+            "AD SIC": "SIC_AD",
+            "Explicit Orbital SIC": "SIC_EXPLICIT_ORBITALS",
+            "SPZ/MAURI SIC": "SIC_MAURI_SPZ",
+            "US/MAURI SIC": "SIC_MAURI_US",
+        }
+        sic_nomad = sic_map.get(sic_cp2k)
+        if sic_nomad is not None:
+            backend.superBackend.addValue('self_interaction_correction_method', sic_nomad)
+        else:
+            logger.warning("Unknown self-interaction correction method used.")
 
     def onClose_cp2k_section_md_coordinate_atom(self, backend, gIndex, section):
         """Given the string with the coordinate components for one atom, make it
@@ -240,7 +261,7 @@ class CP2KMainParser(MainParser):
             c_line = parser.fIn.readline()
 
             # Define the regex that extracts the components and apply it to the lines
-            regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.f_regex)
+            regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.regex_f)
             regex_compiled = re.compile(regex_string)
             a_result = regex_compiled.match(a_line)
             b_result = regex_compiled.match(b_line)
@@ -264,7 +285,7 @@ class CP2KMainParser(MainParser):
         def wrapper(parser):
 
             # Define the regex that extracts the information
-            regex_string = r"\s+\d+\s+\d+\s+(\w+)\s+\d+\s+({0})\s+({0})\s+({0})".format(self.f_regex)
+            regex_string = r"\s+\d+\s+\d+\s+(\w+)\s+\d+\s+({0})\s+({0})\s+({0})".format(self.regex_f)
             regex_compiled = re.compile(regex_string)
 
             match = True
