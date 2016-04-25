@@ -11,7 +11,8 @@ from nomadcore.simple_parser import AncillaryParser, mainFunction
 from nomadcore.local_backend import LocalBackend
 from nomadcore.local_meta_info import load_metainfo
 from nomadcore.caching_backend import CachingLevel
-logger = logging.getLogger(__name__)
+import nomadcore.ActivateLogging
+logger = logging.getLogger("nomad")
 
 
 #===============================================================================

@@ -3,7 +3,7 @@ import logging
 import cPickle as pickle
 from cp2kparser.generic.baseclasses import BasicParser
 from cp2kparser.generic.inputparsing import *
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nomad")
 
 
 #===============================================================================

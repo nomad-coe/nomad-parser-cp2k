@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nomad")
 
 
 #===============================================================================

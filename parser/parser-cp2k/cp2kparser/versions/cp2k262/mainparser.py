@@ -5,7 +5,7 @@ from cp2kparser.generic.baseclasses import MainParser
 from inputparser import CP2KInputParser
 import numpy as np
 import logging
-logger = logging.getLogger("nomad.CP2KParser")
+logger = logging.getLogger("nomad")
 
 
 #===============================================================================
