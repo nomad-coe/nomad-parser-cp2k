@@ -24,6 +24,23 @@ will be subclassed from it. By sublassing, all the previous functionality will
 be preserved, new functionality can be easily created, and old functionality
 overridden only where necesssary.
 
+# Upload Folder Structure, File Naming and CP2K Settings
+
+## CP2K Settings
+The CP2K input setting
+[PRINT_LEVEL](https://manual.cp2k.org/trunk/CP2K_INPUT/GLOBAL.html#PRINT_LEVEL)
+controls the amount of details that are outputted during the calculation. The
+higher this setting is, the more can be parsed from the upload.
+
+## Structure
+The following upload structure will maximize the amount of parsed contents. If
+the parser cannot find certain files from their assumed locations, they are
+simply ignored.
+
+  -The input file is assumed to be on the same folder as the output file. The
+  name of the input file is read from the output file, where it is stated
+  without the full path.
+
 # Standalone Mode
 The parser is designed to be usable also outside the NoMaD project as a
 separate python package. This standalone python-only mode is primarily for
@@ -83,7 +100,7 @@ When the parser supports a new quantity it is quite fast to create unit tests
 for it. These tests will validate the parsing, and also easily detect bugs that
 may rise when the code is modified in the future.
 
-## Unit conversion
+## Unit Conversion
 You can find unit conversion tools from the python-common repository and its
 nomadcore package.  The unit conversion is currenlty done by
 [Pint](https://pint.readthedocs.org/en/0.6/) and it has a very natural syntax,
@@ -103,7 +120,7 @@ existing profiling tools such as
 [cProfile](https://docs.python.org/2/library/profile.html#module-cProfile)
 which you can plug into your scripts very easily.
 
-# Notes for CP2K developers
+# Notes for CP2K Developers
 Here is a list of features/fixes that would make the parsing of CP2K results
 easier:
  - The pdb trajectory output doesn't seem to conform to the actual standard as
