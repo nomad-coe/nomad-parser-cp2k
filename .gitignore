@@ -57,6 +57,8 @@ env/
 *.inp
 *.wfn
 *.cube
+parser/parser-cp2k/cp2kparser/versions/**/input_data/*.xml
+parser/parser-cp2k/cp2kparser/versions/**/input_data/*.html
 test/unittests/BASIS_SET
 test/unittests/GTH_POTENTIALS
 
