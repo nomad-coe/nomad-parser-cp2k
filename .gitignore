@@ -56,6 +56,7 @@ env/
 # CP2K files
 *.inp
 *.wfn
+*.cube
 test/unittests/BASIS_SET
 test/unittests/GTH_POTENTIALS
 
