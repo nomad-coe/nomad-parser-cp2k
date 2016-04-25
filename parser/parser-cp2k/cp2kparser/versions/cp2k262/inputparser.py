@@ -23,6 +23,7 @@ class CP2KInputParser(BasicParser):
         # Gather the information from the input file
         self.fill_input_tree(self.file_path)
 
+        #=======================================================================
         # Parse the used XC_functionals and their parameters
         xc = self.input_tree.get_section("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
         if xc is not None:
@@ -93,6 +94,31 @@ class CP2KInputParser(BasicParser):
             # Stream summary
             if xc_summary is not "":
                 self.backend.addValue("XC_functional", xc_summary)
+
+        #=======================================================================
+        # Cell periodicity
+        periodicity = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/PERIODIC").upper()
+        periodicity_list = None
+        if periodicity == "NONE":
+            periodicity_list = (False, False, False)
+        elif periodicity == "X":
+            periodicity_list = (True, False, False)
+        elif periodicity == "XY":
+            periodicity_list = (True, True, False)
+        elif periodicity == "XYZ":
+            periodicity_list = (True, True, True)
+        elif periodicity == "XZ":
+            periodicity_list = (True, False, True)
+        elif periodicity == "Y":
+            periodicity_list = (False, True, False)
+        elif periodicity == "YZ":
+            periodicity_list = (False, True, True)
+        elif periodicity == "Z":
+            periodicity_list = (False, False, True)
+        if periodicity_list is not None:
+            self.backend.addValue("configuration_periodic_dimensions", periodicity_list)
+        else:
+            logger.warning("Could not determine cell periodicity from FORCE_EVAL/SUBSYS/CELL/PERIODIC")
 
     def fill_input_tree(self, file_path):
         """Parses a CP2K input file into an object tree.
