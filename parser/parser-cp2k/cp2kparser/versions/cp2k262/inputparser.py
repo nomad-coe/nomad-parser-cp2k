@@ -1,6 +1,7 @@
 import os
 import logging
 import cPickle as pickle
+import numpy as np
 from cp2kparser.generic.baseclasses import BasicParser
 from cp2kparser.generic.inputparsing import *
 logger = logging.getLogger("nomad")
@@ -116,7 +117,7 @@ class CP2KInputParser(BasicParser):
         elif periodicity == "Z":
             periodicity_list = (False, False, True)
         if periodicity_list is not None:
-            self.backend.addValue("configuration_periodic_dimensions", periodicity_list)
+            self.backend.addArrayValues("configuration_periodic_dimensions", np.asarray(periodicity_list))
         else:
             logger.warning("Could not determine cell periodicity from FORCE_EVAL/SUBSYS/CELL/PERIODIC")
 
