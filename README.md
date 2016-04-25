@@ -70,12 +70,18 @@ easily readable formatting is also provided for the log messages.
 
 ## Testing
 The parsers can become quite complicated and maintaining them without
-systematic testing can become troublesome. Unit tests provide one way to
-test each parseable quantity and python has a very good [library for
-unit testing](https://docs.python.org/2/library/unittest.html). When the parser
-supports a new quantity it is quite fast to create unit tests for it. These
-tests will validate the parsing, and also easily detect bugs that may rise when
-the code is modified in the future.
+systematic testing is impossible. There are general tests that are
+performed automatically in the scala layer for all parsers. This is essential,
+but can only test that the data is outputted in the correct format and
+according to some general rules. These tests cannot verify that the contents
+are correct.
+
+In order to truly test the parser output, unit testing is needed. Unit tests
+provide one way to test each parseable quantity and python has a very good
+[library for unit testing](https://docs.python.org/2/library/unittest.html).
+When the parser supports a new quantity it is quite fast to create unit tests
+for it. These tests will validate the parsing, and also easily detect bugs that
+may rise when the code is modified in the future.
 
 ## Unit conversion
 You can find unit conversion tools from the python-common repository and its

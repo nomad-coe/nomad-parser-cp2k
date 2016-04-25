@@ -1,2 +1,1 @@
-import cp2kparser.utils.logconfig
-from cp2kparser.parsing.parser import CP2KParser
+from cp2kparser.parser import CP2KParser
