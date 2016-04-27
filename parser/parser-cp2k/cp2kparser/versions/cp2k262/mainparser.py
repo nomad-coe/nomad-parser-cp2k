@@ -1,7 +1,7 @@
 import re
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.caching_backend import CachingLevel
-from cp2kparser.generic.baseclasses import MainParser
+from nomadcore.baseclasses import MainHierarchicalParser
 from inputparser import CP2KInputParser
 import numpy as np
 import logging
@@ -9,7 +9,7 @@ logger = logging.getLogger("nomad")
 
 
 #===============================================================================
-class CP2KMainParser(MainParser):
+class CP2KMainParser(MainHierarchicalParser):
     """The main parser class.
     """
     def __init__(self, file_path, parser_context):

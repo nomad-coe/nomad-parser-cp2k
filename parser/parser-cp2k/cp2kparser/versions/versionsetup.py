@@ -1,10 +1,10 @@
 
-"""Returns the implementation classes based on the given version identifier.
-The different version are grouped into subpackages.
+"""Returns the main parser class based on the given version identifier.  The
+different version are grouped into subpackages.
 """
 import importlib
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nomad")
 
 
 def get_main_parser(version_id):

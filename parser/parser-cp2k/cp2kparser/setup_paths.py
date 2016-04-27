@@ -1,5 +1,5 @@
 """
-Setups the python-common lirary in the PYTHONPATH system variable.
+Setups the python-common library in the PYTHONPATH system variable.
 """
 import sys
 import os

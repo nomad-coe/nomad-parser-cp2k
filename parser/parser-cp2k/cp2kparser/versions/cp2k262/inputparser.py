@@ -2,7 +2,7 @@ import os
 import logging
 import cPickle as pickle
 import numpy as np
-from cp2kparser.generic.baseclasses import BasicParser
+from nomadcore.baseclasses import BasicParser
 from cp2kparser.generic.inputparsing import *
 logger = logging.getLogger("nomad")
 

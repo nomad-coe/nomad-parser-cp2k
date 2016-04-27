@@ -1,7 +1,7 @@
 import os
 import re
 import logging
-from cp2kparser.generic.baseclasses import ParserInterface
+from nomadcore.baseclasses import ParserInterface
 from cp2kparser.versions.versionsetup import get_main_parser
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class CP2KParser(ParserInterface):
     """This class handles the initial setup before any parsing can happen. It
     determines which version of CP2K was used to generate the output and then
-    sets up a correct implementation.
+    sets up a correct main parser.
 
     After the implementation has been setup, you can parse the files with
     parse().
