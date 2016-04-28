@@ -3,6 +3,7 @@ from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.caching_backend import CachingLevel
 from nomadcore.baseclasses import MainHierarchicalParser
 from inputparser import CP2KInputParser
+from singlepointforceparser import CP2KSinglePointForceParser
 import numpy as np
 import logging
 logger = logging.getLogger("nomad")
@@ -10,7 +11,8 @@ logger = logging.getLogger("nomad")
 
 #===============================================================================
 class CP2KMainParser(MainHierarchicalParser):
-    """The main parser class.
+    """The main parser class. Used to parse the CP2K output file and to
+    instantiate all the other subparsers for each other file.
     """
     def __init__(self, file_path, parser_context):
         """Initialize an output parser.
@@ -19,10 +21,29 @@ class CP2KMainParser(MainHierarchicalParser):
         self.regex_f = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
         self.regex_i = "-?\d+"  # Regex for an integer
 
-        # Define the output parsing tree for this version
-        self.root_matcher = SM("",
+        # Find out the run type for this calculation. The run type can be used
+        # to optimize the parsing, because not all parsing functionality will
+        # be necessary for all run types.
+        run_type = None
+        with open(file_path) as f:
+            counter = 0
+            for line in f:
+                counter += 1
+                # Define the regex that searches for the
+                regex_string = r"\s+GLOBAL\| Run type\s+(.+)"
+                regex_compiled = re.compile(regex_string)
+                match = regex_compiled.match(line)
+                if match is not None:
+                    run_type = match.groups()[0]
+                    break
+                if counter > 50:
+                    break
+        if run_type is None:
+            logger.error("Could not determine the CP2K run type from the output file.")
+
+        # SimpleMatcher for the header that is common to all run types
+        self.header = SM(r" DBCSR\| Multiplication driver",
             forwardMatch=True,
-            sections=['section_run', "section_system_description", "section_method"],
             subMatchers=[
                 SM( r" DBCSR\| Multiplication driver",
                     sections=['cp2k_section_dbcsr'],
@@ -67,7 +88,15 @@ class CP2KMainParser(MainHierarchicalParser):
                         SM( "\s+- Atoms:\s+(?P<number_of_atoms>\d+)"),
                         SM( "\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)")
                     ]
-                ),
+                )
+            ]
+        )
+
+        # Simple matcher for run type ENERGY_FORCE, ENERGY
+        self.energy_force = SM(
+            " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
+            forwardMatch=True,
+            subMatchers=[
                 SM( " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
                     otherMetaInfo=["atom_label", "atom_position"]
@@ -90,38 +119,41 @@ class CP2KMainParser(MainHierarchicalParser):
                             adHoc=self.adHoc_atom_forces()
                         ),
                     ]
-                ),
-                SM( " MD| Molecular Dynamics Protocol",
-                    sections=["cp2k_section_md"],
-                    forwardMatch=True,
+                )
+            ]
+        )
+
+        # Simple matcher for run type MD, MOLECULAR_DYNAMICS
+        self.md = SM(
+            " MD| Molecular Dynamics Protocol",
+            sections=["cp2k_section_md"],
+            forwardMatch=True,
+            subMatchers=[
+                SM( " ENERGY\| Total FORCE_EVAL",
+                    repeats=True,
+                    sections=["cp2k_section_md_step"],
                     subMatchers=[
-                        SM( " ENERGY\| Total FORCE_EVAL",
-                            repeats=True,
-                            sections=["cp2k_section_md_step"],
+                        SM( " ATOMIC FORCES in \[a\.u\.\]",
+                            sections=["cp2k_section_md_forces"],
                             subMatchers=[
-                                SM( " ATOMIC FORCES in \[a\.u\.\]",
-                                    sections=["cp2k_section_md_forces"],
-                                    subMatchers=[
-                                        SM( "\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.regex_f),
-                                            sections=["cp2k_section_md_force_atom"],
-                                            repeats=True,
-                                        )
-                                    ]
-                                ),
-                                SM( " STEP NUMBER\s+=\s+(?P<cp2k_md_step_number>\d+)"),
-                                SM( " TIME \[fs\]\s+=\s+(?P<cp2k_md_step_time>\d+\.\d+)"),
-                                SM( " TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.regex_f)),
-                                SM( " i =",
-                                    sections=["cp2k_section_md_coordinates"],
-                                    otherMetaInfo=["cp2k_md_coordinates"],
-                                    dependencies={"cp2k_md_coordinates": ["cp2k_md_coordinate_atom_string"]},
-                                    subMatchers=[
-                                        SM( " \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.regex_f),
-                                            endReStr="\n",
-                                            sections=["cp2k_section_md_coordinate_atom"],
-                                            repeats=True,
-                                        )
-                                    ]
+                                SM( "\s+\d+\s+\d+\s+[\w\W\d]+\s+(?P<cp2k_md_force_atom_string>{0}\s+{0}\s+{0})".format(self.regex_f),
+                                    sections=["cp2k_section_md_force_atom"],
+                                    repeats=True,
+                                )
+                            ]
+                        ),
+                        SM( " STEP NUMBER\s+=\s+(?P<cp2k_md_step_number>\d+)"),
+                        SM( " TIME \[fs\]\s+=\s+(?P<cp2k_md_step_time>\d+\.\d+)"),
+                        SM( " TEMPERATURE \[K\]\s+=\s+(?P<cp2k_md_temperature_instantaneous>{0})\s+(?P<cp2k_md_temperature_average>{0})".format(self.regex_f)),
+                        SM( " i =",
+                            sections=["cp2k_section_md_coordinates"],
+                            otherMetaInfo=["cp2k_md_coordinates"],
+                            dependencies={"cp2k_md_coordinates": ["cp2k_md_coordinate_atom_string"]},
+                            subMatchers=[
+                                SM( " \w+\s+(?P<cp2k_md_coordinate_atom_string>{0}\s+{0}\s+{0})".format(self.regex_f),
+                                    endReStr="\n",
+                                    sections=["cp2k_section_md_coordinate_atom"],
+                                    repeats=True,
                                 )
                             ]
                         )
@@ -129,6 +161,37 @@ class CP2KMainParser(MainHierarchicalParser):
                 )
             ]
         )
+
+        # Compose root matcher according to the run type. This way the
+        # unnecessary regex parsers will not be compiled and searched. Saves
+        # computational time.
+        if run_type in ("ENERGY_FORCE", "FORCE", "WAVEFUNCTION_OPTIMIZATION", "WFN_OPT"):
+            self.root_matcher = SM("",
+                forwardMatch=True,
+                sections=['section_run', "section_system_description", "section_method"],
+                subMatchers=[
+                    self.header,
+                    self.energy_force
+                ]
+            )
+        elif run_type in ("GEO_OPT", "GEOMETRY_OPTIMIZATION"):
+            self.root_matcher = SM("",
+                forwardMatch=True,
+                sections=['section_run', "section_system_description", "section_method"],
+                subMatchers=[
+                    self.header,
+                    self.geo_opt
+                ]
+            )
+        elif run_type in ("MD", "MOLECULAR_DYNAMICS"):
+            self.root_matcher = SM("",
+                forwardMatch=True,
+                sections=['section_run', "section_system_description", "section_method"],
+                subMatchers=[
+                    self.header,
+                    self.md
+                ]
+            )
         #=======================================================================
         # The cache settings
         self.caching_level_for_metaname = {
@@ -168,12 +231,26 @@ class CP2KMainParser(MainHierarchicalParser):
         else:
             logger.warning("Unknown self-interaction correction method used.")
 
+    def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
+        """
+        """
+        # If the force file for a single point calculation is available, and
+        # the forces were not parsed fro the output file, parse the separate
+        # file
+        if section["atom_forces"] is None:
+            force_file = self.file_service.get_file_by_id("force_file_single_point")
+            if force_file is not None:
+                force_parser = CP2KSinglePointForceParser(force_file, self.parser_context)
+                force_parser.parse()
+            else:
+                logger.warning("The file containing the forces printed by ENERGY_FORCE calculation could not be found.")
+
     def onClose_cp2k_section_filenames(self, backend, gIndex, section):
         """
         """
         # If the input file is available, parse it
         input_file = section["cp2k_input_filename"][0]
-        filepath = self.parser_context.file_service.get_absolute_path_to_file(input_file)
+        filepath = self.file_service.get_absolute_path_to_file(input_file)
         if filepath is not None:
             input_parser = CP2KInputParser(filepath, self.parser_context)
             input_parser.parse()

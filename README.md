@@ -72,18 +72,10 @@ This section describes some of the guidelines that are used in the development
 of this parser.
 
 ## Documentation
-The [google style
+This parser follows the [google style
 guide](https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments)
-provides a good template on how to document your code.  Documenting makes it
-much easier to follow the logic behind your parser.
-
-## Logging
-Python has a great [logging
-package](https://docs.python.org/2/library/logging.html) which helps in
-following the program flow and catching different errors and warnings. In
-cp2kparser the file cp2kparser/generics/logconfig.py defines the behaviour of
-the logger. There you can setup the log levels even at a modular level. A more
-easily readable formatting is also provided for the log messages.
+for documenting python code. Documenting makes it much easier to follow the
+logic behind your parser.
 
 ## Testing
 The parsers can become quite complicated and maintaining them without
@@ -93,19 +85,13 @@ but can only test that the data is outputted in the correct format and
 according to some general rules. These tests cannot verify that the contents
 are correct.
 
-In order to truly test the parser output, unit testing is needed. Unit tests
-provide one way to test each parseable quantity and python has a very good
-[library for unit testing](https://docs.python.org/2/library/unittest.html).
-When the parser supports a new quantity it is quite fast to create unit tests
-for it. These tests will validate the parsing, and also easily detect bugs that
-may rise when the code is modified in the future.
-
-## Unit Conversion
-You can find unit conversion tools from the python-common repository and its
-nomadcore package.  The unit conversion is currenlty done by
-[Pint](https://pint.readthedocs.org/en/0.6/) and it has a very natural syntax,
-support for numpy arrays and an easily reconfigurable constant/unit declaration
-mechanisms.
+In order to truly test the parser output, unit testing is needed. This unit
+tests for this parser are located in test/unittests. Unit tests provide one way
+to test each parseable quantity and python has a very good [library for unit
+testing](https://docs.python.org/2/library/unittest.html).  When the parser
+supports a new quantity it is quite fast to create unit tests for it. These
+tests will validate the parsing, and also easily detect bugs that may rise when
+the code is modified in the future.
 
 ## Profiling
 The parsers have to be reasonably fast. For some codes there is already

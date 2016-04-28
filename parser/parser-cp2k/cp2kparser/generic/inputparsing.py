@@ -83,8 +83,8 @@ class CP2KInput(object):
             if keyword.value is not None:
                 return keyword.get_value()
             else:
-                if section.accessed:
-                    return keyword.default_value
+                # if section.accessed:
+                return keyword.default_value
 
     def get_default_keyword(self, path):
         return self.get_section(path).default_keyword

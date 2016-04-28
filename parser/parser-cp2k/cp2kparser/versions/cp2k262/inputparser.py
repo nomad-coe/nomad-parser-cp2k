@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import cPickle as pickle
 import numpy as np
@@ -11,8 +12,19 @@ logger = logging.getLogger("nomad")
 class CP2KInputParser(BasicParser):
     """Used to parse out a CP2K input file.
 
-    When given a filepath to a CP2K input file, this class attemts to parse
-    it's contents.
+    CP2K offers a complete structure for the input in an XML file, which can be
+    printed with the command cp2k --xml. This XML file has been preparsed into
+    a native python object ('CP2KInput' class found in generic.inputparsing)
+    and stored in a python pickle file. It e.g. contains all the default values
+    that are often needed as they are used if the user hasn't specified a
+    settings in the input. This XML file is used to get the default values
+    because it is rather cumbersome to hard code them in the parser itself,
+    especially if there will be lot's of them. Hard coded values will also be
+    more error prone, and would have to be checked for each parser version.
+
+    CP2K input supports including other input files and also
+    supports variables. This is currently not supported, but may be added at
+    some point.
     """
     def __init__(self, file_path, parser_context):
         super(CP2KInputParser, self).__init__(file_path, parser_context)
@@ -98,28 +110,35 @@ class CP2KInputParser(BasicParser):
 
         #=======================================================================
         # Cell periodicity
-        periodicity = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/PERIODIC").upper()
-        periodicity_list = None
-        if periodicity == "NONE":
-            periodicity_list = (False, False, False)
-        elif periodicity == "X":
-            periodicity_list = (True, False, False)
-        elif periodicity == "XY":
-            periodicity_list = (True, True, False)
-        elif periodicity == "XYZ":
-            periodicity_list = (True, True, True)
-        elif periodicity == "XZ":
-            periodicity_list = (True, False, True)
-        elif periodicity == "Y":
-            periodicity_list = (False, True, False)
-        elif periodicity == "YZ":
-            periodicity_list = (False, True, True)
-        elif periodicity == "Z":
-            periodicity_list = (False, False, True)
-        if periodicity_list is not None:
+        periodicity = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/PERIODIC")
+        if periodicity is not None:
+            periodicity = periodicity.upper()
+            periodicity_list = ("X" in periodicity, "Y" in periodicity, "Z" in periodicity)
             self.backend.addArrayValues("configuration_periodic_dimensions", np.asarray(periodicity_list))
         else:
             logger.warning("Could not determine cell periodicity from FORCE_EVAL/SUBSYS/CELL/PERIODIC")
+
+        #=======================================================================
+        # Single point force file name
+        force_file = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        if force_file != "__STD_OUT__":
+            force_file_path = self.normalize_cp2k_path(force_file, "xyz")
+            self.file_service.set_file_id(force_file_path, "force_file_single_point")
+
+    def normalize_cp2k_path(self, path, extension, name=""):
+        """The paths in CP2K input can be given in many ways. This function
+        tries to normalize these forms into a valid path.
+        """
+        if name:
+            name = "-" + name
+        project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
+        if path.startswith("="):
+            normalized_path = path[1:]
+        elif re.match(r"./", path):
+            normalized_path = "{}{}-1_0.{}".format(path, name, extension)
+        else:
+            normalized_path = "{}-{}{}-1_0.{}".format(project_name, path, name, extension)
+        return normalized_path
 
     def fill_input_tree(self, file_path):
         """Parses a CP2K input file into an object tree.
