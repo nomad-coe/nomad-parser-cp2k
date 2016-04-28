@@ -11,7 +11,9 @@ object Cp2kParser extends SimpleExternalParserGenerator(
     ("name" -> jn.JString("Cp2kParser")) ::
       ("parserId" -> jn.JString("Cp2kParser" + lab.Cp2kVersionInfo.version)) ::
       ("versionInfo" -> jn.JObject(
-        ("nomadCoreVersion" -> jn.JString(lab.NomadCoreVersionInfo.version)) ::
+        ("nomadCoreVersion" -> jn.JObject(lab.NomadCoreVersionInfo.toMap.map {
+          case (k, v) => k -> jn.JString(v.toString)
+        }(breakOut): List[(String, jn.JString)])) ::
           (lab.Cp2kVersionInfo.toMap.map {
             case (key, value) =>
               (key -> jn.JString(value.toString))
