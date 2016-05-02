@@ -3,7 +3,7 @@ import re
 import logging
 from nomadcore.baseclasses import ParserInterface
 from cp2kparser.versions.versionsetup import get_main_parser
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("nomad")
 
 
 #===============================================================================
@@ -22,19 +22,31 @@ class CP2KParser(ParserInterface):
         """Setups the version by looking at the output file and the version
         specified in it.
         """
-        # Search for the version specification and initialize a correct
-        # main parser for this version.
-        regex = re.compile(r" CP2K\| version string:\s+CP2K version ([\d\.]+)")
-        n_lines = 30
+        # Search for the CP2K version specification and the RUN_TYPE for the
+        # calculation. The correct and optimized parser is initialized based on
+        # this information.
+        regex_version = re.compile(r" CP2K\| version string:\s+CP2K version ([\d\.]+)")
+        regex_run_type = re.compile(r"\s+GLOBAL\| Run type\s+(.+)")
+        n_lines = 50
+        version_id = None
+        run_type = None
         with open(self.parser_context.main_file, 'r') as outputfile:
             for i_line in xrange(n_lines):
                 line = next(outputfile)
-                result = regex.match(line)
-                if result:
-                    version_id = result.group(1).replace('.', '')
-                    break
-        if not result:
-            logger.error("Could not find a version specification from the given main file.")
+                result_version = regex_version.match(line)
+                result_run_type = regex_run_type.match(line)
+                if result_version:
+                    version_id = result_version.group(1).replace('.', '')
+                if result_run_type:
+                    run_type = result_run_type.group(1)
+        if version_id is None:
+            msg = "Could not find a version specification from the given main file."
+            logger.exception(msg)
+            raise RuntimeError(msg)
+        if run_type is None:
+            msg = "Could not find a version specification from the given main file."
+            logger.exception(msg)
+            raise RuntimeError(msg)
 
         # Setup the root folder to the fileservice that is used to access files
         dirpath, filename = os.path.split(self.parser_context.main_file)
@@ -44,7 +56,7 @@ class CP2KParser(ParserInterface):
 
         # Setup the correct main parser based on the version id. If no match
         # for the version is found, use the main parser for CP2K 2.6.2
-        self.main_parser = get_main_parser(version_id)(self.parser_context.main_file, self.parser_context)
+        self.main_parser = get_main_parser(version_id, run_type)(self.parser_context.main_file, self.parser_context)
 
     def get_metainfo_filename(self):
         return "cp2k.nomadmetainfo.json"
