@@ -1,7 +1,0 @@
-
-[submodule "nomadtoolkit/submodules/nomad-meta-info"]
-	path = nomadtoolkit/submodules/nomad-meta-info
-	url = git@gitlab.mpcdf.mpg.de:nomad-lab/nomad-meta-info.git
-[submodule "nomadtoolkit/submodules/python-common"]
-	path = nomadtoolkit/submodules/python-common
-	url = git@gitlab.mpcdf.mpg.de:nomad-lab/python-common.git
