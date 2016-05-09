@@ -1,9 +1,10 @@
 import re
 import numpy as np
-from nomadcore.simple_parser import SimpleMatcher as SM
-from inputparser import CP2KInputParser
 import logging
+from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.simple_parser import extractOnCloseTriggers
+from nomadcore.caching_backend import CachingLevel
+from inputparser import CP2KInputParser
 logger = logging.getLogger("nomad")
 
 
@@ -21,6 +22,20 @@ class CommonMatcher(object):
         self.file_service = parser_context.file_service
         self.regex_f = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
         self.regex_i = "-?\d+"  # Regex for an integer
+
+        self.caching_levels = {
+            'section_XC_functionals': CachingLevel.ForwardAndCache,
+            'self_interaction_correction_method': CachingLevel.Cache,
+            'cp2k_section_md_coordinates': CachingLevel.Cache,
+            'cp2k_section_md_coordinate_atom': CachingLevel.Cache,
+            'cp2k_md_coordinate_atom_string': CachingLevel.Cache,
+            'cp2k_md_coordinate_atom_float': CachingLevel.Cache,
+
+            'cp2k_section_md_forces': CachingLevel.Cache,
+            'cp2k_section_md_force_atom': CachingLevel.Cache,
+            'cp2k_md_force_atom_string': CachingLevel.Cache,
+            'cp2k_md_force_atom_float': CachingLevel.Cache,
+        }
 
     def adHoc_cp2k_section_cell(self):
         """Used to extract the cell information.
