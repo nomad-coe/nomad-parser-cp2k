@@ -61,6 +61,9 @@ test/**/*.restart
 test/**/*.restart.bak-1
 test/**/*.restart.bak-2
 test/**/*.restart.bak-3
+test/**/*.wfn.bak-1
+test/**/*.wfn.bak-2
+test/**/*.wfn.bak-3
 parser/parser-cp2k/cp2kparser/versions/**/input_data/*.xml
 parser/parser-cp2k/cp2kparser/versions/**/input_data/*.html
 test/unittests/BASIS_SET

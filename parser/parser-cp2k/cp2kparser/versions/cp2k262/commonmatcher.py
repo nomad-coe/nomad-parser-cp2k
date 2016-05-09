@@ -26,15 +26,15 @@ class CommonMatcher(object):
         self.caching_levels = {
             'section_XC_functionals': CachingLevel.ForwardAndCache,
             'self_interaction_correction_method': CachingLevel.Cache,
-            'cp2k_section_md_coordinates': CachingLevel.Cache,
-            'cp2k_section_md_coordinate_atom': CachingLevel.Cache,
-            'cp2k_md_coordinate_atom_string': CachingLevel.Cache,
-            'cp2k_md_coordinate_atom_float': CachingLevel.Cache,
+            'x_cp2k_section_md_coordinates': CachingLevel.Cache,
+            'x_cp2k_section_md_coordinate_atom': CachingLevel.Cache,
+            'x_cp2k_md_coordinate_atom_string': CachingLevel.Cache,
+            'x_cp2k_md_coordinate_atom_float': CachingLevel.Cache,
 
-            'cp2k_section_md_forces': CachingLevel.Cache,
-            'cp2k_section_md_force_atom': CachingLevel.Cache,
-            'cp2k_md_force_atom_string': CachingLevel.Cache,
-            'cp2k_md_force_atom_float': CachingLevel.Cache,
+            'x_cp2k_section_md_forces': CachingLevel.Cache,
+            'x_cp2k_section_md_force_atom': CachingLevel.Cache,
+            'x_cp2k_md_force_atom_string': CachingLevel.Cache,
+            'x_cp2k_md_force_atom_float': CachingLevel.Cache,
         }
 
     def adHoc_cp2k_section_cell(self):
@@ -69,27 +69,27 @@ class CommonMatcher(object):
             forwardMatch=True,
             subMatchers=[
                 SM( r" DBCSR\| Multiplication driver",
-                    sections=['cp2k_section_dbcsr'],
+                    sections=['x_cp2k_section_dbcsr'],
                 ),
-                SM( r" \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s+(?P<cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
-                    sections=['cp2k_section_startinformation'],
+                SM( r" \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s+(?P<x_cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<x_cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
+                    sections=['x_cp2k_section_startinformation'],
                 ),
                 SM( r" CP2K\|",
-                    sections=['cp2k_section_programinformation'],
+                    sections=['x_cp2k_section_programinformation'],
                     forwardMatch=True,
                     subMatchers=[
                         SM( r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)"),
-                        SM( r" CP2K\| source code revision number:\s+svn:(?P<cp2k_svn_revision>\d+)"),
+                        SM( r" CP2K\| source code revision number:\s+svn:(?P<x_cp2k_svn_revision>\d+)"),
                     ]
                 ),
-                SM( r" CP2K\| Input file name\s+(?P<cp2k_input_filename>.+$)",
-                    sections=['cp2k_section_filenames'],
+                SM( r" CP2K\| Input file name\s+(?P<x_cp2k_input_filename>.+$)",
+                    sections=['x_cp2k_section_filenames'],
                     subMatchers=[
-                        SM( r" GLOBAL\| Basis set file name\s+(?P<cp2k_basis_set_filename>.+$)"),
-                        SM( r" GLOBAL\| Geminal file name\s+(?P<cp2k_geminal_filename>.+$)"),
-                        SM( r" GLOBAL\| Potential file name\s+(?P<cp2k_potential_filename>.+$)"),
-                        SM( r" GLOBAL\| MM Potential file name\s+(?P<cp2k_mm_potential_filename>.+$)"),
-                        SM( r" GLOBAL\| Coordinate file name\s+(?P<cp2k_coordinate_filename>.+$)"),
+                        SM( r" GLOBAL\| Basis set file name\s+(?P<x_cp2k_basis_set_filename>.+$)"),
+                        SM( r" GLOBAL\| Geminal file name\s+(?P<x_cp2k_geminal_filename>.+$)"),
+                        SM( r" GLOBAL\| Potential file name\s+(?P<x_cp2k_potential_filename>.+$)"),
+                        SM( r" GLOBAL\| MM Potential file name\s+(?P<x_cp2k_mm_potential_filename>.+$)"),
+                        SM( r" GLOBAL\| Coordinate file name\s+(?P<x_cp2k_coordinate_filename>.+$)"),
                     ]
                 ),
                 SM( " CELL\|",
@@ -106,10 +106,10 @@ class CommonMatcher(object):
                     ]
                 ),
                 SM( " TOTAL NUMBERS AND MAXIMUM NUMBERS",
-                    sections=["cp2k_section_total_numbers"],
+                    sections=["x_cp2k_section_total_numbers"],
                     subMatchers=[
                         SM( "\s+- Atoms:\s+(?P<number_of_atoms>\d+)"),
-                        SM( "\s+- Shell sets:\s+(?P<cp2k_shell_sets>\d+)")
+                        SM( "\s+- Shell sets:\s+(?P<x_cp2k_shell_sets>\d+)")
                     ]
                 )
             ]
@@ -136,11 +136,11 @@ class CommonMatcher(object):
         else:
             logger.warning("Unknown self-interaction correction method used.")
 
-    def onClose_cp2k_section_filenames(self, backend, gIndex, section):
+    def onClose_x_cp2k_section_filenames(self, backend, gIndex, section):
         """
         """
         # If the input file is available, parse it
-        input_file = section["cp2k_input_filename"][0]
+        input_file = section["x_cp2k_input_filename"][0]
         filepath = self.file_service.get_absolute_path_to_file(input_file)
         if filepath is not None:
             input_parser = CP2KInputParser(filepath, self.parser_context)
