@@ -57,7 +57,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         # computational time.
         self.root_matcher = SM("",
             forwardMatch=True,
-            sections=['section_run', "section_single_configuration_calculation", "section_system_description", "section_method"],
+            sections=['section_run', "section_single_configuration_calculation", "section_system", "section_method"],
             subMatchers=[
                 self.cm.header(),
                 self.geo_opt

@@ -21,7 +21,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         self.scf_iterations = 0
         self.cm = CommonMatcher(parser_context)
         self.section_method_index = None
-        self.section_system_description_index = None
+        self.section_system_index = None
 
         # Simple matcher for run type ENERGY_FORCE, ENERGY with QUICKSTEP
         self.energy_force = SM(
@@ -71,7 +71,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         # computational time.
         self.root_matcher = SM("",
             forwardMatch=True,
-            sections=['section_run', "section_single_configuration_calculation", "section_system_description", "section_method"],
+            sections=['section_run', "section_single_configuration_calculation", "section_system", "section_method"],
             subMatchers=[
                 self.cm.header(),
                 self.energy_force
@@ -92,11 +92,11 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         """Keep track of how many SCF iteration are made."""
         self.scf_iterations += 1
 
-    def onClose_section_system_description(self, backend, gIndex, section):
+    def onClose_section_system(self, backend, gIndex, section):
         """Stores the index of the section method. Should always be 0, but
         let's get it dynamically just in case there's something wrong.
         """
-        self.section_system_description_index = gIndex
+        self.section_system_index = gIndex
 
     def onClose_section_method(self, backend, gIndex, section):
         """Stores the index of the section method. Should always be 0, but
@@ -121,9 +121,9 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         # Output the number of SCF iterations made
         backend.addValue("scf_dft_number_of_iterations", self.scf_iterations)
 
-        # Write the references to section_method and section_system_description
+        # Write the references to section_method and section_system
         backend.addValue('single_configuration_to_calculation_method_ref', self.section_method_index)
-        backend.addValue('single_configuration_calculation_to_system_description_ref', self.section_system_description_index)
+        backend.addValue('single_configuration_calculation_to_system_description_ref', self.section_system_index)
 
     #===========================================================================
     # adHoc functions. Primarily these
