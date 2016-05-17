@@ -23,7 +23,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             subMatchers=[
                 SM( " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
-                    otherMetaInfo=["atom_label", "atom_position"]
+                    otherMetaInfo=["atom_labels", "atom_positions"]
                 ),
                 SM( " SCF WAVEFUNCTION OPTIMIZATION",
                     subMatchers=[

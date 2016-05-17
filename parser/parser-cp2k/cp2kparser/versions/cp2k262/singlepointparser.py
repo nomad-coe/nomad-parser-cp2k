@@ -30,7 +30,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
             subMatchers=[
                 SM( " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
                     adHoc=self.adHoc_cp2k_section_quickstep_atom_information(),
-                    otherMetaInfo=["atom_label", "atom_position"]
+                    otherMetaInfo=["atom_labels", "atom_positions"]
                 ),
                 SM( " SCF WAVEFUNCTION OPTIMIZATION",
                     subMatchers=[
@@ -119,7 +119,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
                 logger.warning("The file containing the forces printed by ENERGY_FORCE calculation could not be found.")
 
         # Output the number of SCF iterations made
-        backend.addValue("scf_dft_number_of_iterations", self.scf_iterations)
+        backend.addValue("number_of_scf_iterations", self.scf_iterations)
 
         # Write the references to section_method and section_system
         backend.addValue('single_configuration_to_calculation_method_ref', self.section_method_index)
@@ -197,8 +197,8 @@ class CP2KSinglePointParser(MainHierarchicalParser):
 
             # If anything found, push the results to the correct section
             if len(coordinates) != 0:
-                parser.backend.addArrayValues("atom_position", coordinates, unit="angstrom")
-                parser.backend.addArrayValues("atom_label", labels)
+                parser.backend.addArrayValues("atom_positions", coordinates, unit="angstrom")
+                parser.backend.addArrayValues("atom_labels", labels)
 
         return wrapper
 
