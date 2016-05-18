@@ -78,7 +78,7 @@ class CommonMatcher(object):
                     otherMetaInfo=["XC_functional", "self_interaction_correction_method"],
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " DFT\| Multiplicity\s+(?P<target_multiplicity>{})".format(self.regex_i)),
+                        SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regex_i)),
                         SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regex_i)),
                         SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
                     ]

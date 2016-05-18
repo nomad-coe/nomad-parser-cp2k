@@ -136,7 +136,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
 
         # Write the references to section_method and section_system
         backend.addValue('single_configuration_to_calculation_method_ref', self.section_method_index)
-        backend.addValue('single_configuration_calculation_to_system_description_ref', self.section_system_index)
+        backend.addValue('single_configuration_calculation_to_system_ref', self.section_system_index)
 
     #===========================================================================
     # adHoc functions. Primarily these
