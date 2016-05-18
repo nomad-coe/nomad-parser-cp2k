@@ -43,9 +43,11 @@ class CP2KSinglePointParser(MainHierarchicalParser):
                             ]
                         ),
                         SM( r"  \*\*\* SCF run converged in\s+(\d+) steps \*\*\*",
+                            otherMetaInfo=["single_configuration_calculation_converged"],
                             adHoc=self.adHoc_single_point_converged()
                         ),
                         SM( r"  \*\*\* SCF run NOT converged \*\*\*",
+                            otherMetaInfo=["single_configuration_calculation_converged"],
                             adHoc=self.adHoc_single_point_not_converged()
                         ),
                         SM( r"  Electronic kinetic energy:\s+(?P<electronic_kinetic_energy__hartree>{})".format(self.cm.regex_f)),
@@ -55,12 +57,22 @@ class CP2KSinglePointParser(MainHierarchicalParser):
                         SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<energy_total__hartree>{0})".format(self.cm.regex_f)),
                         SM( r" ATOMIC FORCES in \[a\.u\.\]"),
                         SM( r" # Atom   Kind   Element          X              Y              Z",
-                            adHoc=self.adHoc_atom_forces()
+                            adHoc=self.adHoc_atom_forces(),
+                            otherMetaInfo=["atom_forces"],
                         ),
-                        SM( r" NUMERICAL STRESS TENSOR [GPa]"),
-                        SM( r"\s+X\s+Y\s+Z",
-                            adHoc=self.adHoc_stress_tensor()
-                        ),
+                        SM( r" (?:NUMERICAL )?STRESS TENSOR \[GPa\]",
+                            sections=["section_stress_tensor"],
+                            otherMetaInfo=["stress_tensor"],
+                            subMatchers=[
+                                SM( r"\s+X\s+Y\s+Z",
+                                    adHoc=self.adHoc_stress_tensor()
+                                ),
+                                SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.cm.regex_f)),
+                                SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.cm.regex_f)),
+                                SM( " EIGENVECTORS AND EIGENVALUES OF THE STRESS TENSOR",
+                                    adHoc=self.adHoc_stress_tensor_eigenpairs()),
+                            ]
+                        )
                     ]
                 )
             ]
@@ -72,6 +84,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         self.root_matcher = SM("",
             forwardMatch=True,
             sections=['section_run', "section_single_configuration_calculation", "section_system", "section_method"],
+            otherMetaInfo=["atom_forces"],
             subMatchers=[
                 self.cm.header(),
                 self.energy_force
@@ -238,10 +251,23 @@ class CP2KSinglePointParser(MainHierarchicalParser):
             row2 = [float(x) for x in parser.fIn.readline().split()[-3:]]
             row3 = [float(x) for x in parser.fIn.readline().split()[-3:]]
             stress_array = np.array([row1, row2, row3])
-            gid = parser.backend.openSection("section_stress_tensor")
-            parser.backend.addArrayValues("stress_tensor_value", stress_array, unit="GPa")
-            parser.backend.closeSection("section_stress_tensor", gid)
+            parser.backend.addArrayValues("stress_tensor", stress_array, unit="GPa")
 
+        return wrapper
+
+    def adHoc_stress_tensor_eigenpairs(self):
+        """Parses the stress tensor eigenpairs.
+        """
+        def wrapper(parser):
+            parser.fIn.readline()
+            eigenvalues = np.array([float(x) for x in parser.fIn.readline().split()][::-1])
+            parser.fIn.readline()
+            row1 = [float(x) for x in parser.fIn.readline().split()]
+            row2 = [float(x) for x in parser.fIn.readline().split()]
+            row3 = [float(x) for x in parser.fIn.readline().split()]
+            eigenvectors = np.fliplr(np.array([row1, row2, row3]))
+            parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvalues", eigenvalues, unit="GPa")
+            parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvectors", eigenvectors)
         return wrapper
 
     def adHoc_single_point_converged(self):

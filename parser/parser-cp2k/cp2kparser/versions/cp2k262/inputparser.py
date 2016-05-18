@@ -125,6 +125,20 @@ class CP2KInputParser(BasicParser):
             force_file_path = self.normalize_cp2k_path(force_file, "xyz")
             self.file_service.set_file_id(force_file_path, "force_file_single_point")
 
+        #=======================================================================
+        # Stress tensor calculation method
+        stress_tensor_method = self.input_tree.get_keyword("FORCE_EVAL/STRESS_TENSOR")
+        if stress_tensor_method != "NONE":
+            mapping = {
+                "NUMERICAL": "Numerical",
+                "ANALYTICAL": "Analytical",
+                "DIAGONAL_ANALYTICAL": "Diagonal analytical",
+                "DIAGONAL_NUMERICAL": "Diagonal numerical",
+            }
+            stress_tensor_method = mapping.get(stress_tensor_method)
+            if stress_tensor_method is not None:
+                self.backend.addValue("stress_tensor_method", stress_tensor_method)
+
     def normalize_cp2k_path(self, path, extension, name=""):
         """The paths in CP2K input can be given in many ways. This function
         tries to normalize these forms into a valid path.
