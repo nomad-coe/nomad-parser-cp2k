@@ -174,28 +174,46 @@ class InputObject(object):
         if len(splitted) != dim:
             logger.error("The dimensions of the CP2K input parameter {} do not match the specification in the XML file.".format(self.name))
 
-        try:
-            if self.data_type == "integer":
-                returned = np.array([int(x) for x in splitted])
-            elif self.data_type == "real":
-                returned = np.array([float(x) for x in splitted])
-            elif self.data_type == "word":
-                returned = np.array(splitted)
-            elif self.data_type == "keyword":
-                returned = np.array(splitted)
-            elif self.data_type == "string":
-                returned = np.array(splitted)
-            elif self.data_type == "logical":
-                returned = np.array(splitted)
-            else:
-                logger.error("Unknown data type '{}'".format(self.data_type))
+        if dim == 1:
+            try:
+                if self.data_type == "integer":
+                    returned = int(self.value)
+                elif self.data_type == "real":
+                    returned = float(self.value)
+                elif self.data_type == "word":
+                    returned = str(self.value)
+                elif self.data_type == "keyword":
+                    returned = str(self.value)
+                elif self.data_type == "string":
+                    returned = str(self.value)
+                elif self.data_type == "logical":
+                    returned = str(self.value)
+                else:
+                    logger.error("Unknown data type '{}'".format(self.data_type))
+                    return
+            except TypeError:
+                logger.error("The CP2K input parameter {} could not be converted to the type specified in the XML file.".format(self.name))
                 return
-        except TypeError:
-            logger.error("The CP2K input parameter {} could not be converted to the type specified in the XML file.".format(self.name))
-            return
-
-        if len(returned) == 1:
-            return returned[0]
+        else:
+            try:
+                if self.data_type == "integer":
+                    returned = np.array([int(x) for x in splitted])
+                elif self.data_type == "real":
+                    returned = np.array([float(x) for x in splitted])
+                elif self.data_type == "word":
+                    returned = np.array([str(x) for x in splitted])
+                elif self.data_type == "keyword":
+                    returned = np.array([str(x) for x in splitted])
+                elif self.data_type == "string":
+                    returned = np.array([str(x) for x in splitted])
+                elif self.data_type == "logical":
+                    returned = np.array([str(x) for x in splitted])
+                else:
+                    logger.error("Unknown data type '{}'".format(self.data_type))
+                    return
+            except TypeError:
+                logger.error("The CP2K input parameter {} could not be converted to the type specified in the XML file.".format(self.name))
+                return
 
         return returned
 
