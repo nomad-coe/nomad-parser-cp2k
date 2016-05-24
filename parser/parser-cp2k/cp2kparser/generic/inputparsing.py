@@ -164,21 +164,6 @@ class InputObject(object):
         self.data_dimension = None
         self.default_value = None
 
-
-#===============================================================================
-class Keyword(InputObject):
-    """Information about a keyword in a CP2K calculation.
-    """
-    __slots__ = ['unit', 'value_no_unit', 'default_unit', 'default_name']
-
-    def __init__(self, name, default_value,  default_unit, default_name):
-        super(Keyword, self).__init__(name)
-        self.unit = None
-        self.value_no_unit = None
-        self.default_unit = default_unit
-        self.default_value = default_value
-        self.default_name = default_name
-
     def get_formatted_value(self):
         """ Used to set the value of the keyword. The data will be transformed
         into the correct data type and dimension from a simple string.
@@ -213,6 +198,21 @@ class Keyword(InputObject):
             return returned[0]
 
         return returned
+
+
+#===============================================================================
+class Keyword(InputObject):
+    """Information about a keyword in a CP2K calculation.
+    """
+    __slots__ = ['unit', 'value_no_unit', 'default_unit', 'default_name']
+
+    def __init__(self, name, default_value,  default_unit, default_name):
+        super(Keyword, self).__init__(name)
+        self.unit = None
+        self.value_no_unit = None
+        self.default_unit = default_unit
+        self.default_value = default_value
+        self.default_name = default_name
 
     def get_value(self):
         """If the units of this value can be changed, return a value and the
@@ -252,7 +252,7 @@ class Keyword(InputObject):
 
 
 #===============================================================================
-class Section(InputObject):
+class Section(object):
     """An input section in a CP2K calculation.
     """
     __slots__ = ['accessed', 'name', 'keywords', 'default_keyword_names', 'default_keyword', 'section_parameter', 'sections', 'description']
@@ -305,8 +305,9 @@ class SectionParameters(InputObject):
 class DefaultKeyword(InputObject):
     """Default keyword in the CP2K input.
     """
+    __slots__ = ['lone_value']
+
     def __init__(self):
         super(DefaultKeyword, self).__init__("DEFAULT_KEYWORD")
-        self.default_value = None
         self.lone_value = None
         self.value = ""

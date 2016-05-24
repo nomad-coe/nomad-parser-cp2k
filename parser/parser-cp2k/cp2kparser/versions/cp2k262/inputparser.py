@@ -278,17 +278,24 @@ class CP2KInputParser(BasicParser):
             keywords = section.keywords.get(default_name)
             for keyword in keywords:
                 if keyword.value is not None:
+                    name = "{}.{}".format(path, keyword.default_name)
                     formatted_value = keyword.get_formatted_value()
-                    if formatted_value is not None:
-                        self.backend.addValue("{}.{}".format(path, keyword.default_name), formatted_value)
+                    self.add_formatted_value_to_backend(name, formatted_value)
 
         # Section parameter
-        if section.section_parameter is not None:
-            self.backend.addValue("{}.SECTION_PARAMETERS".format(path), section.section_parameter.value)
+        section_parameter = section.section_parameter
+        if section_parameter is not None:
+            name = "{}.SECTION_PARAMETERS".format(path)
+            formatted_value = section_parameter.get_formatted_value()
+            self.add_formatted_value_to_backend(name, formatted_value)
 
         # Default keyword
-        if section.default_keyword is not None:
-            self.backend.addValue("{}.DEFAULT_KEYWORD".format(path), section.default_keyword.value)
+        default_keyword = section.default_keyword
+        if default_keyword is not None:
+
+            name = "{}.DEFAULT_KEYWORD".format(path)
+            formatted_value = default_keyword.get_formatted_value()
+            self.add_formatted_value_to_backend(name, formatted_value)
 
         # Subsections
         for name, subsections in section.sections.iteritems():
@@ -298,6 +305,13 @@ class CP2KInputParser(BasicParser):
         self.backend.closeSection(path, gid)
 
         name_stack.pop()
+
+    def add_formatted_value_to_backend(self, name, formatted_value):
+        if formatted_value is not None:
+            if isinstance(formatted_value, np.ndarray):
+                self.backend.addArrayValues(name, formatted_value)
+            else:
+                self.backend.addValue(name, formatted_value)
 
     def setup_version(self, version_number):
         """ The pickle file which contains preparsed data from the

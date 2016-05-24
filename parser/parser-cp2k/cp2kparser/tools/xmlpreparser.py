@@ -227,8 +227,8 @@ def generate_input_object_metainfo_json(child, parent, name_stack):
 
     # Description
     description = child.description
-    if description is None:
-        description = ""
+    if description is None or description.isspace():
+        description = "Settings for {}".format(child.name)
     json_obj["description"] = description
 
     # Shape
@@ -264,8 +264,8 @@ def generate_section_metainfo_json(child, parent, name_stack):
     json_obj["superNames"] = ["x_cp2k_{}".format(path)]
 
     description = child.description
-    if description is None:
-        description = ""
+    if description is None or description.isspace():
+        description = "Settings for {}".format(child.name)
     json_obj["description"] = description
     return json_obj
 
