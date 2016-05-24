@@ -186,7 +186,7 @@ class InputObject(object):
             elif self.data_type == "string":
                 returned = np.array(splitted)
             elif self.data_type == "logical":
-                returned = np.array([True if x.upper() == "T" else False for x in splitted])
+                returned = np.array(splitted)
             else:
                 logger.error("Unknown data type '{}'".format(self.data_type))
                 return
