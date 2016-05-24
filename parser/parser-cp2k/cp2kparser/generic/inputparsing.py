@@ -1,3 +1,4 @@
+import numpy as np
 import logging
 from collections import defaultdict
 logger = logging.getLogger("nomad")
@@ -39,17 +40,30 @@ class CP2KInput(object):
 
     def set_parameter(self, path, value):
         parameter, section = self.get_parameter_and_section(path)
-        parameter.value = value
+        if section is None:
+            message = "The CP2K input does not contain a section {}".format(path)
+            logger.warning(message)
+        if parameter is None:
+            message = "The CP2K input section {} does not contain a SECTION_PARAMETER".format(path)
+            logger.warning(message)
+        else:
+            parameter.value = value
 
     def set_keyword(self, path, value):
         keyword, section = self.get_keyword_and_section(path)
+        # If keyword found, put data in there
         if keyword and section:
             keyword.value = value
+        # Keyword not found in the input tree, assuming it is a default keyword
         elif section is not None:
-            # print "Saving default keyword at path '{}'".format(path)
             split_path = path.rsplit("/", 1)
             keyword = split_path[1]
-            section.default_keyword += keyword + " " + value + "\n"
+            if section.default_keyword is not None:
+                # print "Saving default keyword at path '{}'".format(path)
+                section.default_keyword.value += keyword + " " + value + "\n"
+            else:
+                message = "The CP2K input does not contain the keyword {}, and there is no default keyword for the section {}".format(path, split_path[0])
+                logger.warning(message)
 
     def get_section(self, path):
         split_path = path.split("/")
@@ -57,7 +71,8 @@ class CP2KInput(object):
         for part in split_path:
             section = section.get_subsection(part)
             if not section:
-                print "Error in getting section at path '{}'.".format(path)
+                message = "The CP2K input does not contain the section {}".format(path)
+                logger.warning(message)
                 return None
         return section
 
@@ -66,12 +81,17 @@ class CP2KInput(object):
         keyword = split_path[1]
         section_path = split_path[0]
         section = self.get_section(section_path)
+
+        if section is None:
+            message = "The CP2K input does not contain the section {}".format(path)
+            logger.warning(message)
+            return (None, None)
+
         keyword = section.get_keyword(keyword)
         if keyword and section:
             return (keyword, section)
-        elif section:
+        else:
             return (None, section)
-        return (None, None)
 
     def get_keyword(self, path):
         """Returns the keyword that is specified by the given path.
@@ -83,15 +103,18 @@ class CP2KInput(object):
             if keyword.value is not None:
                 return keyword.get_value()
             else:
-                # if section.accessed:
                 return keyword.default_value
 
     def get_default_keyword(self, path):
-        return self.get_section(path).default_keyword
+        return self.get_section(path).default_keyword.value
 
     def set_section_accessed(self, path):
         section = self.get_section(path)
-        section.accessed = True
+        if section:
+            section.accessed = True
+        else:
+            message = "The CP2K input does not contain the section {}".format(path)
+            logger.warning(message)
 
     def get_keyword_default(self, path):
         keyword, section = self.get_keyword_and_section(path)
@@ -110,8 +133,13 @@ class CP2KInput(object):
 
     def get_parameter_and_section(self, path):
         section = self.get_section(path)
-        parameter = section.section_parameter
-        return (parameter, section)
+        if section is None:
+            return (None, None)
+        if section.section_parameter is not None:
+            parameter = section.section_parameter
+            return (parameter, section)
+        else:
+            return (None, section)
 
     def get_parameter(self, path):
         parameter, section = self.get_parameter_and_section(path)
@@ -123,18 +151,68 @@ class CP2KInput(object):
 
 
 #===============================================================================
-class Keyword(object):
+class InputObject(object):
+    """Base class for all kind of data elements in the CP2K input.
+    """
+    __slots__ = ['name', 'value', 'default_value', 'description', 'data_type', 'data_dimension']
+
+    def __init__(self, name):
+        self.name = name
+        self.value = None
+        self.description = None
+        self.data_type = None
+        self.data_dimension = None
+        self.default_value = None
+
+
+#===============================================================================
+class Keyword(InputObject):
     """Information about a keyword in a CP2K calculation.
     """
-    __slots__ = ['value', 'unit', 'value_no_unit', 'default_name', 'default_value', 'default_unit']
+    __slots__ = ['unit', 'value_no_unit', 'default_unit', 'default_name']
 
-    def __init__(self, default_name, default_value, default_unit_value):
-        self.value = None
+    def __init__(self, name, default_value,  default_unit, default_name):
+        super(Keyword, self).__init__(name)
         self.unit = None
         self.value_no_unit = None
-        self.default_name = default_name
+        self.default_unit = default_unit
         self.default_value = default_value
-        self.default_unit = default_unit_value
+        self.default_name = default_name
+
+    def get_formatted_value(self):
+        """ Used to set the value of the keyword. The data will be transformed
+        into the correct data type and dimension from a simple string.
+        """
+        returned = None
+        dim = int(self.data_dimension)
+        splitted = self.value.split()
+        if len(splitted) != dim:
+            logger.error("The dimensions of the CP2K input parameter {} do not match the specification in the XML file.".format(self.name))
+
+        try:
+            if self.data_type == "integer":
+                returned = np.array([int(x) for x in splitted])
+            elif self.data_type == "real":
+                returned = np.array([float(x) for x in splitted])
+            elif self.data_type == "word":
+                returned = np.array(splitted)
+            elif self.data_type == "keyword":
+                returned = np.array(splitted)
+            elif self.data_type == "string":
+                returned = np.array(splitted)
+            elif self.data_type == "logical":
+                returned = np.array([True if x.upper() == "T" else False for x in splitted])
+            else:
+                logger.error("Unknown data type '{}'".format(self.data_type))
+                return
+        except TypeError:
+            logger.error("The CP2K input parameter {} could not be converted to the type specified in the XML file.".format(self.name))
+            return
+
+        if len(returned) == 1:
+            return returned[0]
+
+        return returned
 
     def get_value(self):
         """If the units of this value can be changed, return a value and the
@@ -174,18 +252,20 @@ class Keyword(object):
 
 
 #===============================================================================
-class Section(object):
+class Section(InputObject):
     """An input section in a CP2K calculation.
     """
-    __slots__ = ['accessed', 'name', 'keywords', 'default_keyword', 'section_parameter', 'sections']
+    __slots__ = ['accessed', 'name', 'keywords', 'default_keyword_names', 'default_keyword', 'section_parameter', 'sections', 'description']
 
     def __init__(self, name):
         self.accessed = False
         self.name = name
         self.keywords = defaultdict(list)
-        self.default_keyword = ""
+        self.default_keyword_names = []
+        self.default_keyword = None
         self.section_parameter = None
         self.sections = defaultdict(list)
+        self.description = None
 
     def get_keyword(self, name):
         keyword = self.keywords.get(name)
@@ -207,15 +287,26 @@ class Section(object):
 
 
 #===============================================================================
-class SectionParameters(object):
+class SectionParameters(InputObject):
     """Section parameters in a CP2K calculation.
 
     Section parameters are the short values that can be added right after a
     section name, e.g. &PRINT ON, where ON is the section parameter.
     """
-    __slots__ = ['value', 'default_value', 'lone_value']
+    __slots__ = ['lone_keyword_value']
 
-    def __init__(self, default_value, lone_value):
-        self.value = None
+    def __init__(self, default_value, lone_keyword_value):
+        super(SectionParameters, self).__init__("SECTION_PARAMETERS")
         self.default_value = default_value
-        self.lone_value = lone_value
+        self.lone_keyword_value = lone_keyword_value
+
+
+#===============================================================================
+class DefaultKeyword(InputObject):
+    """Default keyword in the CP2K input.
+    """
+    def __init__(self):
+        super(DefaultKeyword, self).__init__("DEFAULT_KEYWORD")
+        self.default_value = None
+        self.lone_value = None
+        self.value = ""

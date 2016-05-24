@@ -95,6 +95,13 @@ class CommonMatcher(object):
 
     #===========================================================================
     # Section close triggers
+    def onClose_section_run(self, backend, gIndex, section):
+        """Information that is pushed regardless at the end of parsing.
+        Contains also information that is totally agnostic on the calculation
+        contents, like program_basis_set_type.
+        """
+        backend.addValue("program_basis_set_type", "gaussian")
+
     def onClose_section_method(self, backend, gIndex, section):
         """When all the functional definitions have been gathered, matches them
         with the nomad correspondents and combines into one single string which

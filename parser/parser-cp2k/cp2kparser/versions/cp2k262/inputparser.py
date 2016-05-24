@@ -27,14 +27,34 @@ class CP2KInputParser(BasicParser):
     some point.
     """
     def __init__(self, file_path, parser_context):
+        """
+        Attributes:
+            input_tree: The input structure for this version of CP2K. The
+                structure is already present, in this module it will be filled with
+                data found from the input file.
+            input_lines: List of preprocessed lines in the input. Here all the
+                variables have been stated explicitly and the additional input files have
+                been merged.
+        """
         super(CP2KInputParser, self).__init__(file_path, parser_context)
-        self.root_section = None
         self.input_tree = None
+        self.input_lines = None
+        self.force_file_name = None
 
     def parse(self):
 
+        #=======================================================================
+        # Preprocess to spell out variables and to include stuff from other
+        # files
+        self.preprocess_input()
+
+        #=======================================================================
         # Gather the information from the input file
         self.fill_input_tree(self.file_path)
+
+        #=======================================================================
+        # Parse everything in the input to cp2k specific metadata
+        self.fill_metadata()
 
         #=======================================================================
         # Parse the used XC_functionals and their parameters
@@ -120,8 +140,9 @@ class CP2KInputParser(BasicParser):
 
         #=======================================================================
         # Single point force file name
-        force_file = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
-        if force_file != "__STD_OUT__":
+        # force_file = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        force_file = self.force_file_name
+        if force_file is not None and force_file != "__STD_OUT__":
             force_file_path = self.normalize_cp2k_path(force_file, "xyz")
             self.file_service.set_file_id(force_file_path, "force_file_single_point")
 
@@ -181,44 +202,102 @@ class CP2KInputParser(BasicParser):
 
         self.setup_version(self.parser_context.version_id)
         section_stack = []
+        self.input_tree.root_section.accessed = True
 
-        with open(file_path) as inp:
-            for line in inp:
-                line = line.split('!', 1)[0].strip()
+        for line in self.input_lines:
+            line = line.split('!', 1)[0].strip()
 
-                # Skip empty lines
-                if len(line) == 0:
-                    continue
+            # Skip empty lines
+            if len(line) == 0:
+                continue
 
-                # Section ends
-                if line.upper().startswith('&END'):
-                    section_stack.pop()
-                # Section starts
-                elif line[0] == '&':
-                    parts = line.split(' ', 1)
-                    name = parts[0][1:].upper()
-                    section_stack.append(name)
+            # Section ends
+            if line.upper().startswith('&END'):
+                section_stack.pop()
+            # Section starts
+            elif line[0] == '&':
+                parts = line.split(' ', 1)
+                name = parts[0][1:].upper()
+                section_stack.append(name)
 
-                    # Form the path
-                    path = ""
-                    for index, item in enumerate(section_stack):
-                        if index != 0:
-                            path += '/'
-                        path += item
+                # Form the path
+                path = ""
+                for index, item in enumerate(section_stack):
+                    if index != 0:
+                        path += '/'
+                    path += item
 
-                    # Mark the section as accessed.
-                    self.input_tree.set_section_accessed(path)
+                # Mark the section as accessed.
+                self.input_tree.set_section_accessed(path)
 
-                    # Save the section parameters
-                    if len(parts) > 1:
-                        self.input_tree.set_parameter(path, parts[1].strip().upper())
+                # Save the section parameters
+                if len(parts) > 1:
+                    self.input_tree.set_parameter(path, parts[1].strip().upper())
 
-                # Contents (keywords, default keywords)
-                else:
-                    split = line.split(' ', 1)
-                    keyword_name = split[0].upper()
-                    keyword_value = split[1]
-                    self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
+            # Ignore variables and includes that might still be here for some
+            # reason
+            elif line.upper().startswith('@'):
+                continue
+
+            # Contents (keywords, default keywords)
+            else:
+                split = line.split(' ', 1)
+                keyword_name = split[0].upper()
+                keyword_value = split[1]
+                self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
+
+                # Here we store some exceptional print settings that are
+                # inportant to the parsing. These dont exist in the input tree
+                # because they take much space and are not really important
+                # otherwise.
+                if path == "FORCE_EVAL/PRINT/FORCES":
+                    if keyword_name == "FILENAME":
+                        self.force_file_name = keyword_value
+
+    def fill_metadata(self):
+        """Goes through the input data and pushes everything to the
+        backend.
+        """
+        name_stack = []
+        self.fill_metadata_recursively(self.input_tree.root_section, name_stack)
+
+    def fill_metadata_recursively(self, section, name_stack):
+        """Recursively goes through the input sections and pushes everything to the
+        backend.
+        """
+        if not section.accessed:
+            return
+
+        name_stack.append(section.name)
+        path = "x_cp2k_{}".format(".".join(name_stack))
+
+        gid = self.backend.openSection(path)
+
+        # Keywords
+        for default_name in section.default_keyword_names:
+            keywords = section.keywords.get(default_name)
+            for keyword in keywords:
+                if keyword.value is not None:
+                    formatted_value = keyword.get_formatted_value()
+                    if formatted_value is not None:
+                        self.backend.addValue("{}.{}".format(path, keyword.default_name), formatted_value)
+
+        # Section parameter
+        if section.section_parameter is not None:
+            self.backend.addValue("{}.SECTION_PARAMETERS".format(path), section.section_parameter.value)
+
+        # Default keyword
+        if section.default_keyword is not None:
+            self.backend.addValue("{}.DEFAULT_KEYWORD".format(path), section.default_keyword.value)
+
+        # Subsections
+        for name, subsections in section.sections.iteritems():
+            for subsection in subsections:
+                self.fill_metadata_recursively(subsection, name_stack)
+
+        self.backend.closeSection(path, gid)
+
+        name_stack.pop()
 
     def setup_version(self, version_number):
         """ The pickle file which contains preparsed data from the
@@ -228,3 +307,87 @@ class CP2KInputParser(BasicParser):
         pickle_path = os.path.dirname(__file__) + "/input_data/cp2k_input_tree.pickle".format(version_number)
         input_tree_pickle_file = open(pickle_path, 'rb')
         self.input_tree = pickle.load(input_tree_pickle_file)
+
+    def preprocess_input(self):
+        """Preprocess the input file. Concatenate .inc files into the main
+        input file and explicitly state all variables.
+        """
+        # Read the input file into memory. It shouldn't be that big so we can
+        # do this easily
+        input_lines = []
+        with open(self.file_path, "r") as f:
+            for line in f:
+                input_lines.append(line.strip())
+
+        # Merge include files to input
+        extended_input = input_lines[:]  # Make a copy
+        i_line = 0
+        for line in input_lines:
+            if line.startswith("@INCLUDE") or line.startswith("@include"):
+                split = line.split(None, 1)
+                includepath = split[1]
+                basedir = os.path.dirname(self.file_path)
+                filepath = os.path.join(basedir, includepath)
+                filepath = os.path.abspath(filepath)
+                if not os.path.isfile(filepath):
+                    logger.warning("Could not find the include file '{}' stated in the CP2K input file. Continuing without it.".format(filepath))
+                    print filepath
+                    continue
+
+                # Get the content from include file
+                included_lines = []
+                with open(filepath, "r") as includef:
+                    for line in includef:
+                        included_lines.append(line.strip())
+                    del extended_input[i_line]
+                    extended_input[i_line:i_line] = included_lines
+                    i_line += len(included_lines)
+            i_line += 1
+
+        # Gather the variable definitions
+        variables = {}
+        input_set_removed = []
+        for i_line, line in enumerate(extended_input):
+            if line.startswith("@SET") or line.startswith("@set"):
+                components = line.split(None, 2)
+                name = components[1]
+                value = components[2]
+                variables[name] = value
+                logger.debug("Variable '{}' found with value '{}'".format(name, value))
+            else:
+                input_set_removed.append(line)
+
+        # Place the variables
+        variable_pattern = r"\@\{(\w+)\}|@(\w+)"
+        compiled = re.compile(variable_pattern)
+        reserved = ("include", "set", "if", "endif")
+        input_variables_replaced = []
+        for line in input_set_removed:
+            results = compiled.finditer(line)
+            new_line = line
+            offset = 0
+            for result in results:
+                options = result.groups()
+                first = options[0]
+                second = options[1]
+                if first:
+                    name = first
+                elif second:
+                    name = second
+                if name in reserved:
+                    continue
+                value = variables.get(name)
+                if not value:
+                    logger.error("Value for variable '{}' not set.".format(name))
+                    continue
+                len_value = len(value)
+                len_name = len(name)
+                start = result.start()
+                end = result.end()
+                beginning = new_line[:offset+start]
+                rest = new_line[offset+end:]
+                new_line = beginning + value + rest
+                offset += len_value - len_name - 1
+            input_variables_replaced.append(new_line)
+
+        self.input_lines = input_variables_replaced
