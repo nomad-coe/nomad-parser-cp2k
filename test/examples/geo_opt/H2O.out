@@ -23,7 +23,7 @@
  CP2K| Program compiled at                           ke 4.11.2015 08.48.42 +0200
  CP2K| Program compiled on                                   lauri-Lenovo-Z50-70
  CP2K| Program compiled for                          Linux-x86-64-gfortran_basic
- CP2K| Input file name                                               geo_opt.inp
+ CP2K| Input file name                                                   H2O.inp
 
  GLOBAL| Force Environment number                                              1
  GLOBAL| Basis set file name                                        ../BASIS_SET
@@ -96,7 +96,7 @@
  [a.u.] -> [Hz]                                             6.57968392072181E+15
  [a.u.] -> [1/cm] (wave numbers)                            2.19474631370540E+05
  [a.u./Bohr**2] -> [1/cm]                                   5.14048714338585E+03
- 
+
 
  CELL_TOP| Volume [angstrom^3]:                                         1912.997
  CELL_TOP| Vector a [angstrom    12.414     0.000     0.000    |a| =      12.414
@@ -268,7 +268,7 @@
  QS|                           4) grid level                                 3.7
  QS| Grid level progression factor:                                          3.0
  QS| Relative density cutoff [a.u.]:                                        15.0
- QS| Consistent realspace mapping and integration 
+ QS| Consistent realspace mapping and integration
  QS| Interaction thresholds: eps_pgf_orb:                                3.2E-04
  QS|                         eps_filter_matrix:                          0.0E+00
  QS|                         eps_core_charge:                            1.0E-09
@@ -883,7 +883,7 @@
   Core Hamiltonian energy:                                     12.88082901797401
   Hartree energy:                                              17.93243606773645
   Exchange-correlation energy:                                 -4.14404710293827
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.64856860294379
 
   Total energy:                                               -17.16367247523646
@@ -943,12 +943,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24334376 Y=    1.93627869 Z=   -0.91717773     Total=      2.15629459
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.91342913      -0.47446118      -0.32435944      -0.25090680
  Fermi Energy [eV] :   -6.827521
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -1137,7 +1137,7 @@
   Core Hamiltonian energy:                                     12.88083641142988
   Hartree energy:                                              17.93243528069200
   Exchange-correlation energy:                                 -4.14404831664001
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.64859424847884
 
   Total energy:                                               -17.16366708252678
@@ -1197,12 +1197,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24334097 Y=    1.93625652 Z=   -0.91716744     Total=      2.15626998
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.91342631      -0.47445836      -0.32435579      -0.25090352
  Fermi Energy [eV] :   -6.827432
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -1424,7 +1424,7 @@
   Core Hamiltonian energy:                                     12.69954411811349
   Hartree energy:                                              18.06385524344191
   Exchange-correlation energy:                                 -4.09198265770861
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.32472937853851
 
   Total energy:                                               -17.16147383217080
@@ -1484,12 +1484,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25429238 Y=    1.96104860 Z=   -0.94021148     Total=      2.18960587
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.88938045      -0.45597197      -0.32014378      -0.24578413
  Fermi Energy [eV] :   -6.688126
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -1727,7 +1727,7 @@
   Core Hamiltonian energy:                                     13.24448189418318
   Hartree energy:                                              17.69629833702024
   Exchange-correlation energy:                                 -4.24076613080539
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 18.23418541143111
 
   Total energy:                                               -17.13287409651727
@@ -1787,12 +1787,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.22197523 Y=    1.88073441 Z=   -0.87089261     Total=      2.08443970
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.96022776      -0.50760908      -0.33253531      -0.26035823
  Fermi Energy [eV] :   -7.084708
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -2050,7 +2050,7 @@
   Core Hamiltonian energy:                                     12.88081888982952
   Hartree energy:                                              17.93244598082055
   Exchange-correlation energy:                                 -4.14404906235695
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.64862520509356
 
   Total energy:                                               -17.16367464971554
@@ -2110,12 +2110,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24334015 Y=    1.93625374 Z=   -0.91716502     Total=      2.15626637
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.91342257      -0.47445442      -0.32435183      -0.25089971
  Fermi Energy [eV] :   -6.827328
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -2463,7 +2463,7 @@
   Core Hamiltonian energy:                                     12.78640769380677
   Hartree energy:                                              17.99968668426499
   Exchange-correlation energy:                                 -4.11732919182507
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.48327317906260
 
   Total energy:                                               -17.16412532973675
@@ -2523,12 +2523,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24904778 Y=    1.94967989 Z=   -0.92928126     Total=      2.17412974
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90097383      -0.46503246      -0.32217784      -0.24827817
  Fermi Energy [eV] :   -6.755993
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -2861,7 +2861,7 @@
   Core Hamiltonian energy:                                     12.81880460581668
   Hartree energy:                                              17.97632913086663
   Exchange-correlation energy:                                 -4.12658992930718
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54081912159187
 
   Total energy:                                               -17.16434669463202
@@ -2921,12 +2921,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24708695 Y=    1.94515559 Z=   -0.92513771     Total=      2.16807795
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90525676      -0.46830662      -0.32292168      -0.24918172
  Fermi Energy [eV] :   -6.780579
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -3184,7 +3184,7 @@
   Core Hamiltonian energy:                                     12.82041060723361
   Hartree energy:                                              17.97519871941519
   Exchange-correlation energy:                                 -4.12703731838547
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54356145613137
 
   Total energy:                                               -17.16431849293279
@@ -3244,12 +3244,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24699043 Y=    1.94492898 Z=   -0.92493531     Total=      2.16777728
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90547124      -0.46847085      -0.32296308      -0.24923106
  Fermi Energy [eV] :   -6.781922
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -3552,7 +3552,7 @@
   Core Hamiltonian energy:                                     12.82098050186067
   Hartree energy:                                              17.97477184026136
   Exchange-correlation energy:                                 -4.12720513395544
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54458368515673
 
   Total energy:                                               -17.16434329272365
@@ -3612,12 +3612,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24696021 Y=    1.94487302 Z=   -0.92487451     Total=      2.16769769
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90555041      -0.46853143      -0.32297912      -0.24924953
  Fermi Energy [eV] :   -6.782425
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -3916,7 +3916,7 @@
   Core Hamiltonian energy:                                     12.82039054547127
   Hartree energy:                                              17.97520433100706
   Exchange-correlation energy:                                 -4.12704083590043
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54363177063033
 
   Total energy:                                               -17.16433646061822
@@ -3976,12 +3976,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24698960 Y=    1.94491944 Z=   -0.92492914     Total=      2.16776600
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90546251      -0.46846212      -0.32295449      -0.24922246
  Fermi Energy [eV] :   -6.781688
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -4228,7 +4228,7 @@
   Core Hamiltonian energy:                                     12.82035479376644
   Hartree energy:                                              17.97518460709972
   Exchange-correlation energy:                                 -4.12703636918318
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54354916119613
 
   Total energy:                                               -17.16438746951314
@@ -4288,12 +4288,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24699434 Y=    1.94495034 Z=   -0.92494542     Total=      2.16780121
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90547228      -0.46847209      -0.32296524      -0.24923268
  Fermi Energy [eV] :   -6.781966
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -4473,7 +4473,7 @@
   Core Hamiltonian energy:                                     12.82261556545927
   Hartree energy:                                              17.97352730351607
   Exchange-correlation energy:                                 -4.12754481712458
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54678088572837
 
   Total energy:                                               -17.16429244688525
@@ -4533,12 +4533,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25831909 Y=    1.91752084 Z=   -0.93927913     Total=      2.15078130
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90479577      -0.47039022      -0.32094038      -0.24898396
  Fermi Energy [eV] :   -6.775198
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -4748,7 +4748,7 @@
   Core Hamiltonian energy:                                     12.81660493871777
   Hartree energy:                                              17.97844033432640
   Exchange-correlation energy:                                 -4.12604753449999
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53713366511348
 
   Total energy:                                               -17.16389276108396
@@ -4808,12 +4808,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.22870809 Y=    1.98828356 Z=   -0.90233123     Total=      2.19539987
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90659545      -0.46512878      -0.32626329      -0.24960475
  Fermi Energy [eV] :   -6.792091
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -5027,7 +5027,7 @@
   Core Hamiltonian energy:                                     12.82038529157470
   Hartree energy:                                              17.97519571173886
   Exchange-correlation energy:                                 -4.12703993359808
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54355952564764
 
   Total energy:                                               -17.16434943148064
@@ -5087,12 +5087,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24698205 Y=    1.94499515 Z=   -0.92491635     Total=      2.16782761
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90547079      -0.46847056      -0.32296432      -0.24923162
  Fermi Energy [eV] :   -6.781937
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -5395,7 +5395,7 @@
   Core Hamiltonian energy:                                     12.82151176777914
   Hartree energy:                                              17.97433028642682
   Exchange-correlation energy:                                 -4.12730219139964
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54526102249978
 
   Total energy:                                               -17.16435063751866
@@ -5455,12 +5455,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25266559 Y=    1.93124476 Z=   -0.93210574     Total=      2.15925157
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90512845      -0.46944211      -0.32194709      -0.24910631
  Fermi Energy [eV] :   -6.778527
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -5748,7 +5748,7 @@
   Core Hamiltonian energy:                                     12.82106224146503
   Hartree energy:                                              17.97466564791540
   Exchange-correlation energy:                                 -4.12719862255560
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54458801634678
 
   Total energy:                                               -17.16436123393284
@@ -5808,12 +5808,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25037622 Y=    1.93680432 Z=   -0.92919083     Total=      2.16270544
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90526589      -0.46905677      -0.32235573      -0.24915793
  Fermi Energy [eV] :   -6.779932
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -6071,7 +6071,7 @@
   Core Hamiltonian energy:                                     12.82107323008926
   Hartree energy:                                              17.97465868239385
   Exchange-correlation energy:                                 -4.12720059978790
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54461640899944
 
   Total energy:                                               -17.16435918805248
@@ -6131,12 +6131,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25044334 Y=    1.93663225 Z=   -0.92928396     Total=      2.16259914
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90526109      -0.46906584      -0.32234348      -0.24915522
  Fermi Energy [eV] :   -6.779858
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -6394,7 +6394,7 @@
   Core Hamiltonian energy:                                     12.82108857879665
   Hartree energy:                                              17.97465659363417
   Exchange-correlation energy:                                 -4.12720258330050
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54463250095737
 
   Total energy:                                               -17.16434791161160
@@ -6454,12 +6454,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25048377 Y=    1.93652863 Z=   -0.92933952     Total=      2.16253490
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90525846      -0.46907116      -0.32233630      -0.24915368
  Fermi Energy [eV] :   -6.779816
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -6743,7 +6743,7 @@
   Core Hamiltonian energy:                                     12.82107156098273
   Hartree energy:                                              17.97465818333018
   Exchange-correlation energy:                                 -4.12720050558456
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54461423753081
 
   Total energy:                                               -17.16436126201934
@@ -6803,12 +6803,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25044313 Y=    1.93663424 Z=   -0.92928232     Total=      2.16260019
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90526134      -0.46906609      -0.32234377      -0.24915549
  Fermi Energy [eV] :   -6.779866
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -7010,7 +7010,7 @@
   Core Hamiltonian energy:                                     12.82105997632103
   Hartree energy:                                              17.97466712860893
   Exchange-correlation energy:                                 -4.12719945867212
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54461285042951
 
   Total energy:                                               -17.16436285448985
@@ -7070,12 +7070,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25044808 Y=    1.93661534 Z=   -0.92929309     Total=      2.16258846
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90526174      -0.46906644      -0.32234339      -0.24915566
  Fermi Energy [eV] :   -6.779870
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -7225,7 +7225,7 @@
   Core Hamiltonian energy:                                     12.82200131109412
   Hartree energy:                                              17.97394011312325
   Exchange-correlation energy:                                 -4.12744724697198
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54617701865864
 
   Total energy:                                               -17.16439632314768
@@ -7285,12 +7285,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25213450 Y=    1.93131380 Z=   -0.93066314     Total=      2.15862889
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90516141      -0.46956221      -0.32189110      -0.24911363
  Fermi Energy [eV] :   -6.778727
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -7440,7 +7440,7 @@
   Core Hamiltonian energy:                                     12.82348828553201
   Hartree energy:                                              17.97285991155242
   Exchange-correlation energy:                                 -4.12782416552380
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54858672257665
 
   Total energy:                                               -17.16436646824638
@@ -7500,12 +7500,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25484854 Y=    1.92266751 Z=   -0.93279360     Total=      2.15213894
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90498599      -0.47035322      -0.32115161      -0.24903992
  Fermi Energy [eV] :   -6.776721
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -7674,7 +7674,7 @@
   Core Hamiltonian energy:                                     12.82203800046754
   Hartree energy:                                              17.97395300977971
   Exchange-correlation energy:                                 -4.12744877482767
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54620470322474
 
   Total energy:                                               -17.16434826497350
@@ -7734,12 +7734,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25212207 Y=    1.93129618 Z=   -0.93062817     Total=      2.15859660
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90515849      -0.46955918      -0.32188689      -0.24911010
  Fermi Energy [eV] :   -6.778630
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -8012,7 +8012,7 @@
   Core Hamiltonian energy:                                     12.82275441182341
   Hartree energy:                                              17.97338766253606
   Exchange-correlation energy:                                 -4.12763929025088
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54738886167826
 
   Total energy:                                               -17.16438771599313
@@ -8072,12 +8072,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25350016 Y=    1.92701162 Z=   -0.93175878     Total=      2.15541424
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90507709      -0.46996059      -0.32152398      -0.24907918
  Fermi Energy [eV] :   -6.777789
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -8335,7 +8335,7 @@
   Core Hamiltonian energy:                                     12.82322430615831
   Hartree energy:                                              17.97307172966866
   Exchange-correlation energy:                                 -4.12775444129876
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54815369483275
 
   Total energy:                                               -17.16434890539333
@@ -8395,12 +8395,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25431619 Y=    1.92432927 Z=   -0.93236594     Total=      2.15337551
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90501906      -0.47019832      -0.32129180      -0.24905186
  Fermi Energy [eV] :   -6.777046
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -8643,7 +8643,7 @@
   Core Hamiltonian energy:                                     12.82316244295631
   Hartree energy:                                              17.97307217501267
   Exchange-correlation energy:                                 -4.12774736584279
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54808797448666
 
   Total energy:                                               -17.16440324780374
@@ -8703,12 +8703,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25429235 Y=    1.92447352 Z=   -0.93237747     Total=      2.15350660
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90502501      -0.47019062      -0.32130725      -0.24905704
  Fermi Energy [eV] :   -6.777187
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -8951,7 +8951,7 @@
   Core Hamiltonian energy:                                     12.82315869207688
   Hartree energy:                                              17.97309245368854
   Exchange-correlation energy:                                 -4.12774233258421
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54806227227495
 
   Total energy:                                               -17.16438168675704
@@ -9011,12 +9011,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25424865 Y=    1.92459265 Z=   -0.93233235     Total=      2.15358836
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90502676      -0.47017872      -0.32131650      -0.24905713
  Fermi Energy [eV] :   -6.777189
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -9285,7 +9285,7 @@
   Core Hamiltonian energy:                                     12.82318618339515
   Hartree energy:                                              17.97307930185151
   Exchange-correlation energy:                                 -4.12774773815795
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54809906953182
 
   Total energy:                                               -17.16437275284122
@@ -9345,12 +9345,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25428611 Y=    1.92447012 Z=   -0.93236001     Total=      2.15349526
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90502383      -0.47018941      -0.32130556      -0.24905564
  Fermi Energy [eV] :   -6.777149
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -9552,7 +9552,7 @@
   Core Hamiltonian energy:                                     12.82315711332945
   Hartree energy:                                              17.97308738875926
   Exchange-correlation energy:                                 -4.12774664546193
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54809449161336
 
   Total energy:                                               -17.16439264330315
@@ -9612,12 +9612,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25428371 Y=    1.92446736 Z=   -0.93235324     Total=      2.15348958
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90502453      -0.47019002      -0.32130569      -0.24905630
  Fermi Energy [eV] :   -6.777167
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -9782,7 +9782,7 @@
   Core Hamiltonian energy:                                     12.82201079961866
   Hartree energy:                                              17.97392358413815
   Exchange-correlation energy:                                 -4.12743878691971
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54615063098563
 
   Total energy:                                               -17.16439490368307
@@ -9842,12 +9842,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25270094 Y=    1.92467631 Z=   -0.94203868     Total=      2.15770099
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90509163      -0.46967368      -0.32175174      -0.24909268
  Fermi Energy [eV] :   -6.778156
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -9997,7 +9997,7 @@
   Core Hamiltonian energy:                                     12.81981447354344
   Hartree energy:                                              17.97548633372390
   Exchange-correlation energy:                                 -4.12685393631833
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54246391831258
 
   Total energy:                                               -17.16444363056124
@@ -10057,12 +10057,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.25019679 Y=    1.92490122 Z=   -0.95767118     Total=      2.16448082
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90516389      -0.46881553      -0.32246078      -0.24914590
  Fermi Energy [eV] :   -6.779605
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -10227,7 +10227,7 @@
   Core Hamiltonian energy:                                     12.81558645785388
   Hartree energy:                                              17.97855487905793
   Exchange-correlation energy:                                 -4.12569756846286
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53520834948520
 
   Total energy:                                               -17.16444673469903
@@ -10287,12 +10287,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24632863 Y=    1.92484249 Z=   -0.98290840     Total=      2.17527132
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90517263      -0.46736264      -0.32356458      -0.24920384
  Fermi Energy [eV] :   -6.781181
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -10472,7 +10472,7 @@
   Core Hamiltonian energy:                                     12.81766053739064
   Hartree energy:                                              17.97703236120426
   Exchange-correlation energy:                                 -4.12626934990444
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53876860564427
 
   Total energy:                                               -17.16446695369218
@@ -10532,12 +10532,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24810235 Y=    1.92496390 Z=   -0.97113166     Total=      2.17028512
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90518771      -0.46805341      -0.32305949      -0.24918420
  Fermi Energy [eV] :   -6.780647
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -10721,7 +10721,7 @@
   Core Hamiltonian energy:                                     12.81767708379763
   Hartree energy:                                              17.97704466136170
   Exchange-correlation energy:                                 -4.12627130314211
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53882184097849
 
   Total energy:                                               -17.16444006036541
@@ -10781,12 +10781,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24811128 Y=    1.92489429 Z=   -0.97114603     Total=      2.17023083
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90518170      -0.46804739      -0.32305203      -0.24917733
  Fermi Energy [eV] :   -6.780460
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -11044,7 +11044,7 @@
   Core Hamiltonian energy:                                     12.81663148803714
   Hartree energy:                                              17.97776933753804
   Exchange-correlation energy:                                 -4.12598981830942
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53701886036188
 
   Total energy:                                               -17.16447949550003
@@ -11104,12 +11104,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24720777 Y=    1.92493065 Z=   -0.97702077     Total=      2.17279527
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90518511      -0.46771154      -0.32331536      -0.24919654
  Fermi Energy [eV] :   -6.780983
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -11352,7 +11352,7 @@
   Core Hamiltonian energy:                                     12.81641155982479
   Hartree energy:                                              17.97794049683463
   Exchange-correlation energy:                                 -4.12592736318190
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53664268364599
 
   Total energy:                                               -17.16446580937167
@@ -11412,12 +11412,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24701596 Y=    1.92489853 Z=   -0.97830506     Total=      2.17332281
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90518180      -0.46763464      -0.32336833      -0.24919685
  Fermi Energy [eV] :   -6.780991
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -11660,7 +11660,7 @@
   Core Hamiltonian energy:                                     12.81651301667754
   Hartree energy:                                              17.97788662396698
   Exchange-correlation energy:                                 -4.12595053173749
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53679518428375
 
   Total energy:                                               -17.16444139391236
@@ -11720,12 +11720,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24708916 Y=    1.92489024 Z=   -0.97785394     Total=      2.17312075
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90518107      -0.46766014      -0.32334691      -0.24919454
  Fermi Energy [eV] :   -6.780928
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -11979,7 +11979,7 @@
   Core Hamiltonian energy:                                     12.81639147636194
   Hartree energy:                                              17.97794347971309
   Exchange-correlation energy:                                 -4.12592761285146
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53664769393860
 
   Total energy:                                               -17.16448315962563
@@ -12039,12 +12039,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24701672 Y=    1.92489506 Z=   -0.97830683     Total=      2.17332062
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90518122      -0.46763405      -0.32336764      -0.24919624
  Fermi Energy [eV] :   -6.780975
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -12291,7 +12291,7 @@
   Core Hamiltonian energy:                                     12.81641366763302
   Hartree energy:                                              17.97794091201113
   Exchange-correlation energy:                                 -4.12592745081550
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53664400137339
 
   Total energy:                                               -17.16446337402054
@@ -12351,12 +12351,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24701631 Y=    1.92489803 Z=   -0.97830577     Total=      2.17332272
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90518164      -0.46763448      -0.32336816      -0.24919670
  Fermi Energy [eV] :   -6.780987
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -12551,7 +12551,7 @@
   Core Hamiltonian energy:                                     12.84634899716314
   Hartree energy:                                              17.95696837501290
   Exchange-correlation energy:                                 -4.13423207132300
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.58750152661879
 
   Total energy:                                               -17.16380517178456
@@ -12611,12 +12611,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.23439101 Y=    1.90033347 Z=   -1.01536999     Total=      2.16729847
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90915291      -0.47050696      -0.32393019      -0.24998703
  Fermi Energy [eV] :   -6.802493
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -12856,7 +12856,7 @@
   Core Hamiltonian energy:                                     12.77869341648772
   Hartree energy:                                              18.00745684866024
   Exchange-correlation energy:                                 -4.11438682619877
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.46285957152453
 
   Total energy:                                               -17.16112705059183
@@ -12916,12 +12916,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.26720327 Y=    1.96308252 Z=   -0.92059290     Total=      2.18462396
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90050797      -0.46281342      -0.32251047      -0.24802131
  Fermi Energy [eV] :   -6.749003
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -13180,7 +13180,7 @@
   Core Hamiltonian energy:                                     12.81643204995976
   Hartree energy:                                              17.97793828310907
   Exchange-correlation energy:                                 -4.12592785667626
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53663369198926
 
   Total energy:                                               -17.16444802645662
@@ -13240,12 +13240,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24701224 Y=    1.92490531 Z=   -0.97829742     Total=      2.17332496
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90518291      -0.46763579      -0.32336943      -0.24919798
  Fermi Energy [eV] :   -6.781022
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -13593,7 +13593,7 @@
   Core Hamiltonian energy:                                     12.83071767513982
   Hartree energy:                                              17.96768926718102
   Exchange-correlation energy:                                 -4.12996594992747
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.56158652562953
 
   Total energy:                                               -17.16444950126144
@@ -13653,12 +13653,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24073068 Y=    1.91268600 Z=   -0.99672167     Total=      2.17020117
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90705727      -0.46907931      -0.32364234      -0.24958256
  Fermi Energy [eV] :   -6.791487
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -13976,7 +13976,7 @@
   Core Hamiltonian energy:                                     12.82283013639048
   Hartree energy:                                              17.97329616166833
   Exchange-correlation energy:                                 -4.12775129917326
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54793433698621
 
   Total energy:                                               -17.16451550089851
@@ -14036,12 +14036,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24413075 Y=    1.91933998 Z=   -0.98669637     Total=      2.17187374
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90601720      -0.46830168      -0.32349520      -0.24937417
  Fermi Energy [eV] :   -6.785816
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -14314,7 +14314,7 @@
   Core Hamiltonian energy:                                     12.82304806049630
   Hartree energy:                                              17.97313265238696
   Exchange-correlation energy:                                 -4.12781479359996
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54832372210602
 
   Total energy:                                               -17.16452458035960
@@ -14374,12 +14374,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24402878 Y=    1.91914914 Z=   -0.98699774     Total=      2.17183056
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90604921      -0.46832668      -0.32350127      -0.24938214
  Fermi Energy [eV] :   -6.786033
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -14652,7 +14652,7 @@
   Core Hamiltonian energy:                                     12.82312122727549
   Hartree energy:                                              17.97309130540073
   Exchange-correlation energy:                                 -4.12783750524086
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54851099034718
 
   Total energy:                                               -17.16451547216570
@@ -14712,12 +14712,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24402327 Y=    1.91903031 Z=   -0.98713030     Total=      2.17178519
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90604965      -0.46832521      -0.32349392      -0.24937535
  Fermi Energy [eV] :   -6.785848
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -15016,7 +15016,7 @@
   Core Hamiltonian energy:                                     12.82304906897857
   Hartree energy:                                              17.97313408682493
   Exchange-correlation energy:                                 -4.12781520358118
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54833828178947
 
   Total energy:                                               -17.16452254742056
@@ -15076,12 +15076,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24403216 Y=    1.91913944 Z=   -0.98700269     Total=      2.17182462
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90604743      -0.46832492      -0.32349945      -0.24938033
  Fermi Energy [eV] :   -6.785984
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -15328,7 +15328,7 @@
   Core Hamiltonian energy:                                     12.82305638473241
   Hartree energy:                                              17.97313749892099
   Exchange-correlation energy:                                 -4.12781585004604
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54835584262116
 
   Total energy:                                               -17.16451246603554
@@ -15388,12 +15388,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.24403944 Y=    1.91912252 Z=   -0.98701683     Total=      2.17181692
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90604530      -0.46832280      -0.32349724      -0.24937815
  Fermi Energy [eV] :   -6.785924
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -15558,7 +15558,7 @@
   Core Hamiltonian energy:                                     12.82265481394950
   Hartree energy:                                              17.97338758072942
   Exchange-correlation energy:                                 -4.12770166007680
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54764984379061
 
   Total energy:                                               -17.16454976525591
@@ -15618,12 +15618,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.22939110 Y=    1.91712790 Z=   -0.99391575     Total=      2.17160498
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90597287      -0.46831958      -0.32344545      -0.24936094
  Fermi Energy [eV] :   -6.785456
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -15773,7 +15773,7 @@
   Core Hamiltonian energy:                                     12.82183721810994
   Hartree energy:                                              17.97392077824065
   Exchange-correlation energy:                                 -4.12747089303922
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54622140347918
 
   Total energy:                                               -17.16460339698160
@@ -15833,12 +15833,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.20569664 Y=    1.91375749 Z=   -1.00506153     Total=      2.17138838
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90583987      -0.46828727      -0.32337038      -0.24933034
  Fermi Energy [eV] :   -6.784624
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -16003,7 +16003,7 @@
   Core Hamiltonian energy:                                     12.81291427812226
   Hartree energy:                                              17.98044907090451
   Exchange-correlation energy:                                 -4.12493012650098
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53048785073104
 
   Total energy:                                               -17.16445728234539
@@ -16063,12 +16063,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.06489364 Y=    1.89012880 Z=   -1.07070772     Total=      2.17329545
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90464136      -0.46739881      -0.32314022      -0.24907191
  Fermi Energy [eV] :   -6.777591
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -16252,7 +16252,7 @@
   Core Hamiltonian energy:                                     12.82183899648251
   Hartree energy:                                              17.97390871373814
   Exchange-correlation energy:                                 -4.12746846739743
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54614196944664
 
   Total energy:                                               -17.16461125746974
@@ -16312,12 +16312,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.20570178 Y=    1.91379100 Z=   -1.00506136     Total=      2.17141833
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90584950      -0.46829686      -0.32338035      -0.24934029
  Fermi Energy [eV] :   -6.784894
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -16590,7 +16590,7 @@
   Core Hamiltonian energy:                                     12.81826465005513
   Hartree energy:                                              17.97648692890915
   Exchange-correlation energy:                                 -4.12645373407224
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.53996126207968
 
   Total energy:                                               -17.16459265729736
@@ -16650,12 +16650,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.13517280 Y=    1.90268619 Z=   -1.03805595     Total=      2.17164606
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90531849      -0.46798322      -0.32320087      -0.24920906
  Fermi Energy [eV] :   -6.781323
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -16943,7 +16943,7 @@
   Core Hamiltonian energy:                                     12.81999541960524
   Hartree energy:                                              17.97521086107720
   Exchange-correlation energy:                                 -4.12694213715978
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54290855162134
 
   Total energy:                                               -17.16462635775807
@@ -17003,12 +17003,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16503817 Y=    1.90760127 Z=   -1.02411783     Total=      2.17140450
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90557056      -0.46815835      -0.32327180      -0.24927476
  Fermi Energy [eV] :   -6.783111
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -17281,7 +17281,7 @@
   Core Hamiltonian energy:                                     12.82004323827644
   Hartree energy:                                              17.97519120603963
   Exchange-correlation energy:                                 -4.12695681694730
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54305931529331
 
   Total energy:                                               -17.16461287388996
@@ -17341,12 +17341,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16582249 Y=    1.90768445 Z=   -1.02374959     Total=      2.17136369
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90556719      -0.46815261      -0.32326358      -0.24926631
  Fermi Energy [eV] :   -6.782881
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -17630,7 +17630,7 @@
   Core Hamiltonian energy:                                     12.81998766075082
   Hartree energy:                                              17.97521025648762
   Exchange-correlation energy:                                 -4.12694179478694
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54292735884078
 
   Total energy:                                               -17.16463437882922
@@ -17690,12 +17690,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16504087 Y=    1.90758227 Z=   -1.02411983     Total=      2.17138896
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90556838      -0.46815616      -0.32326928      -0.24927230
  Fermi Energy [eV] :   -6.783044
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -17957,7 +17957,7 @@
   Core Hamiltonian energy:                                     12.81999992631242
   Hartree energy:                                              17.97521753183834
   Exchange-correlation energy:                                 -4.12694306880770
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54295669281480
 
   Total energy:                                               -17.16461611193766
@@ -18017,12 +18017,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16503757 Y=    1.90756704 Z=   -1.02412008     Total=      2.17137545
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90556493      -0.46815265      -0.32326545      -0.24926865
  Fermi Energy [eV] :   -6.782945
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -18217,7 +18217,7 @@
   Core Hamiltonian energy:                                     12.87418130697211
   Hartree energy:                                              17.93691191702759
   Exchange-correlation energy:                                 -4.14223543584625
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.63729408346405
 
   Total energy:                                               -17.16403267537918
@@ -18277,12 +18277,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.13970635 Y=    1.90532939 Z=   -1.02454081     Total=      2.16782883
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.91313205      -0.47277816      -0.32537143      -0.25090137
  Fermi Energy [eV] :   -6.827373
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -18507,7 +18507,7 @@
   Core Hamiltonian energy:                                     12.73720386424306
   Hartree energy:                                              18.03568838618381
   Exchange-correlation energy:                                 -4.10299495160501
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.39387341512858
 
   Total energy:                                               -17.16299323010906
@@ -18567,12 +18567,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.20510405 Y=    1.90976569 Z=   -1.02267687     Total=      2.17603783
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.89398345      -0.46067804      -0.32001381      -0.24670864
  Fermi Energy [eV] :   -6.713283
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -18816,7 +18816,7 @@
   Core Hamiltonian energy:                                     12.81998901870656
   Hartree energy:                                              17.97521234570055
   Exchange-correlation energy:                                 -4.12694270511884
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54289999483278
 
   Total energy:                                               -17.16463184199246
@@ -18876,12 +18876,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16504199 Y=    1.90758855 Z=   -1.02413533     Total=      2.17140188
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90557169      -0.46815946      -0.32327285      -0.24927576
  Fermi Energy [eV] :   -6.783138
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -19214,7 +19214,7 @@
   Core Hamiltonian energy:                                     12.84679611378764
   Hartree energy:                                              17.95615800896868
   Exchange-correlation energy:                                 -4.13454525128124
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.58999056876948
 
   Total energy:                                               -17.16448161389157
@@ -19274,12 +19274,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.15241724 Y=    1.90650415 Z=   -1.02434734     Total=      2.16962590
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90929924      -0.47045693      -0.32429963      -0.25007082
  Fermi Energy [eV] :   -6.804773
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -19597,7 +19597,7 @@
   Core Hamiltonian energy:                                     12.82189911881336
   Hartree energy:                                              17.97385980647512
   Exchange-correlation energy:                                 -4.12748060578110
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54625085936642
 
   Total energy:                                               -17.16461218079801
@@ -19657,12 +19657,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16414640 Y=    1.90751120 Z=   -1.02415111     Total=      2.17127348
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90583320      -0.46832172      -0.32334388      -0.24933064
  Fermi Energy [eV] :   -6.784632
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -19950,7 +19950,7 @@
   Core Hamiltonian energy:                                     12.82191268380875
   Hartree energy:                                              17.97384175350572
   Exchange-correlation energy:                                 -4.12748478540555
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54626050462851
 
   Total energy:                                               -17.16462084838644
@@ -20010,12 +20010,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16413788 Y=    1.90751916 Z=   -1.02415754     Total=      2.17128286
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90583877      -0.46832632      -0.32334774      -0.24933422
  Fermi Energy [eV] :   -6.784729
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -20303,7 +20303,7 @@
   Core Hamiltonian energy:                                     12.82191790622864
   Hartree energy:                                              17.97384812588499
   Exchange-correlation energy:                                 -4.12749509375833
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54642077097708
 
   Total energy:                                               -17.16461956193009
@@ -20363,12 +20363,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16412037 Y=    1.90747543 Z=   -1.02412081     Total=      2.17122580
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90582637      -0.46831267      -0.32333204      -0.24931904
  Fermi Energy [eV] :   -6.784316
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -20667,7 +20667,7 @@
   Core Hamiltonian energy:                                     12.82190239533294
   Hartree energy:                                              17.97384692821763
   Exchange-correlation energy:                                 -4.12748494519351
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54628061872359
 
   Total energy:                                               -17.16462612193830
@@ -20727,12 +20727,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16413794 Y=    1.90751254 Z=   -1.02415454     Total=      2.17127563
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90583643      -0.46832383      -0.32334506      -0.24933174
  Fermi Energy [eV] :   -6.784662
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -20979,7 +20979,7 @@
   Core Hamiltonian energy:                                     12.82192241648704
   Hartree energy:                                              17.97385678692621
   Exchange-correlation energy:                                 -4.12748733376785
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54633272078548
 
   Total energy:                                               -17.16459863064997
@@ -21039,12 +21039,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16413292 Y=    1.90749702 Z=   -1.02413655     Total=      2.17125313
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90583020      -0.46831756      -0.32333836      -0.24932528
  Fermi Energy [eV] :   -6.784486
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -21194,7 +21194,7 @@
   Core Hamiltonian energy:                                     12.82172517161861
   Hartree energy:                                              17.97398554767934
   Exchange-correlation energy:                                 -4.12743770198622
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54601316177043
 
   Total energy:                                               -17.16461748307201
@@ -21254,12 +21254,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16443099 Y=    1.90819869 Z=   -1.02401988     Total=      2.17183713
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90584044      -0.46824182      -0.32340537      -0.24933202
  Fermi Energy [eV] :   -6.784669
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -21394,7 +21394,7 @@
   Core Hamiltonian energy:                                     12.82144843762313
   Hartree energy:                                              17.97420304744862
   Exchange-correlation energy:                                 -4.12735797903980
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54551032064212
 
   Total energy:                                               -17.16459699449569
@@ -21454,12 +21454,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16491069 Y=    1.90933138 Z=   -1.02382365     Total=      2.17277627
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90585448      -0.46811676      -0.32351132      -0.24934064
  Fermi Energy [eV] :   -6.784904
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -21613,7 +21613,7 @@
   Core Hamiltonian energy:                                     12.82171314483703
   Hartree energy:                                              17.97398215526517
   Exchange-correlation energy:                                 -4.12743738215230
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54600612071463
 
   Total energy:                                               -17.16463258243385
@@ -21673,12 +21673,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16443130 Y=    1.90820507 Z=   -1.02402067     Total=      2.17184313
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90584120      -0.46824261      -0.32340640      -0.24933291
  Fermi Energy [eV] :   -6.784694
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -21921,7 +21921,7 @@
   Core Hamiltonian energy:                                     12.82159073913375
   Hartree energy:                                              17.97409856348975
   Exchange-correlation energy:                                 -4.12739850706939
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54577135832242
 
   Total energy:                                               -17.16459970490146
@@ -21981,12 +21981,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16467078 Y=    1.90875656 Z=   -1.02392109     Total=      2.17229889
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90584654      -0.46817831      -0.32345705      -0.24933521
  Fermi Energy [eV] :   -6.784756
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -22229,7 +22229,7 @@
   Core Hamiltonian energy:                                     12.82146034561245
   Hartree energy:                                              17.97416559210067
   Exchange-correlation energy:                                 -4.12737046151162
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54558455691937
 
   Total energy:                                               -17.16463502430324
@@ -22289,12 +22289,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16483530 Y=    1.90915833 Z=   -1.02385610     Total=      2.17263378
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90585290      -0.46813725      -0.32349541      -0.24934003
  Fermi Energy [eV] :   -6.784887
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -22537,7 +22537,7 @@
   Core Hamiltonian energy:                                     12.82147929293739
   Hartree energy:                                              17.97416627924619
   Exchange-correlation energy:                                 -4.12737194271328
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54559953956261
 
   Total energy:                                               -17.16461687103234
@@ -22597,12 +22597,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16482780 Y=    1.90913389 Z=   -1.02385762     Total=      2.17261244
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90585188      -0.46813824      -0.32349274      -0.24933893
  Fermi Energy [eV] :   -6.784857
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -22841,7 +22841,7 @@
   Core Hamiltonian energy:                                     12.82149476897456
   Hartree energy:                                              17.97415909577610
   Exchange-correlation energy:                                 -4.12737285809320
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54560397860477
 
   Total energy:                                               -17.16460949384729
@@ -22901,12 +22901,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16483400 Y=    1.90913879 Z=   -1.02385041     Total=      2.17261382
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90585066      -0.46813527      -0.32349281      -0.24933753
  Fermi Energy [eV] :   -6.784819
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -23138,7 +23138,7 @@
   Core Hamiltonian energy:                                     12.82147825430759
   Hartree energy:                                              17.97416779806239
   Exchange-correlation energy:                                 -4.12737060858877
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54558929548190
 
   Total energy:                                               -17.16461505672354
@@ -23198,12 +23198,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16483498 Y=    1.90915199 Z=   -1.02385577     Total=      2.17262802
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90585240      -0.46813674      -0.32349469      -0.24933942
  Fermi Energy [eV] :   -6.784871
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -23353,7 +23353,7 @@
   Core Hamiltonian energy:                                     12.82215636889711
   Hartree energy:                                              17.97366606158463
   Exchange-correlation energy:                                 -4.12756239251305
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54677896002551
 
   Total energy:                                               -17.16463046217122
@@ -23413,12 +23413,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16615630 Y=    1.90866927 Z=   -1.02254275     Total=      2.17168597
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90589761      -0.46828945      -0.32341244      -0.24934496
  Fermi Energy [eV] :   -6.785021
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -23568,7 +23568,7 @@
   Core Hamiltonian energy:                                     12.82328010001079
   Hartree energy:                                              17.97286638808869
   Exchange-correlation energy:                                 -4.12787119456848
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54870284532721
 
   Total energy:                                               -17.16461520601429
@@ -23628,12 +23628,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16829755 Y=    1.90787399 Z=   -1.02041785     Total=      2.17015202
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90596826      -0.46853445      -0.32327720      -0.24935213
  Fermi Energy [eV] :   -6.785216
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -23787,7 +23787,7 @@
   Core Hamiltonian energy:                                     12.82219129564761
   Hartree energy:                                              17.97367813019580
   Exchange-correlation energy:                                 -4.12756400753133
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54680447653535
 
   Total energy:                                               -17.16458508182784
@@ -23847,12 +23847,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16616000 Y=    1.90865200 Z=   -1.02254585     Total=      2.17167254
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90589475      -0.46828644      -0.32340887      -0.24934182
  Fermi Energy [eV] :   -6.784936
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -24110,7 +24110,7 @@
   Core Hamiltonian energy:                                     12.82180799625662
   Hartree energy:                                              17.97391391044988
   Exchange-correlation energy:                                 -4.12746619190990
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54617226841906
 
   Total energy:                                               -17.16463478552599
@@ -24170,12 +24170,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16549587 Y=    1.90892082 Z=   -1.02320191     Total=      2.17216705
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90587652      -0.46821460      -0.32345532      -0.24934380
  Fermi Energy [eV] :   -6.784990
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -24418,7 +24418,7 @@
   Core Hamiltonian energy:                                     12.82190911332240
   Hartree energy:                                              17.97386943358345
   Exchange-correlation energy:                                 -4.12748836691765
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54632904220216
 
   Total energy:                                               -17.16460032029475
@@ -24478,12 +24478,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16564137 Y=    1.90884783 Z=   -1.02305845     Total=      2.17204643
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90587831      -0.46822796      -0.32344255      -0.24934096
  Fermi Energy [eV] :   -6.784913
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -24696,7 +24696,7 @@
   Core Hamiltonian energy:                                     12.82190558866747
   Hartree energy:                                              17.97385702201374
   Exchange-correlation energy:                                 -4.12748955697615
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54632969323851
 
   Total energy:                                               -17.16461744657568
@@ -24756,12 +24756,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16564814 Y=    1.90884690 Z=   -1.02304807     Total=      2.17204124
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90587932      -0.46822977      -0.32344299      -0.24934177
  Fermi Energy [eV] :   -6.784935
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -25015,7 +25015,7 @@
   Core Hamiltonian energy:                                     12.82191737964079
   Hartree energy:                                              17.97386217250344
   Exchange-correlation energy:                                 -4.12748747684844
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54631504387224
 
   Total energy:                                               -17.16459842498717
@@ -25075,12 +25075,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16564070 Y=    1.90885487 Z=   -1.02305793     Total=      2.17205232
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90587993      -0.46822963      -0.32344444      -0.24934267
  Fermi Energy [eV] :   -6.784959
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -25297,7 +25297,7 @@
   Core Hamiltonian energy:                                     12.82192161568980
   Hartree energy:                                              17.97386323981284
   Exchange-correlation energy:                                 -4.12748818238970
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54632173449977
 
   Total energy:                                               -17.16459382717001
@@ -25357,12 +25357,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16564062 Y=    1.90885210 Z=   -1.02305715     Total=      2.17204951
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90587914      -0.46822888      -0.32344358      -0.24934184
  Fermi Energy [eV] :   -6.784937
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -25512,7 +25512,7 @@
   Core Hamiltonian energy:                                     12.82145846437398
   Hartree energy:                                              17.97417818120429
   Exchange-correlation energy:                                 -4.12736070714640
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54553704566476
 
   Total energy:                                               -17.16461456210602
@@ -25572,12 +25572,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16619551 Y=    1.90888258 Z=   -1.02215386     Total=      2.17169338
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90579511      -0.46823084      -0.32337940      -0.24932188
  Fermi Energy [eV] :   -6.784393
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -25727,7 +25727,7 @@
   Core Hamiltonian energy:                                     12.82073827381275
   Hartree energy:                                              17.97468456099979
   Exchange-correlation energy:                                 -4.12715424050783
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54426165118104
 
   Total energy:                                               -17.16462190663904
@@ -25787,12 +25787,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16709204 Y=    1.90892861 Z=   -1.02068486     Total=      2.17111164
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90565975      -0.46823437      -0.32327588      -0.24928995
  Fermi Energy [eV] :   -6.783525
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -25942,7 +25942,7 @@
   Core Hamiltonian energy:                                     12.82092414920596
   Hartree energy:                                              17.97454359251789
   Exchange-correlation energy:                                 -4.12721011152256
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54460227475674
 
   Total energy:                                               -17.16463287063236
@@ -26002,12 +26002,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16684472 Y=    1.90891880 Z=   -1.02108192     Total=      2.17127070
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90569775      -0.46823447      -0.32330512      -0.24929966
  Fermi Energy [eV] :   -6.783789
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -26161,7 +26161,7 @@
   Core Hamiltonian energy:                                     12.82094846993669
   Hartree energy:                                              17.97454895508595
   Exchange-correlation energy:                                 -4.12721144290585
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54462008256190
 
   Total energy:                                               -17.16460451871686
@@ -26221,12 +26221,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16684991 Y=    1.90891279 Z=   -1.02109212     Total=      2.17127060
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90569553      -0.46823221      -0.32330302      -0.24929752
  Fermi Energy [eV] :   -6.783731
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -26469,7 +26469,7 @@
   Core Hamiltonian energy:                                     12.82118475015675
   Hartree energy:                                              17.97435941235935
   Exchange-correlation energy:                                 -4.12728509193066
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54506520682285
 
   Total energy:                                               -17.16463143010088
@@ -26529,12 +26529,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16651858 Y=    1.90890249 Z=   -1.02161496     Total=      2.17148204
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90574700      -0.46823327      -0.32334280      -0.24931133
  Fermi Energy [eV] :   -6.784106
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -26777,7 +26777,7 @@
   Core Hamiltonian energy:                                     12.82132973265565
   Hartree energy:                                              17.97427065211214
   Exchange-correlation energy:                                 -4.12732335829226
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54530730017107
 
   Total energy:                                               -17.16461347413670
@@ -26837,12 +26837,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16635903 Y=    1.90889013 Z=   -1.02188838     Total=      2.17158760
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90577030      -0.46823129      -0.32336037      -0.24931587
  Fermi Energy [eV] :   -6.784230
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -27085,7 +27085,7 @@
   Core Hamiltonian energy:                                     12.82138655342980
   Hartree energy:                                              17.97422279033758
   Exchange-correlation energy:                                 -4.12734162622361
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54541681676019
 
   Total energy:                                               -17.16462278303133
@@ -27145,12 +27145,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16627544 Y=    1.90888852 Z=   -1.02201748     Total=      2.17164054
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90578337      -0.46823175      -0.32337052      -0.24931952
  Fermi Energy [eV] :   -6.784329
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -27348,7 +27348,7 @@
   Core Hamiltonian energy:                                     12.82139717626357
   Hartree energy:                                              17.97419970554164
   Exchange-correlation energy:                                 -4.12735182326028
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54547888618420
 
   Total energy:                                               -17.16464544201157
@@ -27408,12 +27408,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16623872 Y=    1.90888777 Z=   -1.02209393     Total=      2.17167305
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90578885      -0.46823080      -0.32337500      -0.24932068
  Fermi Energy [eV] :   -6.784361
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -27626,7 +27626,7 @@
   Core Hamiltonian energy:                                     12.82144768271486
   Hartree energy:                                              17.97418750926681
   Exchange-correlation energy:                                 -4.12735602233785
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54550634098871
 
   Total energy:                                               -17.16461133090337
@@ -27686,12 +27686,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16621569 Y=    1.90888294 Z=   -1.02211977     Total=      2.17167920
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90579223      -0.46823118      -0.32337729      -0.24932136
  Fermi Energy [eV] :   -6.784379
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -27904,7 +27904,7 @@
   Core Hamiltonian energy:                                     12.82143257373502
   Hartree energy:                                              17.97418348410880
   Exchange-correlation energy:                                 -4.12735794172611
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54551819852735
 
   Total energy:                                               -17.16463238442483
@@ -27964,12 +27964,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16620425 Y=    1.90888469 Z=   -1.02213459     Total=      2.17168684
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90579415      -0.46823144      -0.32337870      -0.24932205
  Fermi Energy [eV] :   -6.784398
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -28208,7 +28208,7 @@
   Core Hamiltonian energy:                                     12.82145624221130
   Hartree energy:                                              17.97418318302654
   Exchange-correlation energy:                                 -4.12735815501678
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54551971991866
 
   Total energy:                                               -17.16460923032148
@@ -28268,12 +28268,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16620474 Y=    1.90888415 Z=   -1.02213532     Total=      2.17168674
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90579393      -0.46823125      -0.32337856      -0.24932186
  Fermi Energy [eV] :   -6.784393
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -28475,7 +28475,7 @@
   Core Hamiltonian energy:                                     12.82146815897334
   Hartree energy:                                              17.97418005836584
   Exchange-correlation energy:                                 -4.12735839745942
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54552082958247
 
   Total energy:                                               -17.16460068066278
@@ -28535,12 +28535,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16620402 Y=    1.90888131 Z=   -1.02213292     Total=      2.17168307
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90579382      -0.46823121      -0.32337838      -0.24932168
  Fermi Energy [eV] :   -6.784388
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -28690,7 +28690,7 @@
   Core Hamiltonian energy:                                     12.82231342074017
   Hartree energy:                                              17.97355238112557
   Exchange-correlation energy:                                 -4.12760723193534
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54705497377120
 
   Total energy:                                               -17.16463193011796
@@ -28750,12 +28750,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16642575 Y=    1.90865093 Z=   -1.02255065     Total=      2.17169421
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90592132      -0.46830126      -0.32342130      -0.24935036
  Fermi Energy [eV] :   -6.785168
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -28905,7 +28905,7 @@
   Core Hamiltonian energy:                                     12.82374894843944
   Hartree energy:                                              17.97253991668769
   Exchange-correlation energy:                                 -4.12801244816915
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54956550754499
 
   Total energy:                                               -17.16461408226613
@@ -28965,12 +28965,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16678795 Y=    1.90826425 Z=   -1.02323106     Total=      2.17170267
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90612511      -0.46841156      -0.32348759      -0.24939367
  Fermi Energy [eV] :   -6.786347
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -29139,7 +29139,7 @@
   Core Hamiltonian energy:                                     12.82233091079332
   Hartree energy:                                              17.97355870318691
   Exchange-correlation energy:                                 -4.12760862714856
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54707738129601
 
   Total energy:                                               -17.16460951321670
@@ -29199,12 +29199,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16642908 Y=    1.90863986 Z=   -1.02255574     Total=      2.17168714
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90591865      -0.46829854      -0.32341843      -0.24934762
  Fermi Energy [eV] :   -6.785094
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -29462,7 +29462,7 @@
   Core Hamiltonian energy:                                     12.82187240192427
   Hartree energy:                                              17.97386472673540
   Exchange-correlation energy:                                 -4.12748194532098
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54627114866646
 
   Total energy:                                               -17.16463531695820
@@ -29522,12 +29522,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16631324 Y=    1.90877738 Z=   -1.02234095     Total=      2.17169800
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90585947      -0.46826817      -0.32340204      -0.24933810
  Fermi Energy [eV] :   -6.784835
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -29770,7 +29770,7 @@
   Core Hamiltonian energy:                                     12.82179036365435
   Hartree energy:                                              17.97395678767446
   Exchange-correlation energy:                                 -4.12745182674554
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54610787290741
 
   Total energy:                                               -17.16459517577734
@@ -29830,12 +29830,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16629029 Y=    1.90879015 Z=   -1.02229622     Total=      2.17168641
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90583884      -0.46825486      -0.32339205      -0.24933014
  Fermi Energy [eV] :   -6.784618
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -30078,7 +30078,7 @@
   Core Hamiltonian energy:                                     12.82176933408556
   Hartree energy:                                              17.97394644419198
   Exchange-correlation energy:                                 -4.12745134851592
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54609365422449
 
   Total energy:                                               -17.16462607059717
@@ -30138,12 +30138,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16628711 Y=    1.90879767 Z=   -1.02229015     Total=      2.17168992
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90584173      -0.46825759      -0.32339469      -0.24933265
  Fermi Energy [eV] :   -6.784686
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -30375,7 +30375,7 @@
   Core Hamiltonian energy:                                     12.82175605771009
   Hartree energy:                                              17.97395116120773
   Exchange-correlation energy:                                 -4.12745148966159
-  Coulomb Electron-Electron Interaction Energy 
+  Coulomb Electron-Electron Interaction Energy
   - Already included in the total Hartree term                 17.54609586829395
 
   Total energy:                                               -17.16463477110439
@@ -30435,12 +30435,12 @@
   [Z] [    0.00000000     0.00000000    59.62601719 ] [k]
   Dipole moment [Debye]
     X=   -0.16629194 Y=    1.90878976 Z=   -1.02230030     Total=      2.17168811
-  
+
   Eigenvalues of the occupied subspace spin            1
  ---------------------------------------------
       -0.90584021      -0.46825617      -0.32339364      -0.24933184
  Fermi Energy [eV] :   -6.784664
-  
+
   Lowest eigenvalues of the unoccupied subspace spin            1
  ---------------------------------------------
 
@@ -30514,63 +30514,63 @@
  -                           R E F E R E N C E S                               -
  -                                                                             -
  -------------------------------------------------------------------------------
- 
+
  CP2K version 2.6.2, the CP2K developers group (2015).
  CP2K is freely available from http://www.cp2k.org/ .
 
- Borstnik, U; VandeVondele, J; Weber, V; Hutter, J. 
- PARALLEL COMPUTING, 40 (5-6), 47-58 (2014). 
+ Borstnik, U; VandeVondele, J; Weber, V; Hutter, J.
+ PARALLEL COMPUTING, 40 (5-6), 47-58 (2014).
  Sparse matrix multiplication: The distributed block-compressed sparse
  row library.
  http://dx.doi.org/10.1016/j.parco.2014.03.012
 
 
- Hutter, J; Iannuzzi, M; Schiffmann, F; VandeVondele, J. 
- WILEY INTERDISCIPLINARY REVIEWS-COMPUTATIONAL MOLECULAR SCIENCE, 4 (1), 15-25 (2014). 
+ Hutter, J; Iannuzzi, M; Schiffmann, F; VandeVondele, J.
+ WILEY INTERDISCIPLINARY REVIEWS-COMPUTATIONAL MOLECULAR SCIENCE, 4 (1), 15-25 (2014).
  CP2K: atomistic simulations of condensed matter systems.
  http://dx.doi.org/10.1002/wcms.1159
 
 
- Krack, M. 
- THEORETICAL CHEMISTRY ACCOUNTS, 114 (1-3), 145-152 (2005). 
+ Krack, M.
+ THEORETICAL CHEMISTRY ACCOUNTS, 114 (1-3), 145-152 (2005).
  Pseudopotentials for H to Kr optimized for gradient-corrected
  exchange-correlation functionals.
  http://dx.doi.org/10.1007/s00214-005-0655-y
 
 
  VandeVondele, J; Krack, M; Mohamed, F; Parrinello, M; Chassaing, T;
- Hutter, J. COMPUTER PHYSICS COMMUNICATIONS, 167 (2), 103-128 (2005). 
+ Hutter, J. COMPUTER PHYSICS COMMUNICATIONS, 167 (2), 103-128 (2005).
  QUICKSTEP: Fast and accurate density functional calculations using a
  mixed Gaussian and plane waves approach.
  http://dx.doi.org/10.1016/j.cpc.2004.12.014
 
 
- Frigo, M; Johnson, SG. 
- PROCEEDINGS OF THE IEEE, 93 (2), 216-231 (2005). 
+ Frigo, M; Johnson, SG.
+ PROCEEDINGS OF THE IEEE, 93 (2), 216-231 (2005).
  The design and implementation of FFTW3.
  http://dx.doi.org/10.1109/JPROC.2004.840301
 
 
- Kolafa, J. 
- JOURNAL OF COMPUTATIONAL CHEMISTRY, 25 (3), 335-342 (2004). 
+ Kolafa, J.
+ JOURNAL OF COMPUTATIONAL CHEMISTRY, 25 (3), 335-342 (2004).
  Time-reversible always stable predictor-corrector method for molecular dynamics of polarizable molecules.
  http://dx.doi.org/10.1002/jcc.10385
 
 
- Hartwigsen, C; Goedecker, S; Hutter, J. 
- PHYSICAL REVIEW B, 58 (7), 3641-3662 (1998). 
+ Hartwigsen, C; Goedecker, S; Hutter, J.
+ PHYSICAL REVIEW B, 58 (7), 3641-3662 (1998).
  Relativistic separable dual-space Gaussian pseudopotentials from H to Rn.
  http://dx.doi.org/10.1103/PhysRevB.58.3641
 
 
- Lippert, G; Hutter, J; Parrinello, M. 
- MOLECULAR PHYSICS, 92 (3), 477-487 (1997). 
+ Lippert, G; Hutter, J; Parrinello, M.
+ MOLECULAR PHYSICS, 92 (3), 477-487 (1997).
  A hybrid Gaussian and plane wave density functional scheme.
  http://dx.doi.org/10.1080/002689797170220
 
 
- Goedecker, S; Teter, M; Hutter, J. 
- PHYSICAL REVIEW B, 54 (3), 1703-1710 (1996). 
+ Goedecker, S; Teter, M; Hutter, J.
+ PHYSICAL REVIEW B, 54 (3), 1703-1710 (1996).
  Separable dual-space Gaussian pseudopotentials.
  http://dx.doi.org/10.1103/PhysRevB.54.1703
 

@@ -9,7 +9,10 @@ object Cp2kParserSpec extends Specification {
     }
   }
 
-  "test with json" >> {
+  "test energy_force with json" >> {
     ParserRun.parse(Cp2kParser, "parsers/cp2k/test/examples/energy_force/si_bulk8.out", "json") must_== ParseResult.ParseSuccess
+  }
+  "test geo_opt with json" >> {
+    ParserRun.parse(Cp2kParser, "parsers/cp2k/test/examples/geo_opt/H2O.out", "json") must_== ParseResult.ParseSuccess
   }
 }
