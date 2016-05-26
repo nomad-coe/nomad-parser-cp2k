@@ -25,6 +25,10 @@ def get_main_parser(version_id, run_type):
     parser_map = {
         "ENERGY": "SinglePointParser",
         "ENERGY_FORCE": "SinglePointParser",
+        "WAVEFUNCTION_OPTIMIZATION": "SinglePointParser",
+        "WFN_OPT": "SinglePointParser",
+        "GEO_OPT": "GeoOptParser",
+        "GEOMETRY_OPTIMIZATION": "GeoOptParser",
     }
     try:
         parser = parser_map[run_type]

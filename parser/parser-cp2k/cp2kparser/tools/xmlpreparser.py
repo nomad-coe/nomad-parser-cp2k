@@ -222,8 +222,8 @@ def generate_metainfo_recursively(obj, parent, container, name_stack):
 def generate_input_object_metainfo_json(child, parent, name_stack):
     path = ".".join(name_stack)
     json_obj = {}
-    json_obj["name"] = "x_cp2k_{}.{}".format(path, child.name)
-    json_obj["superNames"] = ["x_cp2k_{}".format(path)]
+    json_obj["name"] = "cp2k_{}.{}".format(path, child.name)
+    json_obj["superNames"] = ["cp2k_{}".format(path)]
 
     # Description
     description = child.description
@@ -259,9 +259,9 @@ def generate_section_metainfo_json(child, parent, name_stack):
     path = ".".join(name_stack[:-1])
     json_obj = {}
 
-    json_obj["name"] = "x_cp2k_{}".format(name)
+    json_obj["name"] = "cp2k_{}".format(name)
     json_obj["kindStr"] = "type_section"
-    json_obj["superNames"] = ["x_cp2k_{}".format(path)]
+    json_obj["superNames"] = ["cp2k_{}".format(path)]
 
     description = child.description
     if description is None or description.isspace():
@@ -275,13 +275,13 @@ def generate_section_metainfo_json(child, parent, name_stack):
 if __name__ == "__main__":
 
     # xml to pickle
-    xml_file = open("../versions/cp2k262/input_data/cp2k_input.xml", 'r')
-    object_tree = CP2KInput(generate_object_tree(xml_file))
-    file_name = "../versions/cp2k262/input_data/cp2k_input_tree.pickle"
-    fh = open(file_name, "wb")
-    pickle.dump(object_tree, fh, protocol=2)
+    # xml_file = open("../versions/cp2k262/input_data/cp2k_input.xml", 'r')
+    # object_tree = CP2KInput(generate_object_tree(xml_file))
+    # file_name = "../versions/cp2k262/input_data/cp2k_input_tree.pickle"
+    # fh = open(file_name, "wb")
+    # pickle.dump(object_tree, fh, protocol=2)
 
     # Metainfo generation
-    # xml_file = open("../versions/cp2k262/input_data/cp2k_input.xml", 'r')
-    # object_tree = CP2KInput(generate_object_tree(xml_file, for_metainfo=True))
-    # generate_input_metainfos(object_tree)
+    xml_file = open("../versions/cp2k262/input_data/cp2k_input.xml", 'r')
+    object_tree = CP2KInput(generate_object_tree(xml_file, for_metainfo=True))
+    generate_input_metainfos(object_tree)

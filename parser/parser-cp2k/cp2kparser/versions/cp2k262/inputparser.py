@@ -3,7 +3,7 @@ import re
 import logging
 import cPickle as pickle
 import numpy as np
-from nomadcore.baseclasses import BasicParser
+from nomadcore.baseclasses import BasicParser, CacheMode
 from cp2kparser.generic.inputparsing import *
 logger = logging.getLogger("nomad")
 
@@ -40,6 +40,9 @@ class CP2KInputParser(BasicParser):
         self.input_tree = None
         self.input_lines = None
         self.force_file_name = None
+
+        # Declare the cached values here
+        self.cache_service.add_cache_object("configuration_periodic_dimensions", CacheMode.SINGLE_IN_MULTI_OUT)
 
     def parse(self):
 
@@ -134,7 +137,7 @@ class CP2KInputParser(BasicParser):
         if periodicity is not None:
             periodicity = periodicity.upper()
             periodicity_list = ("X" in periodicity, "Y" in periodicity, "Z" in periodicity)
-            self.backend.addArrayValues("configuration_periodic_dimensions", np.asarray(periodicity_list))
+            self.cache_service["configuration_periodic_dimensions"] = np.asarray(periodicity_list)
         else:
             logger.warning("Could not determine cell periodicity from FORCE_EVAL/SUBSYS/CELL/PERIODIC")
 
@@ -143,7 +146,7 @@ class CP2KInputParser(BasicParser):
         # force_file = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
         force_file = self.force_file_name
         if force_file is not None and force_file != "__STD_OUT__":
-            force_file_path = self.normalize_cp2k_path(force_file, "xyz")
+            force_file_path = self.normalize_x_cp2k_path(force_file, "xyz")
             self.file_service.set_file_id(force_file_path, "force_file_single_point")
 
         #=======================================================================
@@ -160,7 +163,7 @@ class CP2KInputParser(BasicParser):
             if stress_tensor_method is not None:
                 self.backend.addValue("stress_tensor_method", stress_tensor_method)
 
-    def normalize_cp2k_path(self, path, extension, name=""):
+    def normalize_x_cp2k_path(self, path, extension, name=""):
         """The paths in CP2K input can be given in many ways. This function
         tries to normalize these forms into a valid path.
         """
@@ -179,7 +182,7 @@ class CP2KInputParser(BasicParser):
         """Parses a CP2K input file into an object tree.
 
         Return an object tree represenation of the input augmented with the
-        default values and lone keyword values from the cp2k_input.xml file
+        default values and lone keyword values from the x_cp2k_input.xml file
         which is version specific. Keyword aliases are also mapped to the same
         data.
 
@@ -315,7 +318,7 @@ class CP2KInputParser(BasicParser):
 
     def setup_version(self, version_number):
         """ The pickle file which contains preparsed data from the
-        cp2k_input.xml is version specific. By calling this function before
+        x_cp2k_input.xml is version specific. By calling this function before
         parsing the correct file can be found.
         """
         pickle_path = os.path.dirname(__file__) + "/input_data/cp2k_input_tree.pickle".format(version_number)
@@ -345,7 +348,6 @@ class CP2KInputParser(BasicParser):
                 filepath = os.path.abspath(filepath)
                 if not os.path.isfile(filepath):
                     logger.warning("Could not find the include file '{}' stated in the CP2K input file. Continuing without it.".format(filepath))
-                    print filepath
                     continue
 
                 # Get the content from include file

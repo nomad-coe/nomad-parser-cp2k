@@ -23,7 +23,7 @@
  CP2K| Program compiled at                           ke 4.11.2015 08.48.42 +0200
  CP2K| Program compiled on                                   lauri-Lenovo-Z50-70
  CP2K| Program compiled for                          Linux-x86-64-gfortran_basic
- CP2K| Input file name                                              Si_bulk8.inp
+ CP2K| Input file name                                              si_bulk8.inp
 
  GLOBAL| Force Environment number                                              1
  GLOBAL| Basis set file name                                        ../BASIS_SET
@@ -96,7 +96,7 @@
  [a.u.] -> [Hz]                                             6.57968392072181E+15
  [a.u.] -> [1/cm] (wave numbers)                            2.19474631370540E+05
  [a.u./Bohr**2] -> [1/cm]                                   5.14048714338585E+03
- 
+
 
  CELL_TOP| Volume [angstrom^3]:                                          160.165
  CELL_TOP| Vector a [angstrom     5.431     0.000     0.000    |a| =       5.431
@@ -172,7 +172,7 @@
  QS|                           4) grid level                                 5.6
  QS| Grid level progression factor:                                          3.0
  QS| Relative density cutoff [a.u.]:                                        30.0
- QS| Consistent realspace mapping and integration 
+ QS| Consistent realspace mapping and integration
  QS| Interaction thresholds: eps_pgf_orb:                                1.0E-05
  QS|                         eps_filter_matrix:                          0.0E+00
  QS|                         eps_core_charge:                            1.0E-12
@@ -669,57 +669,57 @@
  -                           R E F E R E N C E S                               -
  -                                                                             -
  -------------------------------------------------------------------------------
- 
+
  CP2K version 2.6.2, the CP2K developers group (2015).
  CP2K is freely available from http://www.cp2k.org/ .
 
- Borstnik, U; VandeVondele, J; Weber, V; Hutter, J. 
- PARALLEL COMPUTING, 40 (5-6), 47-58 (2014). 
+ Borstnik, U; VandeVondele, J; Weber, V; Hutter, J.
+ PARALLEL COMPUTING, 40 (5-6), 47-58 (2014).
  Sparse matrix multiplication: The distributed block-compressed sparse
  row library.
  http://dx.doi.org/10.1016/j.parco.2014.03.012
 
 
- Hutter, J; Iannuzzi, M; Schiffmann, F; VandeVondele, J. 
- WILEY INTERDISCIPLINARY REVIEWS-COMPUTATIONAL MOLECULAR SCIENCE, 4 (1), 15-25 (2014). 
+ Hutter, J; Iannuzzi, M; Schiffmann, F; VandeVondele, J.
+ WILEY INTERDISCIPLINARY REVIEWS-COMPUTATIONAL MOLECULAR SCIENCE, 4 (1), 15-25 (2014).
  CP2K: atomistic simulations of condensed matter systems.
  http://dx.doi.org/10.1002/wcms.1159
 
 
- Krack, M. 
- THEORETICAL CHEMISTRY ACCOUNTS, 114 (1-3), 145-152 (2005). 
+ Krack, M.
+ THEORETICAL CHEMISTRY ACCOUNTS, 114 (1-3), 145-152 (2005).
  Pseudopotentials for H to Kr optimized for gradient-corrected
  exchange-correlation functionals.
  http://dx.doi.org/10.1007/s00214-005-0655-y
 
 
  VandeVondele, J; Krack, M; Mohamed, F; Parrinello, M; Chassaing, T;
- Hutter, J. COMPUTER PHYSICS COMMUNICATIONS, 167 (2), 103-128 (2005). 
+ Hutter, J. COMPUTER PHYSICS COMMUNICATIONS, 167 (2), 103-128 (2005).
  QUICKSTEP: Fast and accurate density functional calculations using a
  mixed Gaussian and plane waves approach.
  http://dx.doi.org/10.1016/j.cpc.2004.12.014
 
 
- Frigo, M; Johnson, SG. 
- PROCEEDINGS OF THE IEEE, 93 (2), 216-231 (2005). 
+ Frigo, M; Johnson, SG.
+ PROCEEDINGS OF THE IEEE, 93 (2), 216-231 (2005).
  The design and implementation of FFTW3.
  http://dx.doi.org/10.1109/JPROC.2004.840301
 
 
- Hartwigsen, C; Goedecker, S; Hutter, J. 
- PHYSICAL REVIEW B, 58 (7), 3641-3662 (1998). 
+ Hartwigsen, C; Goedecker, S; Hutter, J.
+ PHYSICAL REVIEW B, 58 (7), 3641-3662 (1998).
  Relativistic separable dual-space Gaussian pseudopotentials from H to Rn.
  http://dx.doi.org/10.1103/PhysRevB.58.3641
 
 
- Lippert, G; Hutter, J; Parrinello, M. 
- MOLECULAR PHYSICS, 92 (3), 477-487 (1997). 
+ Lippert, G; Hutter, J; Parrinello, M.
+ MOLECULAR PHYSICS, 92 (3), 477-487 (1997).
  A hybrid Gaussian and plane wave density functional scheme.
  http://dx.doi.org/10.1080/002689797170220
 
 
- Goedecker, S; Teter, M; Hutter, J. 
- PHYSICAL REVIEW B, 54 (3), 1703-1710 (1996). 
+ Goedecker, S; Teter, M; Hutter, J.
+ PHYSICAL REVIEW B, 54 (3), 1703-1710 (1996).
  Separable dual-space Gaussian pseudopotentials.
  http://dx.doi.org/10.1103/PhysRevB.54.1703
 

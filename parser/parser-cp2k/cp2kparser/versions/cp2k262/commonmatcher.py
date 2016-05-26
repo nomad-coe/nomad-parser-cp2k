@@ -4,6 +4,7 @@ import logging
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.simple_parser import extractOnCloseTriggers
 from nomadcore.caching_backend import CachingLevel
+from nomadcore.baseclasses import CacheMode
 from inputparser import CP2KInputParser
 logger = logging.getLogger("nomad")
 
@@ -20,10 +21,18 @@ class CommonMatcher(object):
         # Repeating regex definitions
         self.parser_context = parser_context
         self.file_service = parser_context.file_service
+        self.cache_service = parser_context.cache_service
         self.regex_f = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
         self.regex_i = "-?\d+"  # Regex for an integer
+        self.regex_word = "[^\s]+"  # Regex for a single word. Can contain anything else but whitespace
+        self.section_method_index = None
+        self.section_system_index = None
+        self.forces = None
 
+        #=======================================================================
+        # Cache levels
         self.caching_levels = {
+            'x_cp2k_atoms': CachingLevel.ForwardAndCache,
             'section_XC_functionals': CachingLevel.ForwardAndCache,
             'self_interaction_correction_method': CachingLevel.Cache,
             'x_cp2k_section_md_coordinates': CachingLevel.Cache,
@@ -37,8 +46,16 @@ class CommonMatcher(object):
             'x_cp2k_md_force_atom_float': CachingLevel.Cache,
         }
 
+        #=======================================================================
+        # Cached values
+        self.cache_service.add_cache_object("simulation_cell", CacheMode.SINGLE_IN_MULTI_OUT)
+        self.cache_service.add_cache_object("number_of_scf_iterations", CacheMode.MULTI_IN_MULTI_OUT, 0)
+        self.cache_service.add_cache_object("atom_positions", CacheMode.MULTI_IN_MULTI_OUT)
+        self.cache_service.add_cache_object("atom_labels", CacheMode.SINGLE_IN_MULTI_OUT)
+        self.cache_service.add_cache_object("number_of_atoms", CacheMode.SINGLE_IN_MULTI_OUT)
+
     #===========================================================================
-    # SimpleMatcher trees
+    # SimpleMatchers
 
     # SimpleMatcher for the header that is common to all run types
     def header(self):
@@ -71,11 +88,11 @@ class CommonMatcher(object):
                     ]
                 ),
                 SM( " CELL\|",
-                    adHoc=self.adHoc_cp2k_section_cell(),
+                    adHoc=self.adHoc_x_cp2k_section_cell(),
                     otherMetaInfo=["simulation_cell"]
                 ),
                 SM( " DFT\|",
-                    otherMetaInfo=["XC_functional", "self_interaction_correction_method"],
+                    otherMetaInfo=["self_interaction_correction_method"],
                     forwardMatch=True,
                     subMatchers=[
                         SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regex_i)),
@@ -83,18 +100,103 @@ class CommonMatcher(object):
                         SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
                     ]
                 ),
-                SM( " TOTAL NUMBERS AND MAXIMUM NUMBERS",
+                SM( "  Total number of",
+                    forwardMatch=True,
                     sections=["x_cp2k_section_total_numbers"],
                     subMatchers=[
-                        SM( "\s+- Atoms:\s+(?P<number_of_atoms>\d+)"),
-                        SM( "\s+- Shell sets:\s+(?P<x_cp2k_shell_sets>\d+)")
+                        SM( "  Total number of            - Atomic kinds:\s+(?P<x_cp2k_atomic_kinds>\d+)"),
+                        SM( "\s+- Atoms:\s+(?P<x_cp2k_atoms>\d+)",
+                            otherMetaInfo=["number_of_atoms"],
+                        ),
+                        SM( "\s+- Shell sets:\s+(?P<x_cp2k_shell_sets>\d+)"),
+                        SM( "\s+- Shells:\s+(?P<x_cp2k_shells>\d+)"),
+                        SM( "\s+- Primitive Cartesian functions:\s+(?P<x_cp2k_primitive_cartesian_functions>\d+)"),
+                        SM( "\s+- Cartesian basis functions:\s+(?P<x_cp2k_cartesian_basis_functions>\d+)"),
+                        SM( "\s+- Spherical basis functions:\s+(?P<x_cp2k_spherical_basis_functions>\d+)"),
+                    ]
+                ),
+                SM( " Maximum angular momentum of",
+                    forwardMatch=True,
+                    sections=["x_cp2k_section_maximum_angular_momentum"],
+                    subMatchers=[
+                        SM( "  Maximum angular momentum of- Orbital basis functions::\s+(?P<x_cp2k_orbital_basis_functions>\d+)"),
+                        SM( "\s+- Local part of the GTH pseudopotential:\s+(?P<x_cp2k_local_part_of_gth_pseudopotential>\d+)"),
+                        SM( "\s+- Non-local part of the GTH pseudopotential:\s+(?P<x_cp2k_non_local_part_of_gth_pseudopotential>\d+)"),
                     ]
                 )
             ]
         )
 
+    # SimpleMatcher for an SCF wavefunction optimization
+    def scf(self):
+        return SM( " SCF WAVEFUNCTION OPTIMIZATION",
+            subMatchers=[
+                SM( r"  Trace\(PS\):",
+                    sections=["section_scf_iteration"],
+                    repeats=True,
+                    subMatchers=[
+                        SM( r"  Exchange-correlation energy:\s+(?P<energy_XC_scf_iteration__hartree>{})".format(self.regex_f)),
+                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<energy_total_scf_iteration__hartree>{0})\s+(?P<energy_change_scf_iteration__hartree>{0})".format(self.regex_f)),
+                    ]
+                ),
+                SM( r"  \*\*\* SCF run converged in\s+(\d+) steps \*\*\*",
+                    otherMetaInfo=["single_configuration_calculation_converged"],
+                    adHoc=self.adHoc_single_point_converged()
+                ),
+                SM( r"  \*\*\* SCF run NOT converged \*\*\*",
+                    otherMetaInfo=["single_configuration_calculation_converged"],
+                    adHoc=self.adHoc_single_point_not_converged()
+                ),
+                SM( r"  Electronic kinetic energy:\s+(?P<electronic_kinetic_energy__hartree>{})".format(self.regex_f)),
+                SM( r" **************************** NUMERICAL STRESS ********************************".replace("*", "\*"),
+                    adHoc=self.adHoc_stress_calculation(),
+                ),
+                SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<energy_total__hartree>{0})".format(self.regex_f)),
+                SM( r" ATOMIC FORCES in \[a\.u\.\]"),
+                SM( r" # Atom   Kind   Element          X              Y              Z",
+                    adHoc=self.adHoc_atom_forces(),
+                    otherMetaInfo=["atom_forces"],
+                ),
+                SM( r" (?:NUMERICAL )?STRESS TENSOR \[GPa\]",
+                    sections=["section_stress_tensor"],
+                    otherMetaInfo=["stress_tensor"],
+                    subMatchers=[
+                        SM( r"\s+X\s+Y\s+Z",
+                            adHoc=self.adHoc_stress_tensor()
+                        ),
+                        SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.regex_f)),
+                        SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.regex_f)),
+                        SM( " EIGENVECTORS AND EIGENVALUES OF THE STRESS TENSOR",
+                            adHoc=self.adHoc_stress_tensor_eigenpairs()),
+                    ]
+                )
+            ]
+        )
+
+    # SimpleMatcher for an SCF wavefunction optimization
+    def quickstep(self):
+        return SM(
+            " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
+            forwardMatch=True,
+            subMatchers=[
+                SM( " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
+                    adHoc=self.adHoc_x_cp2k_section_quickstep_atom_information(),
+                    otherMetaInfo=["atom_labels", "atom_positions"]
+                )
+            ]
+        )
+
     #===========================================================================
-    # Section close triggers
+    # onClose triggers
+    def onClose_section_scf_iteration(self, backend, gIndex, section):
+        """Keep track of how many SCF iteration are made."""
+        self.cache_service["number_of_scf_iterations"] += 1
+
+    def onClose_x_cp2k_section_total_numbers(self, backend, gIndex, section):
+        """Keep track of how many SCF iteration are made."""
+        number_of_atoms = section["x_cp2k_atoms"][0]
+        self.cache_service["number_of_atoms"] = number_of_atoms
+
     def onClose_section_run(self, backend, gIndex, section):
         """Information that is pushed regardless at the end of parsing.
         Contains also information that is totally agnostic on the calculation
@@ -107,6 +209,8 @@ class CommonMatcher(object):
         with the nomad correspondents and combines into one single string which
         is put into the backend.
         """
+        self.section_method_index = gIndex
+
         # Transform the CP2K self-interaction correction string to the NOMAD
         # correspondent, and push directly to the superBackend to avoid caching
         try:
@@ -138,9 +242,33 @@ class CommonMatcher(object):
         else:
             logger.warning("The input file of the calculation could not be found.")
 
+    def onClose_section_system(self, backend, gIndex, section):
+        """Stores the index of the section method. Should always be 0, but
+        let's get it dynamically just in case there's something wrong.
+        """
+        self.section_system_index = gIndex
+        if self.forces is not None:
+            backend.addArrayValues("atom_forces", self.forces, unit="forceAu")
+        self.forces = None
+        self.cache_service.push_value("number_of_atoms")
+        self.cache_service.push_array_values("simulation_cell", unit="angstrom")
+        self.cache_service.push_array_values("configuration_periodic_dimensions")
+        self.cache_service.push_array_values("atom_positions", unit="angstrom")
+        self.cache_service.push_array_values("atom_labels")
+
+    def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
+        """
+        """
+        self.cache_service.push_value("number_of_scf_iterations")
+        self.cache_service["number_of_scf_iterations"] = 0
+
+        # Write the references to section_method and section_system
+        backend.addValue('single_configuration_to_calculation_method_ref', self.section_method_index)
+        backend.addValue('single_configuration_calculation_to_system_ref', self.section_system_index)
+
     #===========================================================================
-    # Ad hoc parsing
-    def adHoc_cp2k_section_cell(self):
+    # adHoc functions
+    def adHoc_x_cp2k_section_cell(self):
         """Used to extract the cell information.
         """
         def wrapper(parser):
@@ -162,10 +290,133 @@ class CommonMatcher(object):
             cell[1, :] = [float(x) for x in b_result.groups()]
             cell[2, :] = [float(x) for x in c_result.groups()]
 
-            # Push the results to the correct section
-            parser.backend.addArrayValues("simulation_cell", cell, unit="angstrom")
+            # Push the results to cache
+            self.cache_service["simulation_cell"] = cell
         return wrapper
 
+    def adHoc_atom_forces(self):
+        """Used to extract the final atomic forces printed at the end of a
+        calculation.
+        """
+        def wrapper(parser):
+
+            end_str = " SUM OF ATOMIC FORCES"
+            end = False
+            force_array = []
+
+            # Loop through coordinates until the sum of forces is read
+            while not end:
+                line = parser.fIn.readline()
+                if line.startswith(end_str):
+                    end = True
+                else:
+                    forces = line.split()[-3:]
+                    forces = [float(x) for x in forces]
+                    force_array.append(forces)
+            force_array = np.array(force_array)
+
+            # If anything found, push the results to the correct section
+            if len(force_array) != 0:
+                self.forces = force_array
+
+        return wrapper
+
+    def adHoc_stress_tensor(self):
+        """Used to extract the stress tensor printed at the end of a
+        calculation.
+        """
+        def wrapper(parser):
+            row1 = [float(x) for x in parser.fIn.readline().split()[-3:]]
+            row2 = [float(x) for x in parser.fIn.readline().split()[-3:]]
+            row3 = [float(x) for x in parser.fIn.readline().split()[-3:]]
+            stress_array = np.array([row1, row2, row3])
+            parser.backend.addArrayValues("stress_tensor", stress_array, unit="GPa")
+
+        return wrapper
+
+    def adHoc_stress_calculation(self):
+        """Used to skip over the stress tensor calculation details.
+        """
+        def wrapper(parser):
+            end_line = " **************************** NUMERICAL STRESS END *****************************\n"
+            finished = False
+            while not finished:
+                line = parser.fIn.readline()
+                if line == end_line:
+                    finished = True
+        return wrapper
+
+    def adHoc_stress_tensor_eigenpairs(self):
+        """Parses the stress tensor eigenpairs.
+        """
+        def wrapper(parser):
+            parser.fIn.readline()
+            eigenvalues = np.array([float(x) for x in parser.fIn.readline().split()][::-1])
+            parser.fIn.readline()
+            row1 = [float(x) for x in parser.fIn.readline().split()]
+            row2 = [float(x) for x in parser.fIn.readline().split()]
+            row3 = [float(x) for x in parser.fIn.readline().split()]
+            eigenvectors = np.fliplr(np.array([row1, row2, row3]))
+            parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvalues", eigenvalues, unit="GPa")
+            parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvectors", eigenvectors)
+        return wrapper
+
+    def adHoc_single_point_converged(self):
+        """Called when the SCF cycle of a single point calculation has converged.
+        """
+        def wrapper(parser):
+            parser.backend.addValue("single_configuration_calculation_converged", True)
+        return wrapper
+
+    def adHoc_single_point_not_converged(self):
+        """Called when the SCF cycle of a single point calculation did not converge.
+        """
+        def wrapper(parser):
+            parser.backend.addValue("single_configuration_calculation_converged", False)
+        return wrapper
+
+    def adHoc_x_cp2k_section_quickstep_atom_information(self):
+        """Used to extract the initial atomic coordinates and names in the
+        Quickstep module.
+        """
+        def wrapper(parser):
+
+            # Define the regex that extracts the information
+            regex_string = r"\s+\d+\s+\d+\s+(\w+)\s+\d+\s+({0})\s+({0})\s+({0})".format(self.regex_f)
+            regex_compiled = re.compile(regex_string)
+
+            match = True
+            coordinates = []
+            labels = []
+
+            # Currently these three lines are not processed
+            parser.fIn.readline()
+            parser.fIn.readline()
+            parser.fIn.readline()
+
+            while match:
+                line = parser.fIn.readline()
+                result = regex_compiled.match(line)
+
+                if result:
+                    match = True
+                    label = result.groups()[0]
+                    labels.append(label)
+                    coordinate = [float(x) for x in result.groups()[1:]]
+                    coordinates.append(coordinate)
+                else:
+                    match = False
+            coordinates = np.array(coordinates)
+            labels = np.array(labels)
+
+            # If anything found, push the results to the correct section
+            if len(coordinates) != 0:
+                self.cache_service["atom_positions"] = coordinates
+                self.cache_service["atom_labels"] = labels
+
+        return wrapper
+
+    #===========================================================================
     def getOnCloseTriggers(self):
         """
         Returns:
