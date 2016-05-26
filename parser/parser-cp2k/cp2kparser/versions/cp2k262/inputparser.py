@@ -3,7 +3,7 @@ import re
 import logging
 import cPickle as pickle
 import numpy as np
-from nomadcore.baseclasses import BasicParser, CacheMode
+from nomadcore.baseclasses import BasicParser
 from cp2kparser.generic.inputparsing import *
 logger = logging.getLogger("nomad")
 
@@ -40,9 +40,11 @@ class CP2KInputParser(BasicParser):
         self.input_tree = None
         self.input_lines = None
         self.force_file_name = None
+        self.trajectory_file_name = ""
 
-        # Declare the cached values here
-        self.cache_service.add_cache_object("configuration_periodic_dimensions", CacheMode.SINGLE_IN_MULTI_OUT)
+        #=======================================================================
+        # Cached values
+        self.cache_service.add_cache_object("configuration_periodic_dimensions", single=False, update=False)
 
     def parse(self):
 
@@ -143,11 +145,11 @@ class CP2KInputParser(BasicParser):
 
         #=======================================================================
         # Single point force file name
-        # force_file = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
-        force_file = self.force_file_name
-        if force_file is not None and force_file != "__STD_OUT__":
-            force_file_path = self.normalize_x_cp2k_path(force_file, "xyz")
-            self.file_service.set_file_id(force_file_path, "force_file_single_point")
+        self.setup_force_file_name()
+
+        #=======================================================================
+        # Trajectory file name
+        self.setup_trajectory_file_name()
 
         #=======================================================================
         # Stress tensor calculation method
@@ -163,20 +165,39 @@ class CP2KInputParser(BasicParser):
             if stress_tensor_method is not None:
                 self.backend.addValue("stress_tensor_method", stress_tensor_method)
 
-    def normalize_x_cp2k_path(self, path, extension, name=""):
+    def normalize_x_cp2k_path(self, path):
         """The paths in CP2K input can be given in many ways. This function
         tries to normalize these forms into a valid path.
         """
-        if name:
-            name = "-" + name
-        project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
+        # Path is exactly as given
         if path.startswith("="):
             normalized_path = path[1:]
+        # Path is relative, no project name added
         elif re.match(r"./", path):
-            normalized_path = "{}{}-1_0.{}".format(path, name, extension)
+            normalized_path = path
+        # Path is relative, project name added
         else:
-            normalized_path = "{}-{}{}-1_0.{}".format(project_name, path, name, extension)
+            project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
+            normalized_path = "{}-{}".format(project_name, path)
         return normalized_path
+
+    def setup_force_file_name(self):
+        """Setup the force file path.
+        """
+        force_file = self.force_file_name
+        extension = "xyz"
+        if force_file is not None and force_file != "__STD_OUT__":
+            normalized_path = self.normalize_x_cp2k_path(self.force_file_name)
+            final_path = "{}-1_0.{}".format(normalized_path, extension)
+            self.file_service.set_file_id(final_path, "force_file_single_point")
+
+    def setup_trajectory_file_name(self):
+        """Setup the trajectory file path.
+        """
+        extension = "xyz"
+        normalized_path = self.normalize_x_cp2k_path(self.trajectory_file_name)
+        final_path = "{}pos-1.{}".format(normalized_path, extension)
+        self.file_service.set_file_id(final_path, "trajectory")
 
     def fill_input_tree(self, file_path):
         """Parses a CP2K input file into an object tree.
@@ -256,6 +277,9 @@ class CP2KInputParser(BasicParser):
                 if path == "FORCE_EVAL/PRINT/FORCES":
                     if keyword_name == "FILENAME":
                         self.force_file_name = keyword_value
+                if path == "MOTION/PRINT/TRAJECTORY":
+                    if keyword_name == "FILENAME":
+                        self.trajectory_file_name = keyword_value
 
     def fill_metadata(self):
         """Goes through the input data and pushes everything to the

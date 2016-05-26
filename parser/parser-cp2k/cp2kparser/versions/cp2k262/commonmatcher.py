@@ -4,7 +4,6 @@ import logging
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.simple_parser import extractOnCloseTriggers
 from nomadcore.caching_backend import CachingLevel
-from nomadcore.baseclasses import CacheMode
 from inputparser import CP2KInputParser
 logger = logging.getLogger("nomad")
 
@@ -48,11 +47,11 @@ class CommonMatcher(object):
 
         #=======================================================================
         # Cached values
-        self.cache_service.add_cache_object("simulation_cell", CacheMode.SINGLE_IN_MULTI_OUT)
-        self.cache_service.add_cache_object("number_of_scf_iterations", CacheMode.MULTI_IN_MULTI_OUT, 0)
-        self.cache_service.add_cache_object("atom_positions", CacheMode.MULTI_IN_MULTI_OUT)
-        self.cache_service.add_cache_object("atom_labels", CacheMode.SINGLE_IN_MULTI_OUT)
-        self.cache_service.add_cache_object("number_of_atoms", CacheMode.SINGLE_IN_MULTI_OUT)
+        self.cache_service.add_cache_object("simulation_cell", single=False, update=False)
+        self.cache_service.add_cache_object("number_of_scf_iterations", 0)
+        self.cache_service.add_cache_object("atom_positions", single=False, update=True)
+        self.cache_service.add_cache_object("atom_labels", single=False, update=False)
+        self.cache_service.add_cache_object("number_of_atoms", single=False, update=False)
 
     #===========================================================================
     # SimpleMatchers
@@ -259,9 +258,6 @@ class CommonMatcher(object):
     def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
         """
         """
-        self.cache_service.push_value("number_of_scf_iterations")
-        self.cache_service["number_of_scf_iterations"] = 0
-
         # Write the references to section_method and section_system
         backend.addValue('single_configuration_to_calculation_method_ref', self.section_method_index)
         backend.addValue('single_configuration_calculation_to_system_ref', self.section_system_index)

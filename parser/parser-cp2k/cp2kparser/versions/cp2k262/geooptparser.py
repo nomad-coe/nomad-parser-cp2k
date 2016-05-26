@@ -1,8 +1,9 @@
 from nomadcore.simple_parser import SimpleMatcher as SM
-from nomadcore.baseclasses import MainHierarchicalParser, CacheMode
+from nomadcore.baseclasses import MainHierarchicalParser
 from commonmatcher import CommonMatcher
 from nomadcore.caching_backend import CachingLevel
 import logging
+import ase.io
 logger = logging.getLogger("nomad")
 
 
@@ -16,11 +17,12 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         """
         super(CP2KGeoOptParser, self).__init__(file_path, parser_context)
         self.setup_common_matcher(CommonMatcher(parser_context))
+        self.traj_iterator = None
 
         #=======================================================================
         # Cached values
-        self.cache_service.add_cache_object("number_of_frames_in_sequence", CacheMode.MULTI_IN_MULTI_OUT, 0)
-        self.cache_service.add_cache_object("frame_sequence_potential_energy", CacheMode.MULTI_IN_MULTI_OUT, [])
+        self.cache_service.add_cache_object("number_of_frames_in_sequence", 0, single=True, update=True)
+        self.cache_service.add_cache_object("frame_sequence_potential_energy", [], single=True, update=True)
 
         #=======================================================================
         # Cache levels
@@ -34,7 +36,8 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             " ***                     STARTING GEOMETRY OPTIMIZATION                      ***".replace("*", "\*"),
             sections=["section_frame_sequence", "section_sampling_method"],
             subMatchers=[
-                SM( " REQUESTED STRUCTURE DATA",
+                SM( " --------  Informations at step =\s+{}\s+------------".format(self.cm.regex_i),
+                    forwardMatch=True,
                     name="geooptstep",
                     repeats=True,
                     sections=["section_single_configuration_calculation", "section_system"],
@@ -78,7 +81,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     subMatchers=[
                         self.cm.header(),
                         self.cm.quickstep(),
-                    ]
+                    ],
                 ),
                 self.geo_opt
             ]
@@ -93,6 +96,15 @@ class CP2KGeoOptParser(MainHierarchicalParser):
     def onClose_x_cp2k_section_geometry_optimization_information(self, backend, gIndex, section):
         energy = section["x_cp2k_optimization_energy"][0]
         self.cache_service["frame_sequence_potential_energy"].append(energy)
+
+    def onClose_section_method(self, backend, gIndex, section):
+        traj_file = self.file_service.get_file_by_id("trajectory")
+        try:
+            if traj_file is not None:
+                self.traj_iterator = ase.io.iread(traj_file)
+        except ValueError:
+            # The format was not supported by ase
+            pass
 
     #===========================================================================
     # adHoc functions
@@ -111,8 +123,26 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         return wrapper
 
     def adHoc_step(self):
-        """Called when the geometry optimization did not converge.
+        """Called when all the step information has been retrieved from the
+        output file. Here further information is gathered from external files.
         """
         def wrapper(parser):
             self.cache_service["number_of_frames_in_sequence"] += 1
+
+            # Get the next position from the trajectory file
+            if self.traj_iterator is not None:
+                atoms = next(self.traj_iterator)
+                pos = atoms.positions
+                self.cache_service["atom_positions"] = pos
+
+        return wrapper
+
+    def adHoc_setup_traj_file(self):
+        def wrapper(parser):
+            print "HERE"
+        return wrapper
+
+    def debug(self):
+        def wrapper(parser):
+            print "FOUND"
         return wrapper

@@ -47,5 +47,11 @@ class CP2KSinglePointParser(MainHierarchicalParser):
             else:
                 logger.warning("The file containing the forces printed by ENERGY_FORCE calculation could not be found.")
 
+        # Only in the single configuration calculations the number of scf
+        # iterations is given. E.g. in geometry optimization there are multiple
+        # scf calculations so this loses it's meaning sort of.
+        self.cache_service.push_value("number_of_scf_iterations")
+        self.cache_service["number_of_scf_iterations"] = 0
+
     #===========================================================================
     # adHoc functions
