@@ -77,7 +77,15 @@ class CommonMatcher(object):
                 ),
                 SM( r" CP2K\| Input file name\s+(?P<x_cp2k_input_filename>.+$)",
                     sections=['x_cp2k_section_filenames'],
-                    otherMetaInfo=['section_XC_functionals', 'XC_functional_name', 'XC_functional_weight', 'XC_functional', 'configuration_periodic_dimensions', "stress_tensor_method"],
+                    otherMetaInfo=[
+                        "section_XC_functionals",
+                        'XC_functional_name',
+                        'XC_functional_weight',
+                        'XC_functional',
+                        'configuration_periodic_dimensions',
+                        "stress_tensor_method",
+                        "atom_positions",
+                    ],
                     subMatchers=[
                         SM( r" GLOBAL\| Basis set file name\s+(?P<x_cp2k_basis_set_filename>.+$)"),
                         SM( r" GLOBAL\| Geminal file name\s+(?P<x_cp2k_geminal_filename>.+$)"),
@@ -423,15 +431,3 @@ class CommonMatcher(object):
         for attr, callback in extractOnCloseTriggers(self).items():
             onClose[attr] = [callback]
         return onClose
-
-    #===========================================================================
-    def onclosecatcher(func):
-        """Used to catch exceptions in onClose
-        """
-        def dec():
-            try:
-                func()
-            except Exception, e:
-                print 'Decorator handled exception %s' % e
-                raise e
-        return dec

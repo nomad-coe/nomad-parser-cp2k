@@ -1,7 +1,8 @@
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser
 from commonmatcher import CommonMatcher
-from cp2kparser.generic.configurationreading import iread
+import cp2kparser.generic.configurationreading
+import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
 import logging
 import ase.io
@@ -22,8 +23,8 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
         #=======================================================================
         # Cached values
-        self.cache_service.add_cache_object("number_of_frames_in_sequence", 0, single=True, update=True)
-        self.cache_service.add_cache_object("frame_sequence_potential_energy", [], single=True, update=True)
+        self.cache_service.add_cache_object("number_of_frames_in_sequence", 0)
+        self.cache_service.add_cache_object("frame_sequence_potential_energy", [])
 
         #=======================================================================
         # Cache levels
@@ -50,19 +51,28 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     subMatchers=[
                         SM( " --------  Informations at step",
                             sections=["x_cp2k_section_geometry_optimization_information"],
+                            otherMetaInfo=[
+                                "atom_positions",
+                            ],
                             subMatchers=[
                                 SM( "  Optimization Method        =\s+(?P<x_cp2k_optimization_method>{})".format(self.cm.regex_word)),
-                                SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.cm.regex_f)),
+                                SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.cm.regex_f),
+                                    otherMetaInfo=["frame_sequence_potential_energy"]
+                                ),
                                 SM( "  Real energy change         =\s+(?P<x_cp2k_optimization_energy_change__hartree>{})".format(self.cm.regex_f)),
                                 SM( "  Decrease in energy         =\s+(?P<x_cp2k_optimization_energy_decrease>{})".format(self.cm.regex_word)),
                                 SM( "  Used time                  =\s+(?P<x_cp2k_optimization_used_time>{})".format(self.cm.regex_f)),
                                 SM( "  Max. step size             =\s+(?P<x_cp2k_optimization_max_step_size__bohr>{})".format(self.cm.regex_f)),
-                                SM( "  Conv. limit for step size  =\s+(?P<x_cp2k_optimization_step_size_convergence_limit__bohr>{})".format(self.cm.regex_f)),
+                                SM( "  Conv. limit for step size  =\s+(?P<x_cp2k_optimization_step_size_convergence_limit__bohr>{})".format(self.cm.regex_f),
+                                    otherMetaInfo=["geometry_optimization_geometry_change"]
+                                ),
                                 SM( "  Convergence in step size   =\s+(?P<x_cp2k_optimization_step_size_convergence>{})".format(self.cm.regex_word)),
                                 SM( "  RMS step size              =\s+(?P<x_cp2k_optimization_rms_step_size__bohr>{})".format(self.cm.regex_f)),
                                 SM( "  Convergence in RMS step    =\s+(?P<x_cp2k_optimization_rms_step_size_convergence>{})".format(self.cm.regex_word)),
                                 SM( "  Max. gradient              =\s+(?P<x_cp2k_optimization_max_gradient__bohr_1hartree>{})".format(self.cm.regex_f)),
-                                SM( "  Conv. limit for gradients  =\s+(?P<x_cp2k_optimization_gradient_convergence_limit__bohr_1hartree>{})".format(self.cm.regex_f)),
+                                SM( "  Conv. limit for gradients  =\s+(?P<x_cp2k_optimization_gradient_convergence_limit__bohr_1hartree>{})".format(self.cm.regex_f),
+                                    otherMetaInfo=["geometry_optimization_threshold_force"]
+                                ),
                                 SM( "  Conv. for gradients        =\s+(?P<x_cp2k_optimization_max_gradient_convergence>{})".format(self.cm.regex_word)),
                                 SM( "  RMS gradient               =\s+(?P<x_cp2k_optimization_rms_gradient__bohr_1hartree>{})".format(self.cm.regex_f)),
                                 SM( "  Conv. in RMS gradients     =\s+(?P<x_cp2k_optimization_rms_gradient_convergence>{})".format(self.cm.regex_word)),
@@ -72,7 +82,9 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     ]
                 ),
                 SM( " ***                    GEOMETRY OPTIMIZATION COMPLETED                      ***".replace("*", "\*"),
-                    adHoc=self.adHoc_geo_opt_converged())
+                    adHoc=self.adHoc_geo_opt_converged(),
+                    otherMetaInfo=["geometry_optimization_converged"]
+                ),
             ],
         )
 
@@ -120,12 +132,17 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
     def onClose_section_method(self, backend, gIndex, section):
         traj_file = self.file_service.get_file_by_id("trajectory")
-        if traj_file is not None:
-            try:
-                self.traj_iterator = iread(traj_file)
-            except ValueError:
-                # The format was not supported by ase
-                pass
+        traj_format = self.cache_service["trajectory_format"]
+        if traj_format is not None and traj_file is not None:
+
+            # Use special parsing for CP2K pdb files because they don't follow the proper syntax
+            if traj_format == "PDB":
+                self.traj_iterator = cp2kparser.generic.csvparsing.iread(traj_file, columns=[3, 4, 5], start="CRYST", end="END")
+            else:
+                try:
+                    self.traj_iterator = cp2kparser.generic.configurationreading.iread(traj_file)
+                except ValueError:
+                    pass
 
     #===========================================================================
     # adHoc functions
@@ -159,14 +176,20 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
             # Get the next position from the trajectory file
             if self.traj_iterator is not None:
-                pos = next(self.traj_iterator)
-                self.cache_service["atom_positions"] = pos
+                # pos = next(self.traj_iterator)
+                # self.cache_service["atom_positions"] = pos
+                try:
+                    pos = next(self.traj_iterator)
+                except StopIteration:
+                    logger.error("Could not get the next geometries from an external file. It seems that the number of optimization steps in the CP2K outpufile doesn't match the number of steps found in the external trajectory file.")
+                else:
+                    self.cache_service["atom_positions"] = pos
 
         return wrapper
 
     def adHoc_setup_traj_file(self):
         def wrapper(parser):
-            print "HERE"
+            pass
         return wrapper
 
     def debug(self):

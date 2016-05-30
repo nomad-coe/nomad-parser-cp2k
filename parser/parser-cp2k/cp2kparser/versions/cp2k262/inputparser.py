@@ -41,10 +41,12 @@ class CP2KInputParser(BasicParser):
         self.input_lines = None
         self.force_file_name = None
         self.trajectory_file_name = ""
+        self.trajectory_format = "XMOL"
 
         #=======================================================================
         # Cached values
         self.cache_service.add_cache_object("configuration_periodic_dimensions", single=False, update=False)
+        self.cache_service.add_cache_object("trajectory_format")
 
     def parse(self):
 
@@ -178,7 +180,10 @@ class CP2KInputParser(BasicParser):
         # Path is relative, project name added
         else:
             project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
-            normalized_path = "{}-{}".format(project_name, path)
+            if path:
+                normalized_path = "{}-{}".format(project_name, path)
+            else:
+                normalized_path = project_name
         return normalized_path
 
     def setup_force_file_name(self):
@@ -194,9 +199,21 @@ class CP2KInputParser(BasicParser):
     def setup_trajectory_file_name(self):
         """Setup the trajectory file path.
         """
-        extension = "xyz"
+        traj_format = self.trajectory_format.upper()
+        self.cache_service["trajectory_format"] = traj_format
+        extension_map = {
+            "XYZ": "xyz",
+            "XMOL": "xyz",
+            "ATOMIC": "xyz",
+            "PDB": "pdb",
+            "DCD": "dcd",
+        }
+        extension = extension_map.get(traj_format)
+        if extension is None:
+            logger.error("Unknown file format '{}' for CP2K trajectory file ".format(traj_format))
+            return
         normalized_path = self.normalize_x_cp2k_path(self.trajectory_file_name)
-        final_path = "{}pos-1.{}".format(normalized_path, extension)
+        final_path = "{}-pos-1.{}".format(normalized_path, extension)
         self.file_service.set_file_id(final_path, "trajectory")
 
     def fill_input_tree(self, file_path):
@@ -280,6 +297,9 @@ class CP2KInputParser(BasicParser):
                 if path == "MOTION/PRINT/TRAJECTORY":
                     if keyword_name == "FILENAME":
                         self.trajectory_file_name = keyword_value
+                if path == "MOTION/PRINT/TRAJECTORY":
+                    if keyword_name == "FORMAT":
+                        self.trajectory_format = keyword_value
 
     def fill_metadata(self):
         """Goes through the input data and pushes everything to the
