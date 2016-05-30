@@ -423,3 +423,15 @@ class CommonMatcher(object):
         for attr, callback in extractOnCloseTriggers(self).items():
             onClose[attr] = [callback]
         return onClose
+
+    #===========================================================================
+    def onclosecatcher(func):
+        """Used to catch exceptions in onClose
+        """
+        def dec():
+            try:
+                func()
+            except Exception, e:
+                print 'Decorator handled exception %s' % e
+                raise e
+        return dec
