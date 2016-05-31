@@ -8,32 +8,79 @@ logger = logging.getLogger("nomad")
 
 
 #===============================================================================
-def iread(filename, index=None, file_format=None):
-    """
-    """
-    # Test if ASE can open the file
-    ase_failed = False
-    if file_format is None:
-        file_format = ase.io.formats.filetype(filename)
-    try:
-        io = ase.io.formats.get_ioformat(file_format)
-    except ValueError:
-        ase_failed = True
-    else:
-        # Return the positions in a numpy array instead of an ASE Atoms object
-        generator = ase.io.iread(filename, index, file_format)
-        for atoms in generator:
-            pos = atoms.positions
-            yield pos
+def iread(filename, file_format=None):
+    """Generator function that is used to read an atomic configuration file (MD
+    trajectory, geometry optimization, static snapshot) from a file one frame
+    at a time. Only the xyz positions are returned from the file, and no unit
+    conversion is done, so you have to be careful with units.
 
-    if ase_failed:
-        if file_format == "dcd":
-            with mdtraj.formats.DCDTrajectoryFile(filename, mode="r") as f:
+    By using a generator pattern we can avoid loading the entire trajectory
+    file into memory. This function will instead load a chunk of the file into
+    memory (with MDTraj you can decide the chunk size, with ASE it seems to
+    always be one frame), and serve individual files from that chunk. Once the
+    frames in one chunk are iterated, the chunk will be garbage collected and
+    memory is freed.
+
+    Args:
+        filename: String for the file path.
+        file_format: String for the file format. If not given the format is
+            automatically detected from the extension.
+
+    Yields:
+        numpy array containing the atomic positions in one frame.
+
+    """
+    # If file format is not explicitly stated, determine the format from the
+    # filename
+    if file_format is None:
+        file_format = filename.split(".")[-1]
+
+    # Try to open the file with MDTraj first. With a brief inspection it seems
+    # that MDTraj is better performance wise, because it can iteratively load a
+    # "chunk" of frames, and still serve the individual frames one by one. ASE
+    # on the other hand will iteratively read frames one by one (unnecessary
+    # IO).
+    mdtraj_chunk = 100  # How many frames MDTraj will load at once
+    mdtraj_failed = False
+
+    # Must use the low level MDTraj API to open files without topology.
+    class_format_map = {
+            "dcd": mdtraj.formats.DCDTrajectoryFile,
+            "xyz": mdtraj.formats.XYZTrajectoryFile,
+            "pdb": mdtraj.formats.PDBTrajectoryFile,
+    }
+    traj_class = class_format_map.get(file_format)
+    if traj_class is not None:
+        try:
+            with traj_class(filename, mode="r") as f:
                 empty = False
                 while not empty:
-                    (xyz, cell_len, cell_angle) = f.read(1)
-                    if len(xyz) == 0:
+                    data = f.read(mdtraj_chunk)
+                    if isinstance(data, tuple):
+                        positions = data[0]
+                    else:
+                        positions = data
+                    if len(positions) == 0:
                         empty = True
                     else:
-                        pos = xyz[0]
-                        yield pos
+                        for pos in positions:
+                            yield pos
+        except IOError:
+            logger.warning("MDTraj could not read the file '{}' with format '{}'. The contents might be malformed or wrong format used.".format(filename, file_format))
+            return
+    else:
+        mdtraj_failed = True
+
+    # If MDTraj didn't support the format, try ASE instead
+    if mdtraj_failed:
+        try:
+            io = ase.io.formats.get_ioformat(file_format)
+        except ValueError:
+            logger.error("MDTraj could not read the file '{}' with format '{}'. The contents might be malformed or wrong format used.".format(filename, file_format))
+            return
+        else:
+            # Return the positions in a numpy array instead of an ASE Atoms object
+            generator = ase.io.iread(filename, index, file_format)
+            for atoms in generator:
+                pos = atoms.positions
+                yield pos
