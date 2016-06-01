@@ -59,7 +59,7 @@ class CP2KParser(ParserInterface):
         self.main_parser = get_main_parser(version_id, run_type)(self.parser_context.main_file, self.parser_context)
 
     def get_metainfo_filename(self):
-        return "cp2k.input.nomadmetainfo.json"
+        return "cp2k.nomadmetainfo.json"
 
     def get_parser_info(self):
         return {'name': 'cp2k-parser', 'version': '1.0'}
