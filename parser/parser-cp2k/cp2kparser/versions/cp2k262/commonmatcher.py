@@ -19,6 +19,7 @@ class CommonMatcher(object):
 
         # Repeating regex definitions
         self.parser_context = parser_context
+        self.backend = parser_context.caching_backend
         self.file_service = parser_context.file_service
         self.cache_service = parser_context.cache_service
         self.regex_f = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
@@ -26,7 +27,6 @@ class CommonMatcher(object):
         self.regex_word = "[^\s]+"  # Regex for a single word. Can contain anything else but whitespace
         self.section_method_index = None
         self.section_system_index = None
-        self.forces = None
 
         #=======================================================================
         # Cache levels
@@ -34,15 +34,6 @@ class CommonMatcher(object):
             'x_cp2k_atoms': CachingLevel.ForwardAndCache,
             'section_XC_functionals': CachingLevel.ForwardAndCache,
             'self_interaction_correction_method': CachingLevel.Cache,
-            'x_cp2k_section_md_coordinates': CachingLevel.Cache,
-            'x_cp2k_section_md_coordinate_atom': CachingLevel.Cache,
-            'x_cp2k_md_coordinate_atom_string': CachingLevel.Cache,
-            'x_cp2k_md_coordinate_atom_float': CachingLevel.Cache,
-
-            'x_cp2k_section_md_forces': CachingLevel.Cache,
-            'x_cp2k_section_md_force_atom': CachingLevel.Cache,
-            'x_cp2k_md_force_atom_string': CachingLevel.Cache,
-            'x_cp2k_md_force_atom_float': CachingLevel.Cache,
         }
 
         #=======================================================================
@@ -135,15 +126,16 @@ class CommonMatcher(object):
         )
 
     # SimpleMatcher for an SCF wavefunction optimization
-    def scf(self):
+    def quickstep_calculation(self):
         return SM( " SCF WAVEFUNCTION OPTIMIZATION",
+            sections=["x_cp2k_section_quickstep_calculation"],
             subMatchers=[
                 SM( r"  Trace\(PS\):",
-                    sections=["section_scf_iteration"],
+                    sections=["x_cp2k_section_scf_iteration"],
                     repeats=True,
                     subMatchers=[
-                        SM( r"  Exchange-correlation energy:\s+(?P<energy_XC_scf_iteration__hartree>{})".format(self.regex_f)),
-                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<energy_total_scf_iteration__hartree>{0})\s+(?P<energy_change_scf_iteration__hartree>{0})".format(self.regex_f)),
+                        SM( r"  Exchange-correlation energy:\s+(?P<x_cp2k_energy_XC_scf_iteration__hartree>{})".format(self.regex_f)),
+                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<x_cp2k_energy_total_scf_iteration__hartree>{0})\s+(?P<x_cp2k_energy_change_scf_iteration__hartree>{0})".format(self.regex_f)),
                     ]
                 ),
                 SM( r"  \*\*\* SCF run converged in\s+(\d+) steps \*\*\*",
@@ -154,22 +146,25 @@ class CommonMatcher(object):
                     otherMetaInfo=["single_configuration_calculation_converged"],
                     adHoc=self.adHoc_single_point_not_converged()
                 ),
-                SM( r"  Electronic kinetic energy:\s+(?P<electronic_kinetic_energy__hartree>{})".format(self.regex_f)),
+                SM( r"  Electronic kinetic energy:\s+(?P<x_cp2k_electronic_kinetic_energy__hartree>{})".format(self.regex_f)),
                 SM( r" **************************** NUMERICAL STRESS ********************************".replace("*", "\*"),
+                    # endReStr=" **************************** NUMERICAL STRESS END *****************************".replace("*", "\*"),
                     adHoc=self.adHoc_stress_calculation(),
                 ),
-                SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<energy_total__hartree>{0})".format(self.regex_f)),
+                SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<x_cp2k_energy_total__hartree>{0})".format(self.regex_f),
+                    otherMetaInfo=["energy_total"],
+                ),
                 SM( r" ATOMIC FORCES in \[a\.u\.\]"),
                 SM( r" # Atom   Kind   Element          X              Y              Z",
                     adHoc=self.adHoc_atom_forces(),
-                    otherMetaInfo=["atom_forces"],
+                    otherMetaInfo=["atom_forces", "x_cp2k_atom_forces"],
                 ),
                 SM( r" (?:NUMERICAL )?STRESS TENSOR \[GPa\]",
-                    sections=["section_stress_tensor"],
-                    otherMetaInfo=["stress_tensor"],
+                    sections=["x_cp2k_section_stress_tensor"],
                     subMatchers=[
                         SM( r"\s+X\s+Y\s+Z",
-                            adHoc=self.adHoc_stress_tensor()
+                            adHoc=self.adHoc_stress_tensor(),
+                            otherMetaInfo=["stress_tensor", "section_stress_tensor"],
                         ),
                         SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.regex_f)),
                         SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.regex_f)),
@@ -181,7 +176,7 @@ class CommonMatcher(object):
         )
 
     # SimpleMatcher for an SCF wavefunction optimization
-    def quickstep(self):
+    def quickstep_header(self):
         return SM(
             " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
             forwardMatch=True,
@@ -195,10 +190,6 @@ class CommonMatcher(object):
 
     #===========================================================================
     # onClose triggers
-    def onClose_section_scf_iteration(self, backend, gIndex, section):
-        """Keep track of how many SCF iteration are made."""
-        self.cache_service["number_of_scf_iterations"] += 1
-
     def onClose_x_cp2k_section_total_numbers(self, backend, gIndex, section):
         """Keep track of how many SCF iteration are made."""
         number_of_atoms = section["x_cp2k_atoms"][0]
@@ -254,13 +245,14 @@ class CommonMatcher(object):
         let's get it dynamically just in case there's something wrong.
         """
         self.section_system_index = gIndex
-        if self.forces is not None:
-            backend.addArrayValues("atom_forces", self.forces, unit="forceAu")
-        self.forces = None
+        # if self.forces is not None:
+            # backend.addArrayValues("atom_forces", self.forces, unit="forceAu")
+        # self.forces = None
         self.cache_service.push_value("number_of_atoms")
         self.cache_service.push_array_values("simulation_cell", unit="angstrom")
         self.cache_service.push_array_values("configuration_periodic_dimensions")
         self.cache_service.push_array_values("atom_positions", unit="angstrom")
+        # self.cache_service.push_array_values("atom_forces", unit="forceAu")
         self.cache_service.push_array_values("atom_labels")
 
     def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
@@ -321,7 +313,8 @@ class CommonMatcher(object):
 
             # If anything found, push the results to the correct section
             if len(force_array) != 0:
-                self.forces = force_array
+                # self.cache_service["atom_forces"] = force_array
+                self.backend.addArrayValues("x_cp2k_atom_forces", force_array, unit="forceAu")
 
         return wrapper
 
@@ -334,7 +327,7 @@ class CommonMatcher(object):
             row2 = [float(x) for x in parser.fIn.readline().split()[-3:]]
             row3 = [float(x) for x in parser.fIn.readline().split()[-3:]]
             stress_array = np.array([row1, row2, row3])
-            parser.backend.addArrayValues("stress_tensor", stress_array, unit="GPa")
+            parser.backend.addArrayValues("x_cp2k_stress_tensor", stress_array, unit="GPa")
 
         return wrapper
 
@@ -369,14 +362,14 @@ class CommonMatcher(object):
         """Called when the SCF cycle of a single point calculation has converged.
         """
         def wrapper(parser):
-            parser.backend.addValue("single_configuration_calculation_converged", True)
+            parser.backend.addValue("x_cp2k_quickstep_converged", True)
         return wrapper
 
     def adHoc_single_point_not_converged(self):
         """Called when the SCF cycle of a single point calculation did not converge.
         """
         def wrapper(parser):
-            parser.backend.addValue("single_configuration_calculation_converged", False)
+            parser.backend.addValue("x_cp2k_quickstep_converged", False)
         return wrapper
 
     def adHoc_x_cp2k_section_quickstep_atom_information(self):
@@ -418,6 +411,11 @@ class CommonMatcher(object):
                 self.cache_service["atom_positions"] = coordinates
                 self.cache_service["atom_labels"] = labels
 
+        return wrapper
+
+    def debug(self):
+        def wrapper(parser):
+            print "FOUND"
         return wrapper
 
     #===========================================================================

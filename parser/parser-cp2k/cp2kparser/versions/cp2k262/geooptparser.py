@@ -6,6 +6,8 @@ import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
 import logging
 import ase.io
+import numpy as np
+import math
 logger = logging.getLogger("nomad")
 
 
@@ -30,80 +32,83 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         # Cache levels
         self.caching_level_for_metaname.update({
             'x_cp2k_optimization_energy': CachingLevel.ForwardAndCache,
-            'x_cp2k_optimization_step_size_convergence_limit': CachingLevel.ForwardAndCache,
-            'x_cp2k_section_geometry_optimization_information': CachingLevel.ForwardAndCache,
+            'x_cp2k_section_geometry_optimization_step': CachingLevel.ForwardAndCache,
+            'x_cp2k_section_quickstep_calculation': CachingLevel.ForwardAndCache,
+            'x_cp2k_section_geometry_optimization': CachingLevel.ForwardAndCache,
+            'x_cp2k_section_geometry_optimization_energy_reevaluation': CachingLevel.ForwardAndCache,
         })
 
         #=======================================================================
         # SimpleMatchers
         self.geo_opt = SM(
             " ***                     STARTING GEOMETRY OPTIMIZATION                      ***".replace("*", "\*"),
-            sections=["section_frame_sequence"],
+            sections=["section_frame_sequence", "x_cp2k_section_geometry_optimization"],
             subMatchers=[
                 SM( " ***                           CONJUGATE GRADIENTS                           ***".replace("*", "\*"),
                     adHoc=self.adHoc_conjugate_gradient(),
-                    otherMetaInfo=["geometry_optimization_method"]
+                    otherMetaInfo=["geometry_optimization_method"],
                 ),
                 SM( " ***                                   BFGS                                  ***".replace("*", "\*"),
                     adHoc=self.adHoc_bfgs(),
-                    otherMetaInfo=["geometry_optimization_method"]
+                    otherMetaInfo=["geometry_optimization_method"],
                 ),
                 SM( " ***                                 L-BFGS                                  ***".replace("*", "\*"),
                     adHoc=self.adHoc_bfgs(),
-                    otherMetaInfo=["geometry_optimization_method"]
+                    otherMetaInfo=["geometry_optimization_method"],
                 ),
-                SM( "",
-                    forwardMatch=True,
-                    sections=["section_single_configuration_calculation", "section_system", "x_cp2k_section_geometry_optimization_information"],
-                    subMatchers=[
-                        self.cm.scf(),
-                        SM( " --------  Informations at step"),
-                        SM( "  Optimization Method        =\s+(?P<x_cp2k_optimization_method>{})".format(self.cm.regex_word)),
-                        SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.cm.regex_f),
-                            otherMetaInfo=["frame_sequence_potential_energy"]
-                        ),
-                    ],
-                    adHoc=self.adHoc_step()
-                ),
+                # SM( "",
+                    # forwardMatch=True,
+                    # sections=["section_single_configuration_calculation", "section_system", "x_cp2k_section_geometry_optimization_step"],
+                    # subMatchers=[
+                        # self.cm.quickstep_calculation(),
+                        # SM( " --------  Informations at step"),
+                        # SM( "  Optimization Method        =\s+(?P<x_cp2k_optimization_method>{})".format(self.cm.regex_word)),
+                        # SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.cm.regex_f),
+                            # otherMetaInfo=["frame_sequence_potential_energy"]
+                        # ),
+                    # ],
+                    # otherMetaInfo=["atom_positions"],
+                    # adHoc=self.adHoc_step(),
+                # ),
                 SM( " OPTIMIZATION STEP:",
+                    endReStr="  Conv. in RMS gradients     =",
                     name="geooptstep",
                     repeats=True,
-                    sections=["section_single_configuration_calculation", "section_system"],
+                    sections=["section_system"],
                     subMatchers=[
                         SM( "",
                             forwardMatch=True,
-                            sections=["x_cp2k_section_geometry_optimization_information"],
+                            sections=["x_cp2k_section_geometry_optimization_step"],
                             otherMetaInfo=[
                                 "atom_positions",
                             ],
                             subMatchers=[
-                                SM( "",
-                                    forwardMatch=True,
-                                    endReStr=" ***                 MNBRACK - NUMBER OF ENERGY EVALUATIONS :\s+{}\s+***".replace("*", "\*").format(self.cm.regex_i),
-                                    subMatchers=[
-                                        SM(" SCF WAVEFUNCTION OPTIMIZATION",
-                                            forwardMatch=True,
-                                            adHoc=self.debug(),
-                                            repeats=True,
-                                            subMatchers=[
-                                                self.cm.scf(),
-                                            ]
-                                        )
-                                    ]
-                                ),
-                                SM( "",
-                                    forwardMatch=True,
-                                    endReStr=" ***                 BRENT   - NUMBER OF ENERGY EVALUATIONS :\s+{}\s+***".replace("*", "\*").format(self.cm.regex_i),
-                                    subMatchers=[
-                                        SM(" SCF WAVEFUNCTION OPTIMIZATION",
-                                            forwardMatch=True,
-                                            repeats=True,
-                                            subMatchers=[
-                                                self.cm.scf(),
-                                            ]
-                                        )
-                                    ]
-                                ),
+                                # SM( "",
+                                    # forwardMatch=True,
+                                    # endReStr=" ***                 MNBRACK - NUMBER OF ENERGY EVALUATIONS :\s+{}\s+***".replace("*", "\*").format(self.cm.regex_i),
+                                    # subMatchers=[
+                                        # SM(" SCF WAVEFUNCTION OPTIMIZATION",
+                                            # forwardMatch=True,
+                                            # repeats=True,
+                                            # subMatchers=[
+                                                # self.cm.quickstep_calculation(),
+                                            # ]
+                                        # )
+                                    # ]
+                                # ),
+                                # SM( "",
+                                    # forwardMatch=True,
+                                    # endReStr=" ***                 BRENT   - NUMBER OF ENERGY EVALUATIONS :\s+{}\s+***".replace("*", "\*").format(self.cm.regex_i),
+                                    # subMatchers=[
+                                        # SM(" SCF WAVEFUNCTION OPTIMIZATION",
+                                            # forwardMatch=True,
+                                            # repeats=True,
+                                            # subMatchers=[
+                                                # self.cm.quickstep_calculation(),
+                                            # ]
+                                        # )
+                                    # ]
+                                # ),
                                 SM( " --------  Informations at step"),
                                 SM( "  Optimization Method        =\s+(?P<x_cp2k_optimization_method>{})".format(self.cm.regex_word)),
                                 SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.cm.regex_f),
@@ -135,6 +140,13 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     adHoc=self.adHoc_geo_opt_converged(),
                     otherMetaInfo=["geometry_optimization_converged"]
                 ),
+                SM( "                    Reevaluating energy at the minimum",
+                    sections=["x_cp2k_section_geometry_optimization_energy_reevaluation", "section_system"],
+                    subMatchers=[
+                        self.cm.quickstep_calculation(),
+                    ],
+                    adHoc=self.adHoc_step()
+                ),
             ],
         )
 
@@ -150,7 +162,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     sections=["section_method"],
                     subMatchers=[
                         self.cm.header(),
-                        self.cm.quickstep(),
+                        self.cm.quickstep_header(),
                     ],
                 ),
                 self.geo_opt
@@ -159,11 +171,18 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
     #===========================================================================
     # onClose triggers
-    def onClose_section_frame_sequence(self, backend, gIndex, section):
+    def onClose_x_cp2k_section_geometry_optimization(self, backend, gIndex, section):
+
+        # Get the re-evaluated energy and add it to frame_sequence_potential_energy
+        reeval = section["x_cp2k_section_geometry_optimization_energy_reevaluation"][0]
+        quickstep = reeval["x_cp2k_section_quickstep_calculation"][0]
+        energy = quickstep["x_cp2k_energy_total"]
+        self.cache_service["frame_sequence_potential_energy"].append(energy[0])
+
         self.cache_service.push_value("number_of_frames_in_sequence")
         self.cache_service.push_array_values("frame_sequence_potential_energy")
 
-        opt_section = section["x_cp2k_section_geometry_optimization_information"]
+        opt_section = section["x_cp2k_section_geometry_optimization_step"]
         if opt_section is not None:
             opt_section = opt_section[-1]
             geo_limit = opt_section["x_cp2k_optimization_step_size_convergence_limit"]
@@ -176,10 +195,10 @@ class CP2KGeoOptParser(MainHierarchicalParser):
     def onClose_section_sampling_method(self, backend, gIndex, section):
         self.backend.addValue("sampling_method", "geometry_optimization")
 
-    def onClose_x_cp2k_section_geometry_optimization_information(self, backend, gIndex, section):
-        energy = section["x_cp2k_optimization_energy"][0]
-        # backend.addValue("energy_total", energy)
-        self.cache_service["frame_sequence_potential_energy"].append(energy)
+    def onClose_x_cp2k_section_geometry_optimization_step(self, backend, gIndex, section):
+        energy = section["x_cp2k_optimization_energy"]
+        if energy is not None:
+            self.cache_service["frame_sequence_potential_energy"].append(energy[0])
 
     def onClose_section_method(self, backend, gIndex, section):
         traj_file = self.file_service.get_file_by_id("trajectory")
@@ -230,7 +249,6 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         output file. Here further information is gathered from external files.
         """
         def wrapper(parser):
-            # print "STEP"
             self.cache_service["number_of_frames_in_sequence"] += 1
 
             # Get the next position from the trajectory file
