@@ -246,6 +246,8 @@ class CP2KInputParser(BasicParser):
         self.input_tree.root_section.accessed = True
 
         for line in self.input_lines:
+
+            # Remove comments and whitespaces
             line = line.split('!', 1)[0].strip()
 
             # Skip empty lines
@@ -283,6 +285,8 @@ class CP2KInputParser(BasicParser):
             # Contents (keywords, default keywords)
             else:
                 split = line.split(' ', 1)
+                if len(split) <= 1:
+                    raise IndexError("A keyword in the CP2K input had no value associated with it. The line causing this is: '{}'".format(line))
                 keyword_name = split[0].upper()
                 keyword_value = split[1]
                 self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
