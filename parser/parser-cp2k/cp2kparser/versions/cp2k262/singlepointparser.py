@@ -3,7 +3,6 @@ from nomadcore.baseclasses import MainHierarchicalParser
 from singlepointforceparser import CP2KSinglePointForceParser
 from nomadcore.caching_backend import CachingLevel
 from commonmatcher import CommonMatcher
-from cp2kparser.generic.utils import try_to_add_value, try_to_add_array_values
 import logging
 logger = logging.getLogger("nomad")
 
@@ -68,22 +67,22 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         """Keep track of how many SCF iteration are made."""
         self.cache_service["number_of_scf_iterations"] += 1
         gId = backend.openSection("section_scf_iteration")
-        try_to_add_value(backend, section, "x_cp2k_energy_total_scf_iteration", "energy_total_scf_iteration")
-        try_to_add_value(backend, section, "x_cp2k_energy_XC_scf_iteration", "energy_XC_scf_iteration")
-        try_to_add_value(backend, section, "x_cp2k_energy_change_scf_iteration", "energy_change_scf_iteration")
+        section.add_latest_value("x_cp2k_energy_total_scf_iteration", "energy_total_scf_iteration")
+        section.add_latest_value("x_cp2k_energy_XC_scf_iteration", "energy_XC_scf_iteration")
+        section.add_latest_value("x_cp2k_energy_change_scf_iteration", "energy_change_scf_iteration")
         backend.closeSection("section_scf_iteration", gId)
 
     def onClose_x_cp2k_section_quickstep_calculation(self, backend, gIndex, section):
         """"""
-        try_to_add_value(backend, section, "x_cp2k_energy_total", "energy_total")
-        try_to_add_value(backend, section, "x_cp2k_electronic_kinetic_energy", "electronic_kinetic_energy")
-        try_to_add_value(backend, section, "x_cp2k_quickstep_converged", "single_configuration_calculation_converged")
-        try_to_add_array_values(backend, section, "x_cp2k_atom_forces", "atom_forces")
+        section.add_latest_value("x_cp2k_energy_total", "energy_total")
+        section.add_latest_value("x_cp2k_electronic_kinetic_energy", "electronic_kinetic_energy")
+        section.add_latest_value("x_cp2k_quickstep_converged", "single_configuration_calculation_converged")
+        section.add_latest_array_values("x_cp2k_atom_forces", "atom_forces")
 
     def onClose_x_cp2k_section_stress_tensor(self, backend, gIndex, section):
         """"""
         gId = backend.openSection("section_stress_tensor")
-        try_to_add_array_values(backend, section, "x_cp2k_stress_tensor", "stress_tensor")
+        section.add_latest_array_values("x_cp2k_stress_tensor", "stress_tensor")
         backend.closeSection("section_stress_tensor", gId)
 
     #===========================================================================

@@ -37,7 +37,7 @@ class CommonMatcher(object):
         }
 
         #=======================================================================
-        # Cached values
+        # Globally cached values
         self.cache_service.add_cache_object("simulation_cell", single=False, update=False)
         self.cache_service.add_cache_object("number_of_scf_iterations", 0)
         self.cache_service.add_cache_object("atom_positions", single=False, update=True)
@@ -175,7 +175,7 @@ class CommonMatcher(object):
             ]
         )
 
-    # SimpleMatcher for an SCF wavefunction optimization
+    # SimpleMatcher the stuff that is done to initialize a quickstep calculation
     def quickstep_header(self):
         return SM(
             " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
@@ -192,8 +192,9 @@ class CommonMatcher(object):
     # onClose triggers
     def onClose_x_cp2k_section_total_numbers(self, backend, gIndex, section):
         """Keep track of how many SCF iteration are made."""
-        number_of_atoms = section["x_cp2k_atoms"][0]
-        self.cache_service["number_of_atoms"] = number_of_atoms
+        number_of_atoms = section.get_latest_value("x_cp2k_atoms")
+        if number_of_atoms is not None:
+            self.cache_service["number_of_atoms"] = number_of_atoms
 
     def onClose_section_run(self, backend, gIndex, section):
         """Information that is pushed regardless at the end of parsing.
@@ -212,7 +213,7 @@ class CommonMatcher(object):
         # Transform the CP2K self-interaction correction string to the NOMAD
         # correspondent, and push directly to the superBackend to avoid caching
         try:
-            sic_cp2k = section["self_interaction_correction_method"][0]
+            sic_cp2k = section.get_latest_value("self_interaction_correction_method")
             sic_map = {
                 "NO": "",
                 "AD SIC": "SIC_AD",
@@ -232,7 +233,7 @@ class CommonMatcher(object):
         """
         """
         # If the input file is available, parse it
-        input_file = section["x_cp2k_input_filename"][0]
+        input_file = section.get_latest_value("x_cp2k_input_filename")
         filepath = self.file_service.get_absolute_path_to_file(input_file)
         if filepath is not None:
             input_parser = CP2KInputParser(filepath, self.parser_context)
@@ -245,19 +246,13 @@ class CommonMatcher(object):
         let's get it dynamically just in case there's something wrong.
         """
         self.section_system_index = gIndex
-        # if self.forces is not None:
-            # backend.addArrayValues("atom_forces", self.forces, unit="forceAu")
-        # self.forces = None
         self.cache_service.push_value("number_of_atoms")
         self.cache_service.push_array_values("simulation_cell", unit="angstrom")
         self.cache_service.push_array_values("configuration_periodic_dimensions")
         self.cache_service.push_array_values("atom_positions", unit="angstrom")
-        # self.cache_service.push_array_values("atom_forces", unit="forceAu")
         self.cache_service.push_array_values("atom_labels")
 
     def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
-        """
-        """
         # Write the references to section_method and section_system
         backend.addValue('single_configuration_to_calculation_method_ref', self.section_method_index)
         backend.addValue('single_configuration_calculation_to_system_ref', self.section_system_index)

@@ -5,9 +5,6 @@ import cp2kparser.generic.configurationreading
 import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
 import logging
-import ase.io
-import numpy as np
-import math
 logger = logging.getLogger("nomad")
 
 
@@ -24,9 +21,11 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         self.traj_iterator = None
 
         #=======================================================================
-        # Cached values
+        # Globally cached values
         self.cache_service.add_cache_object("number_of_frames_in_sequence", 0)
         self.cache_service.add_cache_object("frame_sequence_potential_energy", [])
+        self.cache_service.add_cache_object("frame_sequence_local_frames_ref", [])
+        self.cache_service.add_cache_object("geometry_optimization_method")
 
         #=======================================================================
         # Cache levels
@@ -74,7 +73,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     endReStr="  Conv. in RMS gradients     =",
                     name="geooptstep",
                     repeats=True,
-                    sections=["section_system"],
+                    sections=["section_single_configuration_calculation", "section_system"],
                     subMatchers=[
                         SM( "",
                             forwardMatch=True,
@@ -174,23 +173,33 @@ class CP2KGeoOptParser(MainHierarchicalParser):
     def onClose_x_cp2k_section_geometry_optimization(self, backend, gIndex, section):
 
         # Get the re-evaluated energy and add it to frame_sequence_potential_energy
-        reeval = section["x_cp2k_section_geometry_optimization_energy_reevaluation"][0]
-        quickstep = reeval["x_cp2k_section_quickstep_calculation"][0]
-        energy = quickstep["x_cp2k_energy_total"]
-        self.cache_service["frame_sequence_potential_energy"].append(energy[0])
+        energy = section.get_latest_value([
+            "x_cp2k_section_geometry_optimization_energy_reevaluation",
+            "x_cp2k_section_quickstep_calculation",
+            "x_cp2k_energy_total"]
+        )
+        if energy is not None:
+            self.cache_service["frame_sequence_potential_energy"].append(energy)
 
+        # Push values from cache
         self.cache_service.push_value("number_of_frames_in_sequence")
         self.cache_service.push_array_values("frame_sequence_potential_energy")
+        self.cache_service.push_array_values("frame_sequence_local_frames_ref")
+        self.cache_service.push_value("geometry_optimization_method")
+        self.backend.addValue("frame_sequence_to_sampling_ref", 0)
 
-        opt_section = section["x_cp2k_section_geometry_optimization_step"]
-        if opt_section is not None:
-            opt_section = opt_section[-1]
-            geo_limit = opt_section["x_cp2k_optimization_step_size_convergence_limit"]
-            if geo_limit is not None:
-                self.backend.addValue("geometry_optimization_geometry_change", geo_limit[0])
-            force_limit = opt_section["x_cp2k_optimization_gradient_convergence_limit"]
-            if force_limit is not None:
-                self.backend.addValue("geometry_optimization_threshold_force", force_limit[0])
+        # Get the optimization convergence criteria from the last optimization
+        # step
+        section.add_latest_value([
+            "x_cp2k_section_geometry_optimization_step",
+            "x_cp2k_optimization_step_size_convergence_limit"],
+            "geometry_optimization_geometry_change",
+        )
+        section.add_latest_value([
+            "x_cp2k_section_geometry_optimization_step",
+            "x_cp2k_optimization_gradient_convergence_limit"],
+            "geometry_optimization_threshold_force",
+        )
 
     def onClose_section_sampling_method(self, backend, gIndex, section):
         self.backend.addValue("sampling_method", "geometry_optimization")
@@ -214,6 +223,9 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                 except ValueError:
                     pass
 
+    def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
+        self.cache_service["frame_sequence_local_frames_ref"].append(gIndex)
+
     #===========================================================================
     # adHoc functions
     def adHoc_geo_opt_converged(self):
@@ -234,14 +246,14 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         """Called when conjugate gradient method is used.
         """
         def wrapper(parser):
-            parser.backend.addValue("geometry_optimization_method", "conjugate_gradient")
+            self.cache_service["geometry_optimization_method"] = "conjugate_gradient"
         return wrapper
 
     def adHoc_bfgs(self):
         """Called when conjugate gradient method is used.
         """
         def wrapper(parser):
-            parser.backend.addValue("geometry_optimization_method", "bfgs")
+            self.cache_service["geometry_optimization_method"] = "bfgs"
         return wrapper
 
     def adHoc_step(self):
@@ -253,8 +265,6 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
             # Get the next position from the trajectory file
             if self.traj_iterator is not None:
-                # pos = next(self.traj_iterator)
-                # self.cache_service["atom_positions"] = pos
                 try:
                     pos = next(self.traj_iterator)
                 except StopIteration:
@@ -262,14 +272,4 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                 else:
                     self.cache_service["atom_positions"] = pos
 
-        return wrapper
-
-    def adHoc_setup_traj_file(self):
-        def wrapper(parser):
-            pass
-        return wrapper
-
-    def debug(self):
-        def wrapper(parser):
-            print "FOUND"
         return wrapper
