@@ -65,7 +65,7 @@ test/**/*.wfn.bak-1
 test/**/*.wfn.bak-2
 test/**/*.wfn.bak-3
 test/**/*.png
-parser/parser-cp2k/cp2kparser/versions/**/input_data/*.xml
+#parser/parser-cp2k/cp2kparser/versions/**/input_data/*.xml
 parser/parser-cp2k/cp2kparser/versions/**/input_data/*.html
 test/unittests/BASIS_SET
 test/unittests/GTH_POTENTIALS
