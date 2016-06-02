@@ -222,8 +222,8 @@ def generate_metainfo_recursively(obj, parent, container, name_stack):
 def generate_input_object_metainfo_json(child, parent, name_stack):
     path = ".".join(name_stack)
     json_obj = {}
-    json_obj["name"] = "cp2k_{}.{}".format(path, child.name)
-    json_obj["superNames"] = ["cp2k_{}".format(path)]
+    json_obj["name"] = "x_cp2k_{}.{}".format(path, child.name)
+    json_obj["superNames"] = ["x_cp2k_{}".format(path)]
 
     # Description
     description = child.description
@@ -232,22 +232,23 @@ def generate_input_object_metainfo_json(child, parent, name_stack):
     json_obj["description"] = description
 
     # Shape
-    data_dim = int(child.data_dimension)
-    if data_dim == -1:
-        data_dim = "n"
-    if data_dim == 1:
-        json_obj["shape"] = []
-    else:
-        json_obj["shape"] = [data_dim]
+    # data_dim = int(child.data_dimension)
+    # if data_dim == -1:
+        # data_dim = "n"
+    # if data_dim == 1:
+        # json_obj["shape"] = []
+    # else:
+        # json_obj["shape"] = [data_dim]
+    json_obj["shape"] = []
 
     # Determine data type according to xml info
     mapping = {
         "keyword": "C",
         "logical": "C",
         "string": "C",
-        "integer": "i",
+        "integer": "C",
         "word": "C",
-        "real": "f",
+        "real": "C",
     }
     json_obj["dtypeStr"] = mapping[child.data_type]
     return json_obj
@@ -259,9 +260,9 @@ def generate_section_metainfo_json(child, parent, name_stack):
     path = ".".join(name_stack[:-1])
     json_obj = {}
 
-    json_obj["name"] = "cp2k_{}".format(name)
+    json_obj["name"] = "x_cp2k_{}".format(name)
     json_obj["kindStr"] = "type_section"
-    json_obj["superNames"] = ["cp2k_{}".format(path)]
+    json_obj["superNames"] = ["x_cp2k_{}".format(path)]
 
     description = child.description
     if description is None or description.isspace():

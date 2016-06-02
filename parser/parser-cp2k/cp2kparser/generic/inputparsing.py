@@ -164,30 +164,54 @@ class InputObject(object):
         self.data_dimension = None
         self.default_value = None
 
-    def get_formatted_value(self):
-        """ Used to set the value of the keyword. The data will be transformed
-        into the correct data type and dimension from a simple string.
+
+#===============================================================================
+class Keyword(InputObject):
+    """Information about a keyword in a CP2K calculation.
+    """
+    __slots__ = ['unit', 'value_no_unit', 'default_unit', 'default_name']
+
+    def __init__(self, name, default_value,  default_unit, default_name):
+        super(Keyword, self).__init__(name)
+        self.unit = None
+        self.value_no_unit = None
+        self.default_unit = default_unit
+        self.default_value = default_value
+        self.default_name = default_name
+
+    def get_value(self):
+        """Returns the value stored in this keyword by removing the possible
+        unit definition and formatting the string into the correct data type.
         """
+        # Decode the unit and the value if not done before
+        if self.default_unit:
+            if not self.value_no_unit:
+                self.decode_cp2k_unit_and_value()
+        if self.value_no_unit is not None:
+            proper_value = self.value_no_unit
+        else:
+            proper_value = self.value
+
         returned = None
         dim = int(self.data_dimension)
-        splitted = self.value.split()
+        splitted = proper_value.split()
         if len(splitted) != dim:
             logger.error("The dimensions of the CP2K input parameter {} do not match the specification in the XML file.".format(self.name))
 
         if dim == 1:
             try:
                 if self.data_type == "integer":
-                    returned = int(self.value)
+                    returned = int(proper_value)
                 elif self.data_type == "real":
-                    returned = float(self.value)
+                    returned = float(proper_value)
                 elif self.data_type == "word":
-                    returned = str(self.value)
+                    returned = str(proper_value)
                 elif self.data_type == "keyword":
-                    returned = str(self.value)
+                    returned = str(proper_value)
                 elif self.data_type == "string":
-                    returned = str(self.value)
+                    returned = str(proper_value)
                 elif self.data_type == "logical":
-                    returned = str(self.value)
+                    returned = str(proper_value)
                 else:
                     logger.error("Unknown data type '{}'".format(self.data_type))
                     return
@@ -217,22 +241,7 @@ class InputObject(object):
 
         return returned
 
-
-#===============================================================================
-class Keyword(InputObject):
-    """Information about a keyword in a CP2K calculation.
-    """
-    __slots__ = ['unit', 'value_no_unit', 'default_unit', 'default_name']
-
-    def __init__(self, name, default_value,  default_unit, default_name):
-        super(Keyword, self).__init__(name)
-        self.unit = None
-        self.value_no_unit = None
-        self.default_unit = default_unit
-        self.default_value = default_value
-        self.default_name = default_name
-
-    def get_value(self):
+    def determine_value_and_unit(self):
         """If the units of this value can be changed, return a value and the
         unit separately.
         """
@@ -244,12 +253,15 @@ class Keyword(InputObject):
             return self.value
 
     def get_unit(self):
+
+        # Decode the unit and the value if not done before
         if self.default_unit:
             if not self.unit:
                 self.decode_cp2k_unit_and_value()
             return self.unit
         else:
             logger.error("The keyword '{}' does not have a unit.".format(self.default_name))
+            return None
 
     def decode_cp2k_unit_and_value(self):
         """Given a CP2K unit name, decode it as Pint unit definition.
