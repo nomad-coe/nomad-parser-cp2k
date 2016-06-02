@@ -202,6 +202,8 @@ class Keyword(InputObject):
             proper_value = self.value
         if proper_value is None:
             proper_value = self.default_value
+        if proper_value is None:
+            return None
 
         returned = None
         dim = int(self.data_dimension)

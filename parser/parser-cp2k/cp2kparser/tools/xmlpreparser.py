@@ -56,10 +56,20 @@ def recursive_tree_generation(xml_element, for_metainfo=False, name_stack=[]):
         section_name = "CP2K_INPUT"
     section = Section(section_name)
 
-    # Ignore sections that control the print settings
-    # ignored = ["EACH", "PRINT"]
-    # if section_name in ignored:
-        # return
+    name_stack.append(section_name)
+
+    # Ignore most sections that control the print settings
+    ignored = ["EACH", "PRINT"]
+    if section_name in ignored:
+        kept_print_settings = [
+            "CP2K_INPUT/FORCE_EVAL/PRINT",
+            "CP2K_INPUT/MOTION/PRINT",
+        ]
+        name = "/".join(name_stack)
+        if "/".join(name_stack) in kept_print_settings:
+            print "KEPT {}".format(name)
+        else:
+            return
 
     if for_metainfo:
         # Descriptions
@@ -176,7 +186,7 @@ def recursive_tree_generation(xml_element, for_metainfo=False, name_stack=[]):
 
     # Sections
     for sub_section_element in xml_element.findall("SECTION"):
-        sub_section = recursive_tree_generation(sub_section_element, for_metainfo)
+        sub_section = recursive_tree_generation(sub_section_element, for_metainfo, name_stack[::1])
         if sub_section is not None:
             section.sections[sub_section.name].append(sub_section)
 
@@ -276,13 +286,13 @@ def generate_section_metainfo_json(child, parent, name_stack):
 if __name__ == "__main__":
 
     # xml to pickle
-    xml_file = open("../versions/cp2k262/input_data/cp2k_input.xml", 'r')
-    object_tree = CP2KInput(generate_object_tree(xml_file))
-    file_name = "../versions/cp2k262/input_data/cp2k_input_tree.pickle"
-    fh = open(file_name, "wb")
-    pickle.dump(object_tree, fh, protocol=2)
+    # xml_file = open("../versions/cp2k262/input_data/cp2k_input.xml", 'r')
+    # object_tree = CP2KInput(generate_object_tree(xml_file))
+    # file_name = "../versions/cp2k262/input_data/cp2k_input_tree.pickle"
+    # fh = open(file_name, "wb")
+    # pickle.dump(object_tree, fh, protocol=2)
 
     # Metainfo generation
-    # xml_file = open("../versions/cp2k262/input_data/cp2k_input.xml", 'r')
-    # object_tree = CP2KInput(generate_object_tree(xml_file, for_metainfo=True))
-    # generate_input_metainfos(object_tree)
+    xml_file = open("../versions/cp2k262/input_data/cp2k_input.xml", 'r')
+    object_tree = CP2KInput(generate_object_tree(xml_file, for_metainfo=True))
+    generate_input_metainfos(object_tree)

@@ -39,14 +39,13 @@ class CP2KInputParser(BasicParser):
         super(CP2KInputParser, self).__init__(file_path, parser_context)
         self.input_tree = None
         self.input_lines = None
-        self.force_file_name = None
-        self.trajectory_file_name = ""
-        self.trajectory_format = "XMOL"
 
         #=======================================================================
         # Cached values
         self.cache_service.add_cache_object("configuration_periodic_dimensions", single=False, update=False)
         self.cache_service.add_cache_object("trajectory_format")
+        self.cache_service.add_cache_object("each_geo_opt")
+        self.cache_service.add_cache_object("traj_add_last")
 
     def parse(self):
 
@@ -77,7 +76,7 @@ class CP2KInputParser(BasicParser):
 
             # First see if a functional has been specified in the section parameter
             section_parameter = xc.section_parameter.value
-            if section_parameter is not None:
+            if section_parameter is not None and section_parameter != "NO_SHORTCUT":
 
                 if section_parameter == "BLYP":
                     xc_list.append(XCFunctional("GGA_X_B88"))
@@ -219,17 +218,24 @@ class CP2KInputParser(BasicParser):
     def setup_force_file_name(self):
         """Setup the force file path.
         """
-        force_file = self.force_file_name
+        force_file = self.input_tree.get_keyword_value_formatted("FORCE_EVAL/PRINT/FORCES/FILENAME")
         extension = "xyz"
         if force_file is not None and force_file != "__STD_OUT__":
-            normalized_path = self.normalize_x_cp2k_path(self.force_file_name)
+            normalized_path = self.normalize_x_cp2k_path(force_file)
             final_path = "{}-1_0.{}".format(normalized_path, extension)
             self.file_service.set_file_id(final_path, "force_file_single_point")
 
     def setup_trajectory_file_name(self):
         """Setup the trajectory file path.
         """
-        traj_format = self.trajectory_format.upper()
+        traj_format = self.input_tree.get_keyword_value_formatted("MOTION/PRINT/TRAJECTORY/FORMAT")
+        traj_filename = self.input_tree.get_keyword_value_formatted("MOTION/PRINT/TRAJECTORY/FILENAME")
+        geo_opt_each = self.input_tree.get_keyword_value_formatted("MOTION/PRINT/TRAJECTORY/EACH/GEO_OPT")
+        traj_add_last = self.input_tree.get_keyword_value_formatted("MOTION/PRINT/TRAJECTORY/ADD_LAST")
+        self.cache_service["each_geo_opt"] = geo_opt_each
+        self.cache_service["traj_add_last"] = traj_add_last
+        if traj_filename is None:
+            traj_filename = ""
         self.cache_service["trajectory_format"] = traj_format
         extension_map = {
             "XYZ": "xyz",
@@ -242,7 +248,7 @@ class CP2KInputParser(BasicParser):
         if extension is None:
             logger.error("Unknown file format '{}' for CP2K trajectory file ".format(traj_format))
             return
-        normalized_path = self.normalize_x_cp2k_path(self.trajectory_file_name)
+        normalized_path = self.normalize_x_cp2k_path(traj_filename)
         final_path = "{}-pos-1.{}".format(normalized_path, extension)
         self.file_service.set_file_id(final_path, "trajectory")
 
@@ -329,15 +335,15 @@ class CP2KInputParser(BasicParser):
                 # inportant to the parsing. These dont exist in the input tree
                 # because they take much space and are not really important
                 # otherwise.
-                if path == "FORCE_EVAL/PRINT/FORCES":
-                    if keyword_name == "FILENAME":
-                        self.force_file_name = keyword_value
-                if path == "MOTION/PRINT/TRAJECTORY":
-                    if keyword_name == "FILENAME":
-                        self.trajectory_file_name = keyword_value
-                if path == "MOTION/PRINT/TRAJECTORY":
-                    if keyword_name == "FORMAT":
-                        self.trajectory_format = keyword_value
+                # if path == "FORCE_EVAL/PRINT/FORCES":
+                    # if keyword_name == "FILENAME":
+                        # self.force_file_name = keyword_value
+                # if path == "MOTION/PRINT/TRAJECTORY":
+                    # if keyword_name == "FILENAME":
+                        # self.trajectory_file_name = keyword_value
+                # if path == "MOTION/PRINT/TRAJECTORY":
+                    # if keyword_name == "FORMAT":
+                        # self.trajectory_format = keyword_value
 
     def fill_metadata(self):
         """Goes through the input data and pushes everything to the
@@ -354,7 +360,8 @@ class CP2KInputParser(BasicParser):
             return
 
         name_stack.append(section.name)
-        path = "x_cp2k_{}".format(".".join(name_stack))
+        path = "x_cp2k_section_{}".format(".".join(name_stack))
+        not_section_path = "x_cp2k_{}".format(".".join(name_stack))
 
         gid = self.backend.openSection(path)
 
@@ -363,13 +370,13 @@ class CP2KInputParser(BasicParser):
             keywords = section.keywords.get(default_name)
             for keyword in keywords:
                 if keyword.value is not None:
-                    name = "{}.{}".format(path, keyword.default_name)
+                    name = "{}.{}".format(not_section_path, keyword.default_name)
                     self.backend.addValue(name, keyword.value)
 
         # Section parameter
         section_parameter = section.section_parameter
         if section_parameter is not None:
-            name = "{}.SECTION_PARAMETERS".format(path)
+            name = "{}.SECTION_PARAMETERS".format(not_section_path)
             if section_parameter.value is not None:
                 self.backend.addValue(name, section_parameter.value)
 
@@ -377,7 +384,7 @@ class CP2KInputParser(BasicParser):
         default_keyword = section.default_keyword
         if default_keyword is not None:
 
-            name = "{}.DEFAULT_KEYWORD".format(path)
+            name = "{}.DEFAULT_KEYWORD".format(not_section_path)
             self.backend.addValue(name, default_keyword.value)
 
         # Subsections

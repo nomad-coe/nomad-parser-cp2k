@@ -2,18 +2,7 @@ import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 from io import StringIO
-try:
-    import re2 as re
-except ImportError:
-    import re
-    logger.warning((
-        "re2 package not found. Using re package instead. "
-        "If you wan't to use re2 please see the following links:"
-        "    https://github.com/google/re2"
-        "    https://pypi.python.org/pypi/re2/"
-    ))
-else:
-    re.set_fallback_notification(re.FALLBACK_WARNING)
+import re
 
 
 #===============================================================================
