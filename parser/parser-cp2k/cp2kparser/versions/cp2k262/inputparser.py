@@ -103,12 +103,42 @@ class CP2KInputParser(BasicParser):
                 elif section_parameter == "B3LYP":
                     xc_list.append(XCFunctional("HYB_GGA_XC_B3LYP"))
 
+                elif section_parameter == "TPSS":
+                    xc_list.append(XCFunctional("MGGA_X_TPSS"))
+                    xc_list.append(XCFunctional("MGGA_C_TPSS"))
+
                 else:
                     logger.warning("Unknown XC functional given in XC_FUNCTIONAL section parameter.")
 
             # Otherwise one has to look at the individual functional settings
             else:
-                pass
+                pbe = xc.get_subsection("PBE")
+                if pbe is not None:
+                    if pbe.accessed:
+                        sp = pbe.get_section_parameter()
+                        if sp == "T":
+                            parametrization = pbe.get_keyword_value_formatted("PARAMETRIZATION")
+                            scale_x = pbe.get_keyword_value_formatted("SCALE_X")
+                            scale_c = pbe.get_keyword_value_formatted("SCALE_C")
+                            if parametrization == "ORIG":
+                                xc_list.append(XCFunctional("GGA_X_PBE", scale_x))
+                                xc_list.append(XCFunctional("GGA_C_PBE", scale_c))
+                            elif parametrization == "PBESOL":
+                                xc_list.append(XCFunctional("GGA_X_PBE_SOL", scale_x))
+                                xc_list.append(XCFunctional("GGA_C_PBE_SOL", scale_c))
+                            elif parametrization == "REVPBE":
+                                xc_list.append(XCFunctional("GGA_X_PBE_R", scale_x))
+                                xc_list.append(XCFunctional("GGA_C_PBE", scale_c))
+                tpss = xc.get_subsection("TPSS")
+                if tpss is not None:
+                    if tpss.accessed:
+                        sp = tpss.get_section_parameter()
+                        if sp == "T":
+                            scale_x = tpss.get_keyword_value_formatted("SCALE_X")
+                            scale_c = tpss.get_keyword_value_formatted("SCALE_C")
+                            xc_list.append(XCFunctional("MGGA_X_TPSS", scale_x))
+                            xc_list.append(XCFunctional("MGGA_C_TPSS", scale_c))
+
 
             # Sort the functionals alphabetically by name
             xc_list.sort(key=lambda x: x.name)
@@ -137,7 +167,7 @@ class CP2KInputParser(BasicParser):
 
         #=======================================================================
         # Cell periodicity
-        periodicity = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/PERIODIC")
+        periodicity = self.input_tree.get_keyword_value_formatted("FORCE_EVAL/SUBSYS/CELL/PERIODIC")
         if periodicity is not None:
             periodicity = periodicity.upper()
             periodicity_list = ("X" in periodicity, "Y" in periodicity, "Z" in periodicity)
@@ -155,7 +185,7 @@ class CP2KInputParser(BasicParser):
 
         #=======================================================================
         # Stress tensor calculation method
-        stress_tensor_method = self.input_tree.get_keyword("FORCE_EVAL/STRESS_TENSOR")
+        stress_tensor_method = self.input_tree.get_keyword_value_formatted("FORCE_EVAL/STRESS_TENSOR")
         if stress_tensor_method != "NONE":
             mapping = {
                 "NUMERICAL": "Numerical",
@@ -179,7 +209,7 @@ class CP2KInputParser(BasicParser):
             normalized_path = path
         # Path is relative, project name added
         else:
-            project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
+            project_name = self.input_tree.get_keyword_value_formatted("GLOBAL/PROJECT_NAME")
             if path:
                 normalized_path = "{}-{}".format(project_name, path)
             else:
@@ -248,7 +278,7 @@ class CP2KInputParser(BasicParser):
         for line in self.input_lines:
 
             # Remove comments and whitespaces
-            line = line.split('!', 1)[0].strip()
+            line = line.split('!', 1)[0].split('#', 1)[0].strip()
 
             # Skip empty lines
             if len(line) == 0:
@@ -286,10 +316,14 @@ class CP2KInputParser(BasicParser):
             else:
                 split = line.split(None, 1)
                 if len(split) <= 1:
-                    raise IndexError("A keyword in the CP2K input had no value associated with it. The line causing this is: '{}'".format(line))
+                    keyword_value = ""
+                else:
+                    keyword_value = split[1]
                 keyword_name = split[0].upper()
-                keyword_value = split[1]
-                self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
+                try:
+                    self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
+                except UnboundLocalError:
+                    print line
 
                 # Here we store some exceptional print settings that are
                 # inportant to the parsing. These dont exist in the input tree
@@ -336,7 +370,8 @@ class CP2KInputParser(BasicParser):
         section_parameter = section.section_parameter
         if section_parameter is not None:
             name = "{}.SECTION_PARAMETERS".format(path)
-            self.backend.addValue(name, section_parameter.value)
+            if section_parameter.value is not None:
+                self.backend.addValue(name, section_parameter.value)
 
         # Default keyword
         default_keyword = section.default_keyword

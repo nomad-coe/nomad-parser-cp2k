@@ -87,23 +87,25 @@ class CP2KInput(object):
             logger.warning(message)
             return (None, None)
 
-        keyword = section.get_keyword(keyword)
+        keyword = section.get_keyword_object(keyword)
         if keyword and section:
             return (keyword, section)
         else:
             return (None, section)
 
-    def get_keyword(self, path):
-        """Returns the keyword that is specified by the given path.
-        If the keyword has no value set, returns the default value defined in
-        the XML.
+    def get_keyword_value_formatted(self, path):
+        """
         """
         keyword, section = self.get_keyword_and_section(path)
         if keyword:
-            if keyword.value is not None:
-                return keyword.get_value()
-            else:
-                return keyword.default_value
+            return keyword.get_value_formatted()
+
+    def get_keyword_value(self, path):
+        """
+        """
+        keyword, section = self.get_keyword_and_section(path)
+        if keyword:
+            return keyword.get_value()
 
     def get_default_keyword(self, path):
         return self.get_section(path).default_keyword.value
@@ -180,10 +182,17 @@ class Keyword(InputObject):
         self.default_name = default_name
 
     def get_value(self):
+        """Returns the unformatted value of this keyword. This is exactly what
+        was set by the used in the input as a string.
+        """
+        return self.value
+
+    def get_value_formatted(self):
         """Returns the value stored in this keyword by removing the possible
         unit definition and formatting the string into the correct data type.
         """
         # Decode the unit and the value if not done before
+        proper_value = None
         if self.default_unit:
             if not self.value_no_unit:
                 self.decode_cp2k_unit_and_value()
@@ -191,6 +200,8 @@ class Keyword(InputObject):
             proper_value = self.value_no_unit
         else:
             proper_value = self.value
+        if proper_value is None:
+            proper_value = self.default_value
 
         returned = None
         dim = int(self.data_dimension)
@@ -297,13 +308,29 @@ class Section(object):
         self.sections = defaultdict(list)
         self.description = None
 
-    def get_keyword(self, name):
+    def get_keyword_object(self, name):
         keyword = self.keywords.get(name)
         if keyword:
             if len(keyword) == 1:
                 return keyword[0]
             else:
                 logger.error("The keyword '{}' in '{}' does not exist or has too many entries.".format(name, self.name))
+
+    def get_keyword_value_formatted(self, name):
+        """Returns the keyword value formatted to the correct shape and type,
+        and returns the default value if nothing was specified.
+        """
+        keyword_object = self.get_keyword_object(name)
+        if keyword_object is not None:
+            value = keyword_object.get_value_formatted()
+            return value
+
+    def get_keyword_value(self, name):
+        """Returns the keyword value as a raw string as specfied by the used.
+        """
+        keyword_object = self.get_keyword_object(name)
+        if keyword_object is not None:
+            return keyword_object.get_value()
 
     def get_subsection(self, name):
         subsection = self.sections.get(name)
@@ -314,6 +341,16 @@ class Section(object):
                 logger.error("The subsection '{}' in '{}' has too many entries.".format(name, self.name))
         else:
             logger.error("The subsection '{}' in '{}' does not exist.".format(name, self.name))
+
+    def get_section_parameter(self):
+        """Get the section parameter, or if not specified the lone keyword
+        value.
+        """
+        if self.section_parameter is not None:
+            value = self.section_parameter.value
+            if value is None:
+                value = self.section_parameter.lone_keyword_value
+            return value.upper()
 
 
 #===============================================================================
