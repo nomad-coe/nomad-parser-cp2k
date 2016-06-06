@@ -29,6 +29,8 @@ def get_main_parser(version_id, run_type):
         "WFN_OPT": "SinglePointParser",
         "GEO_OPT": "GeoOptParser",
         "GEOMETRY_OPTIMIZATION": "GeoOptParser",
+        "MD": "MDParser",
+        "MOLECULAR_DYNAMICS": "MDParser",
     }
     try:
         parser = parser_map[run_type]
