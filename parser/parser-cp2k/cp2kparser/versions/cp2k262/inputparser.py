@@ -116,9 +116,9 @@ class CP2KInputParser(BasicParser):
                     if pbe.accessed:
                         sp = pbe.get_section_parameter()
                         if sp == "T":
-                            parametrization = pbe.get_keyword_value_formatted("PARAMETRIZATION")
-                            scale_x = pbe.get_keyword_value_formatted("SCALE_X")
-                            scale_c = pbe.get_keyword_value_formatted("SCALE_C")
+                            parametrization = pbe.get_keyword("PARAMETRIZATION")
+                            scale_x = pbe.get_keyword("SCALE_X")
+                            scale_c = pbe.get_keyword("SCALE_C")
                             if parametrization == "ORIG":
                                 xc_list.append(XCFunctional("GGA_X_PBE", scale_x))
                                 xc_list.append(XCFunctional("GGA_C_PBE", scale_c))
@@ -133,11 +133,10 @@ class CP2KInputParser(BasicParser):
                     if tpss.accessed:
                         sp = tpss.get_section_parameter()
                         if sp == "T":
-                            scale_x = tpss.get_keyword_value_formatted("SCALE_X")
-                            scale_c = tpss.get_keyword_value_formatted("SCALE_C")
+                            scale_x = tpss.get_keyword("SCALE_X")
+                            scale_c = tpss.get_keyword("SCALE_C")
                             xc_list.append(XCFunctional("MGGA_X_TPSS", scale_x))
                             xc_list.append(XCFunctional("MGGA_C_TPSS", scale_c))
-
 
             # Sort the functionals alphabetically by name
             xc_list.sort(key=lambda x: x.name)
@@ -166,7 +165,7 @@ class CP2KInputParser(BasicParser):
 
         #=======================================================================
         # Cell periodicity
-        periodicity = self.input_tree.get_keyword_value_formatted("FORCE_EVAL/SUBSYS/CELL/PERIODIC")
+        periodicity = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/CELL/PERIODIC")
         if periodicity is not None:
             periodicity = periodicity.upper()
             periodicity_list = ("X" in periodicity, "Y" in periodicity, "Z" in periodicity)
@@ -179,12 +178,12 @@ class CP2KInputParser(BasicParser):
         self.setup_force_file_name()
 
         #=======================================================================
-        # Trajectory file name
+        # Trajectory file name and print settings
         self.setup_trajectory_file_name()
 
         #=======================================================================
         # Stress tensor calculation method
-        stress_tensor_method = self.input_tree.get_keyword_value_formatted("FORCE_EVAL/STRESS_TENSOR")
+        stress_tensor_method = self.input_tree.get_keyword("FORCE_EVAL/STRESS_TENSOR")
         if stress_tensor_method != "NONE":
             mapping = {
                 "NUMERICAL": "Numerical",
@@ -208,7 +207,7 @@ class CP2KInputParser(BasicParser):
             normalized_path = path
         # Path is relative, project name added
         else:
-            project_name = self.input_tree.get_keyword_value_formatted("GLOBAL/PROJECT_NAME")
+            project_name = self.input_tree.get_keyword("GLOBAL/PROJECT_NAME")
             if path:
                 normalized_path = "{}-{}".format(project_name, path)
             else:
@@ -218,7 +217,7 @@ class CP2KInputParser(BasicParser):
     def setup_force_file_name(self):
         """Setup the force file path.
         """
-        force_file = self.input_tree.get_keyword_value_formatted("FORCE_EVAL/PRINT/FORCES/FILENAME")
+        force_file = self.input_tree.get_keyword("FORCE_EVAL/PRINT/FORCES/FILENAME")
         extension = "xyz"
         if force_file is not None and force_file != "__STD_OUT__":
             normalized_path = self.normalize_x_cp2k_path(force_file)
@@ -228,12 +227,10 @@ class CP2KInputParser(BasicParser):
     def setup_trajectory_file_name(self):
         """Setup the trajectory file path.
         """
-        traj_format = self.input_tree.get_keyword_value_formatted("MOTION/PRINT/TRAJECTORY/FORMAT")
-        traj_filename = self.input_tree.get_keyword_value_formatted("MOTION/PRINT/TRAJECTORY/FILENAME")
-        geo_opt_each = self.input_tree.get_keyword_value_formatted("MOTION/PRINT/TRAJECTORY/EACH/GEO_OPT")
-        traj_add_last = self.input_tree.get_keyword_value_formatted("MOTION/PRINT/TRAJECTORY/ADD_LAST")
-        self.cache_service["each_geo_opt"] = geo_opt_each
-        self.cache_service["traj_add_last"] = traj_add_last
+        traj_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
+        traj_filename = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FILENAME")
+        self.cache_service["traj_add_last"] = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/ADD_LAST")
+        self.cache_service["each_geo_opt"] = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/EACH/GEO_OPT")
         if traj_filename is None:
             traj_filename = ""
         self.cache_service["trajectory_format"] = traj_format

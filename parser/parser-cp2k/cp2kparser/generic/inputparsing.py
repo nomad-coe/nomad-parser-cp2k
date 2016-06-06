@@ -93,6 +93,12 @@ class CP2KInput(object):
         else:
             return (None, section)
 
+    def get_keyword(self, path, format_value=True):
+        if format_value:
+            return self.get_keyword_value_formatted(path)
+        else:
+            return self.get_keyword_value_raw(path)
+
     def get_keyword_value_formatted(self, path):
         """
         """
@@ -100,12 +106,12 @@ class CP2KInput(object):
         if keyword:
             return keyword.get_value_formatted()
 
-    def get_keyword_value(self, path):
+    def get_keyword_value_raw(self, path):
         """
         """
         keyword, section = self.get_keyword_and_section(path)
         if keyword:
-            return keyword.get_value()
+            return keyword.get_value_raw()
 
     def get_default_keyword(self, path):
         return self.get_section(path).default_keyword.value
@@ -181,7 +187,7 @@ class Keyword(InputObject):
         self.default_value = default_value
         self.default_name = default_name
 
-    def get_value(self):
+    def get_value_raw(self):
         """Returns the unformatted value of this keyword. This is exactly what
         was set by the used in the input as a string.
         """
@@ -327,12 +333,12 @@ class Section(object):
             value = keyword_object.get_value_formatted()
             return value
 
-    def get_keyword_value(self, name):
+    def get_keyword_value_raw(self, name):
         """Returns the keyword value as a raw string as specfied by the used.
         """
         keyword_object = self.get_keyword_object(name)
         if keyword_object is not None:
-            return keyword_object.get_value()
+            return keyword_object.get_value_raw()
 
     def get_subsection(self, name):
         subsection = self.sections.get(name)

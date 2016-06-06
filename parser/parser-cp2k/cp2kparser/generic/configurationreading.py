@@ -76,11 +76,11 @@ def iread(filename, file_format=None):
         try:
             io = ase.io.formats.get_ioformat(file_format)
         except ValueError:
-            logger.error("MDTraj could not read the file '{}' with format '{}'. The contents might be malformed or wrong format used.".format(filename, file_format))
+            logger.error("MDTraj could not read the file '{}' with format '{}'. If MDTraj is supposed to read this format, the contents might be malformed.".format(filename, file_format))
             return
         else:
             # Return the positions in a numpy array instead of an ASE Atoms object
-            generator = ase.io.iread(filename, index, file_format)
+            generator = ase.io.iread(filename, format=file_format)
             for atoms in generator:
                 pos = atoms.positions
                 yield pos

@@ -73,7 +73,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     endReStr="  Conv. in RMS gradients     =",
                     name="geooptstep",
                     repeats=True,
-                    sections=["section_single_configuration_calculation", "section_system"],
+                    # sections=["section_single_configuration_calculation", "section_system"],
                     subMatchers=[
                         SM( "",
                             forwardMatch=True,
@@ -131,7 +131,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                                 SM( "  RMS gradient               =\s+(?P<x_cp2k_optimization_rms_gradient__bohr_1hartree>{})".format(self.cm.regex_f)),
                                 SM( "  Conv. in RMS gradients     =\s+(?P<x_cp2k_optimization_rms_gradient_convergence>{})".format(self.cm.regex_word)),
                             ],
-                            adHoc=self.adHoc_step()
+                            # adHoc=self.adHoc_step()
                         ),
                     ]
                 ),
@@ -140,11 +140,11 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     otherMetaInfo=["geometry_optimization_converged"]
                 ),
                 SM( "                    Reevaluating energy at the minimum",
-                    sections=["x_cp2k_section_geometry_optimization_energy_reevaluation", "section_system"],
+                    sections=["x_cp2k_section_geometry_optimization_energy_reevaluation"],
                     subMatchers=[
                         self.cm.quickstep_calculation(),
                     ],
-                    adHoc=self.adHoc_step()
+                    # adHoc=self.adHoc_step()
                 ),
             ],
         )
@@ -182,9 +182,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             self.cache_service["frame_sequence_potential_energy"].append(energy)
 
         # Push values from cache
-        self.cache_service.push_value("number_of_frames_in_sequence")
         self.cache_service.push_array_values("frame_sequence_potential_energy")
-        self.cache_service.push_array_values("frame_sequence_local_frames_ref")
         self.cache_service.push_value("geometry_optimization_method")
         self.backend.addValue("frame_sequence_to_sampling_ref", 0)
 
@@ -200,6 +198,35 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             "x_cp2k_optimization_gradient_convergence_limit"],
             "geometry_optimization_threshold_force",
         )
+
+        # Push the information into single configuration and system
+        steps = section["x_cp2k_section_geometry_optimization_step"]
+        each = self.cache_service["each_geo_opt"]
+        add_last = False
+        add_last_setting = self.cache_service["traj_add_last"]
+        if add_last_setting == "NUMERIC" or add_last_setting == "SYMBOLIC":
+            add_last = True
+
+        # Push the trajectory
+        n_steps = len(steps) + 1
+        last_step = n_steps - 1
+        for i_step in range(n_steps):
+            singleId = backend.openSection("section_single_configuration_calculation")
+            systemId = backend.openSection("section_system")
+
+            if self.traj_iterator is not None:
+                if (i_step + 1) % each == 0 or (i_step == last_step and add_last):
+                    try:
+                        pos = next(self.traj_iterator)
+                    except StopIteration:
+                        logger.error("Could not get the next geometries from an external file. It seems that the number of optimization steps in the CP2K outpufile doesn't match the number of steps found in the external trajectory file.")
+                    else:
+                        backend.addArrayValues("atom_positions", pos, unit="angstrom")
+            backend.closeSection("section_system", systemId)
+            backend.closeSection("section_single_configuration_calculation", singleId)
+
+        self.cache_service.push_array_values("frame_sequence_local_frames_ref")
+        backend.addValue("number_of_frames_in_sequence", n_steps)
 
     def onClose_section_sampling_method(self, backend, gIndex, section):
         self.backend.addValue("sampling_method", "geometry_optimization")
@@ -256,20 +283,11 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             self.cache_service["geometry_optimization_method"] = "bfgs"
         return wrapper
 
-    def adHoc_step(self):
-        """Called when all the step information has been retrieved from the
-        output file. Here further information is gathered from external files.
-        """
-        def wrapper(parser):
-            self.cache_service["number_of_frames_in_sequence"] += 1
+    # def adHoc_step(self):
+        # """Called when all the step information has been retrieved from the
+        # output file. Here further information is gathered from external files.
+        # """
+        # def wrapper(parser):
+            # self.cache_service["number_of_frames_in_sequence"] += 1
 
-            # Get the next position from the trajectory file
-            if self.traj_iterator is not None:
-                try:
-                    pos = next(self.traj_iterator)
-                except StopIteration:
-                    logger.error("Could not get the next geometries from an external file. It seems that the number of optimization steps in the CP2K outpufile doesn't match the number of steps found in the external trajectory file.")
-                else:
-                    self.cache_service["atom_positions"] = pos
-
-        return wrapper
+        # return wrapper

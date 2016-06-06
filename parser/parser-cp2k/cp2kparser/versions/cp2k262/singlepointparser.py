@@ -85,5 +85,11 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         section.add_latest_array_values("x_cp2k_stress_tensor", "stress_tensor")
         backend.closeSection("section_stress_tensor", gId)
 
+    def onClose_section_system(self, backend, gIndex, section):
+        """Stores the index of the section method. Should always be 0, but
+        let's get it dynamically just in case there's something wrong.
+        """
+        self.cache_service.push_array_values("atom_positions", unit="angstrom")
+
     #===========================================================================
     # adHoc functions

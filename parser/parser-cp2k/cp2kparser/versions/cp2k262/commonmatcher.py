@@ -249,7 +249,6 @@ class CommonMatcher(object):
         self.cache_service.push_value("number_of_atoms")
         self.cache_service.push_array_values("simulation_cell", unit="angstrom")
         self.cache_service.push_array_values("configuration_periodic_dimensions")
-        self.cache_service.push_array_values("atom_positions", unit="angstrom")
         self.cache_service.push_array_values("atom_labels")
 
     def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
