@@ -57,8 +57,7 @@ object Cp2kParser extends SimpleExternalParserGenerator(
     "nomad_meta_info/common.nomadmetainfo.json",
     "nomad_meta_info/meta_types.nomadmetainfo.json",
     "nomad_meta_info/cp2k.nomadmetainfo.json",
-    "nomad_meta_info/cp2k.general.nomadmetainfo.json",
-    "nomad_meta_info/cp2k.md.nomadmetainfo.json"
+    "nomad_meta_info/cp2k.general.nomadmetainfo.json"
   ) ++ DefaultPythonInterpreter.commonFiles(),
   dirMap = Map(
     "parser-cp2k" -> "parsers/cp2k/parser/parser-cp2k",
