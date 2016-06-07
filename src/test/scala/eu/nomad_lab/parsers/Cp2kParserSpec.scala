@@ -15,4 +15,7 @@ object Cp2kParserSpec extends Specification {
   "test geo_opt with json" >> {
     ParserRun.parse(Cp2kParser, "parsers/cp2k/test/examples/geo_opt/H2O.out", "json") must_== ParseResult.ParseSuccess
   }
+  "test md with json" >> {
+    ParserRun.parse(Cp2kParser, "parsers/cp2k/test/examples/md/H2O-32.out", "json") must_== ParseResult.ParseSuccess
+  }
 }

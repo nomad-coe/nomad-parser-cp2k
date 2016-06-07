@@ -47,6 +47,7 @@ object Cp2kParser extends SimpleExternalParserGenerator(
     "parser-cp2k/cp2kparser/versions/cp2k262/__init__.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/singlepointparser.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/geooptparser.py",
+    "parser-cp2k/cp2kparser/versions/cp2k262/mdparser.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/singlepointforceparser.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/inputparser.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/commonmatcher.py",
