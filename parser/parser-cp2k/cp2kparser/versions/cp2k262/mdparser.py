@@ -5,7 +5,9 @@ from commonmatcher import CommonMatcher
 import cp2kparser.generic.configurationreading
 import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
+from nomadcore.unit_conversion.unit_conversion import convert_unit
 import logging
+import math
 logger = logging.getLogger("nomad")
 
 
@@ -53,16 +55,19 @@ class CP2KMDParser(MainHierarchicalParser):
             subMatchers=[
                 SM( " MD\| Molecular Dynamics Protocol",
                     forwardMatch=True,
-                    sections=["x_cp2k_section_md_settings"],
+                    sections=["section_sampling_method", "x_cp2k_section_md_settings"],
                     subMatchers=[
                         SM( " MD\| Ensemble Type\s+(?P<x_cp2k_md_ensemble_type>{})".format(self.cm.regex_word)),
                         SM( " MD\| Number of Time Steps\s+(?P<x_cp2k_md_number_of_time_steps>{})".format(self.cm.regex_i)),
                         SM( " MD\| Time Step \[fs\]\s+(?P<x_cp2k_md_time_step__fs>{})".format(self.cm.regex_f)),
-                        SM( " MD\| Temperature \[K\]\s+(?P<x_cp2k_md_temperature>{})".format(self.cm.regex_f)),
-                        SM( " MD\| Temperature tolerance \[K\]\s+(?P<x_cp2k_md_temperature_tolerance>{})".format(self.cm.regex_f)),
+                        SM( " MD\| Temperature \[K\]\s+(?P<x_cp2k_md_target_temperature>{})".format(self.cm.regex_f)),
+                        SM( " MD\| Temperature tolerance \[K\]\s+(?P<x_cp2k_md_target_temperature_tolerance>{})".format(self.cm.regex_f)),
+                        SM( " MD\| Pressure \[Bar\]\s+(?P<x_cp2k_md_target_pressure>{})".format(self.cm.regex_f)),
+                        SM( " MD\| Barostat time constant \[  fs\]\s+(?P<x_cp2k_md_barostat_time_constant>{})".format(self.cm.regex_f)),
                         SM( " MD\| Print MD information every\s+(?P<x_cp2k_md_print_frequency>{}) step\(s\)".format(self.cm.regex_i)),
                         SM( " MD\| File type     Print frequency\[steps\]                             File names"),
                         SM( " MD\| Coordinates\s+(?P<x_cp2k_md_coordinates_print_frequency>{})\s+(?P<x_cp2k_md_coordinates_filename>{})".format(self.cm.regex_i, self.cm.regex_word)),
+                        SM( " MD\| Simulation Cel\s+(?P<x_cp2k_md_simulation_cell_print_frequency>{})\s+(?P<x_cp2k_md_simulation_cell_filename>{})".format(self.cm.regex_i, self.cm.regex_word)),
                         SM( " MD\| Velocities\s+(?P<x_cp2k_md_velocities_print_frequency>{})\s+(?P<x_cp2k_md_velocities_filename>{})".format(self.cm.regex_i, self.cm.regex_word)),
                         SM( " MD\| Energies\s+(?P<x_cp2k_md_energies_print_frequency>{})\s+(?P<x_cp2k_md_energies_filename>{})".format(self.cm.regex_i, self.cm.regex_word)),
                         SM( " MD\| Dump\s+(?P<x_cp2k_md_dump_print_frequency>{})\s+(?P<x_cp2k_md_dump_filename>{})".format(self.cm.regex_i, self.cm.regex_word)),
@@ -78,7 +83,11 @@ class CP2KMDParser(MainHierarchicalParser):
                         SM( " INITIAL POTENTIAL ENERGY\[hartree\]     =\s+(?P<x_cp2k_md_potential_energy_instantaneous__hartree>{})".format(self.cm.regex_f)),
                         SM( " INITIAL KINETIC ENERGY\[hartree\]       =\s+(?P<x_cp2k_md_kinetic_energy_instantaneous__hartree>{})".format(self.cm.regex_f)),
                         SM( " INITIAL TEMPERATURE\[K\]                =\s+(?P<x_cp2k_md_temperature_instantaneous>{})".format(self.cm.regex_f)),
-                        SM( " INITIAL VOLUME\[bohr\^3\]                =\s+(?P<x_cp2k_md_volume__bohr3>{})".format(self.cm.regex_f)),
+                        SM( " INITIAL BAROSTAT TEMP\[K\]              =\s+(?P<x_cp2k_md_barostat_temperature_instantaneous>{})".format(self.cm.regex_f)),
+                        SM( " INITIAL PRESSURE\[bar\]                 =\s+(?P<x_cp2k_md_pressure_instantaneous__bar>{})".format(self.cm.regex_f)),
+                        SM( " INITIAL VOLUME\[bohr\^3\]                =\s+(?P<x_cp2k_md_volume_instantaneous__bohr3>{})".format(self.cm.regex_f)),
+                        SM( " INITIAL CELL LNTHS\[bohr\]              =\s+(?P<x_cp2k_md_cell_length_a_instantaneous__bohr>{0})\s+(?P<x_cp2k_md_cell_length_b_instantaneous__bohr>{0})\s+(?P<x_cp2k_md_cell_length_c_instantaneous__bohr>{0})".format(self.cm.regex_f)),
+                        SM( " INITIAL CELL ANGLS\[deg\]               =\s+(?P<x_cp2k_md_cell_angle_a_instantaneous__deg>{0})\s+(?P<x_cp2k_md_cell_angle_b_instantaneous__deg>{0})\s+(?P<x_cp2k_md_cell_angle_c_instantaneous__deg>{0})".format(self.cm.regex_f)),
                     ],
                 ),
                 SM( " SCF WAVEFUNCTION OPTIMIZATION",
@@ -97,6 +106,13 @@ class CP2KMDParser(MainHierarchicalParser):
                         SM( " POTENTIAL ENERGY\[hartree\]    =\s+(?P<x_cp2k_md_potential_energy_instantaneous__hartree>{})\s+(?P<x_cp2k_md_potential_energy_average__hartree>{})".format(self.cm.regex_f, self.cm.regex_f)),
                         SM( " KINETIC ENERGY \[hartree\]     =\s+(?P<x_cp2k_md_kinetic_energy_instantaneous__hartree>{})\s+(?P<x_cp2k_md_kinetic_energy_average__hartree>{})".format(self.cm.regex_f, self.cm.regex_f)),
                         SM( " TEMPERATURE \[K\]              =\s+(?P<x_cp2k_md_temperature_instantaneous>{})\s+(?P<x_cp2k_md_temperature_average>{})".format(self.cm.regex_f, self.cm.regex_f)),
+                        SM( " PRESSURE \[bar\]               =\s+(?P<x_cp2k_md_pressure_instantaneous__bar>{0})\s+(?P<x_cp2k_md_pressure_average__bar>{0})".format(self.cm.regex_f)),
+                        SM( " BAROSTAT TEMP\[K\]             =\s+(?P<x_cp2k_md_barostat_temperature_instantaneous>{0})\s+(?P<x_cp2k_md_barostat_temperature_average>{0})".format(self.cm.regex_f)),
+                        SM( " VOLUME\[bohr\^3\]               =\s+(?P<x_cp2k_md_volume_instantaneous__bohr3>{0})\s+(?P<x_cp2k_md_volume_average__bohr3>{0})".format(self.cm.regex_f)),
+                        SM( " CELL LNTHS\[bohr\]             =\s+(?P<x_cp2k_md_cell_length_a_instantaneous__bohr>{0})\s+(?P<x_cp2k_md_cell_length_b_instantaneous__bohr>{0})\s+(?P<x_cp2k_md_cell_length_c_instantaneous__bohr>{0})".format(self.cm.regex_f)),
+                        SM( " AVE. CELL LNTHS\[bohr\]        =\s+(?P<x_cp2k_md_cell_length_a_average__bohr>{0})\s+(?P<x_cp2k_md_cell_length_b_average__bohr>{0})\s+(?P<x_cp2k_md_cell_length_c_average__bohr>{0})".format(self.cm.regex_f)),
+                        SM( " CELL ANGLS\[deg\]              =\s+(?P<x_cp2k_md_cell_angle_a_instantaneous__deg>{0})\s+(?P<x_cp2k_md_cell_angle_b_instantaneous__deg>{0})\s+(?P<x_cp2k_md_cell_angle_c_instantaneous__deg>{0})".format(self.cm.regex_f)),
+                        SM( " AVE. CELL ANGLS\[deg\]         =\s+(?P<x_cp2k_md_cell_angle_a_average__deg>{0})\s+(?P<x_cp2k_md_cell_angle_b_average__deg>{0})\s+(?P<x_cp2k_md_cell_angle_c_average__deg>{0})".format(self.cm.regex_f)),
                     ],
                 ),
             ]
@@ -107,7 +123,7 @@ class CP2KMDParser(MainHierarchicalParser):
         # computational time.
         self.root_matcher = SM("",
             forwardMatch=True,
-            sections=["section_run", "section_sampling_method"],
+            sections=["section_run"],
             subMatchers=[
                 SM( "",
                     forwardMatch=True,
@@ -131,7 +147,8 @@ class CP2KMDParser(MainHierarchicalParser):
             sampling_map = {
                 "NVE": "NVE",
                 "NVT": "NVT",
-                "NPT": "NPT",
+                "NPT_F": "NPT",
+                "NPT_I": "NPT",
             }
             sampling = sampling_map.get(sampling)
             if sampling is not None:
@@ -220,12 +237,15 @@ class CP2KMDParser(MainHierarchicalParser):
         frame_sequence_time = []
         frame_sequence_kinetic_energy = []
         frame_sequence_conserved_quantity = []
+        frame_sequence_pressure = []
 
+        single_conf_gids = []
         i_md_step = 0
         for i_step in range(self.n_steps + 1):
 
             sectionGID = backend.openSection("section_single_configuration_calculation")
             systemGID = backend.openSection("section_system")
+            single_conf_gids.append(sectionGID)
 
             # Trajectory
             if self.traj_iterator is not None:
@@ -272,13 +292,65 @@ class CP2KMDParser(MainHierarchicalParser):
                         quickstep.add_latest_value(["x_cp2k_section_scf_iteration", "x_cp2k_energy_XC_scf_iteration"], "energy_XC_scf_iteration")
                         backend.closeSection("section_scf_iteration", scfGID)
                     i_md_step += 1
+                    pressure = md_step.get_latest_value("x_cp2k_md_pressure_instantaneous")
+                    if pressure is not None:
+                        frame_sequence_pressure.append(pressure)
 
             backend.closeSection("section_system", systemGID)
             backend.closeSection("section_single_configuration_calculation", sectionGID)
 
         # Add the summaries to frame sequence
-        backend.addArrayValues("frame_sequence_potential_energy", np.array(frame_sequence_potential_energy), unit="hartree")
-        backend.addArrayValues("frame_sequence_kinetic_energy", np.array(frame_sequence_kinetic_energy), unit="hartree")
-        backend.addArrayValues("frame_sequence_conserved_quantity", np.array(frame_sequence_conserved_quantity), unit="hartree")
-        backend.addArrayValues("frame_sequence_temperature", np.array(frame_sequence_temperature))
-        backend.addArrayValues("frame_sequence_time", np.array(frame_sequence_time), unit="fs")
+        frame_sequence_potential_energy = convert_unit(np.array(frame_sequence_potential_energy), "hartree")
+        frame_sequence_kinetic_energy = convert_unit(np.array(frame_sequence_kinetic_energy), "hartree")
+        frame_sequence_conserved_quantity = convert_unit(np.array(frame_sequence_conserved_quantity), "hartree")
+        frame_sequence_time = np.array(frame_sequence_time)
+        frame_sequence_temperature = np.array(frame_sequence_temperature)
+        frame_sequence_pressure = np.array(frame_sequence_pressure)
+
+        backend.addArrayValues("frame_sequence_potential_energy", frame_sequence_potential_energy)
+        backend.addArrayValues("frame_sequence_kinetic_energy", frame_sequence_kinetic_energy)
+        backend.addArrayValues("frame_sequence_conserved_quantity", frame_sequence_conserved_quantity)
+        backend.addArrayValues("frame_sequence_temperature", frame_sequence_temperature)
+        backend.addArrayValues("frame_sequence_time", frame_sequence_time, unit="fs")
+        if frame_sequence_pressure.size != 0:
+            backend.addArrayValues("frame_sequence_pressure", frame_sequence_pressure)
+
+        # Number of frames
+        backend.addValue("number_of_frames_in_sequence", self.n_steps + 1)
+
+        # Reference to sampling method
+        backend.addValue("frame_sequence_to_sampling_ref", 0)
+
+        # References to local frames
+        backend.addArrayValues("frame_sequence_local_frames_ref", np.array(single_conf_gids))
+
+        # Temperature stats
+        mean_temp = frame_sequence_temperature.mean()
+        c = frame_sequence_temperature - mean_temp
+        std_temp = math.sqrt(np.dot(c, c)/frame_sequence_temperature.size)
+        backend.addArrayValues("frame_sequence_temperature_stats", np.array([mean_temp, std_temp]))
+
+        # Potential energy stats
+        mean_pot = frame_sequence_potential_energy.mean()
+        c = frame_sequence_potential_energy - mean_pot
+        std_pot = math.sqrt(np.dot(c, c)/frame_sequence_potential_energy.size)
+        backend.addArrayValues("frame_sequence_potential_energy_stats", np.array([mean_pot, std_pot]))
+
+        # Kinetic energy stats
+        mean_kin = frame_sequence_kinetic_energy.mean()
+        c = frame_sequence_kinetic_energy - mean_kin
+        std_kin = math.sqrt(np.dot(c, c)/frame_sequence_kinetic_energy.size)
+        backend.addArrayValues("frame_sequence_kinetic_energy_stats", np.array([mean_kin, std_kin]))
+
+        # Conserved quantity stats
+        mean_cons = frame_sequence_conserved_quantity.mean()
+        c = frame_sequence_conserved_quantity - mean_cons
+        std_cons = math.sqrt(np.dot(c, c)/frame_sequence_conserved_quantity.size)
+        backend.addArrayValues("frame_sequence_conserved_quantity_stats", np.array([mean_cons, std_cons]))
+
+        # Pressure stats
+        if frame_sequence_pressure.size != 0:
+            mean_pressure = frame_sequence_pressure.mean()
+            c = frame_sequence_pressure - mean_pressure
+            std_pressure = math.sqrt(np.dot(c, c)/frame_sequence_pressure.size)
+            backend.addArrayValues("frame_sequence_pressure_stats", np.array([mean_pressure, std_pressure]))
