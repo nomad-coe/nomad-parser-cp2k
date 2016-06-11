@@ -24,17 +24,16 @@ class CP2KMDParser(MainHierarchicalParser):
         self.setup_common_matcher(CommonMatcher(parser_context))
         self.traj_iterator = None
         self.energy_iterator = None
+        self.cell_iterator = None
         self.n_steps = None
         self.output_freq = None
         self.coord_freq = None
         self.velo_freq = None
         self.energy_freq = None
+        self.cell_freq = None
 
         #=======================================================================
         # Globally cached values
-        self.cache_service.add_cache_object("number_of_frames_in_sequence", 0)
-        self.cache_service.add_cache_object("frame_sequence_potential_energy", [])
-        self.cache_service.add_cache_object("frame_sequence_local_frames_ref", [])
 
         #=======================================================================
         # Cache levels
@@ -162,6 +161,7 @@ class CP2KMDParser(MainHierarchicalParser):
         self.energy_freq = section.get_latest_value("x_cp2k_md_energies_print_frequency")
         self.coord_freq = section.get_latest_value("x_cp2k_md_coordinates_print_frequency")
         self.velo_freq = section.get_latest_value("x_cp2k_md_velocities_print_frequency")
+        self.cell_freq = section.get_latest_value("x_cp2k_md_simulation_cell_print_frequency")
 
         # Step number
         self.n_steps = section.get_latest_value("x_cp2k_md_number_of_time_steps")
@@ -170,8 +170,10 @@ class CP2KMDParser(MainHierarchicalParser):
         coord_filename = section.get_latest_value("x_cp2k_md_coordinates_filename")
         velocities_filename = section.get_latest_value("x_cp2k_md_velocities_filename")
         energies_filename = section.get_latest_value("x_cp2k_md_energies_filename")
+        cell_filename = section.get_latest_value("x_cp2k_md_simulation_cell_filename")
         self.file_service.set_file_id(coord_filename, "coordinates")
         self.file_service.set_file_id(velocities_filename, "velocities")
+        cell_filepath = self.file_service.set_file_id(cell_filename, "cell")
         energies_filepath = self.file_service.set_file_id(energies_filename, "energies")
 
         # Setup trajectory iterator
@@ -192,6 +194,10 @@ class CP2KMDParser(MainHierarchicalParser):
         if energies_filepath is not None:
             self.energy_iterator = cp2kparser.generic.csvparsing.iread(energies_filepath, columns=[0, 1, 2, 3, 4, 5, 6], comments="#")
 
+        # Setup cell file iterator
+        if cell_filepath is not None:
+            self.cell_iterator = cp2kparser.generic.csvparsing.iread(cell_filepath, columns=[2, 3, 4, 5, 6, 7, 8, 9, 10], comments="#")
+
     def onClose_x_cp2k_section_md(self, backend, gIndex, section):
 
         # Determine the highest print frequency and use that as the number of
@@ -201,6 +207,7 @@ class CP2KMDParser(MainHierarchicalParser):
             "coordinates": [self.coord_freq, True],
             "velocities": [self.velo_freq, True],
             "energies": [self.energy_freq, True],
+            "cell": [self.cell_freq, True],
         }
 
         # See if the files actually exist
@@ -213,15 +220,9 @@ class CP2KMDParser(MainHierarchicalParser):
         energies_file = self.file_service.get_file_by_id("energies")
         if energies_file is None:
             freqs["energies"][1] = False
-
-        # Determine the highest available frequency
-        max_freq = 0
-        for freq in freqs.itervalues():
-            if freq[0] is not None and freq[1] is not None:
-                if freq[0] > max_freq:
-                    max_freq = freq[1]
-            else:
-                freq[1] = False
+        cell_file = self.file_service.get_file_by_id("cell")
+        if cell_file is None:
+            freqs["cell"][1] = False
 
         # Trajectory print settings
         add_last_traj = False
@@ -277,6 +278,13 @@ class CP2KMDParser(MainHierarchicalParser):
 
                     backend.addValue("energy_total", conserved_quantity)
                     backend.addValue("time_calculation", wall_time)
+
+            # Cell file
+            if self.cell_iterator is not None:
+                if (i_step + 1) % freqs["cell"][0] == 0:
+                    line = self.cell_iterator.next()
+                    cell = np.reshape(line, (3, 3))
+                    self.cache_service["simulation_cell"] = cell
 
             # Output file
             if md_steps:

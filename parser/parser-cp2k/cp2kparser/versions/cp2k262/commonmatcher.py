@@ -24,7 +24,9 @@ class CommonMatcher(object):
         self.cache_service = parser_context.cache_service
         self.regex_f = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
         self.regex_i = "-?\d+"  # Regex for an integer
-        self.regex_word = "[^\s]+"  # Regex for a single word. Can contain anything else but whitespace
+        self.regex_word = "[\S]+"  # Regex for a single word. Can contain anything else but whitespace
+        self.regex_letter = "[^\W\d_]"  # Regex for a single alphabetical letter
+        self.regex_eol = "[^\n]+"  # Regex for a single alphabetical letter
         self.section_method_index = None
         self.section_system_index = None
 
@@ -34,11 +36,12 @@ class CommonMatcher(object):
             'x_cp2k_atoms': CachingLevel.ForwardAndCache,
             'section_XC_functionals': CachingLevel.ForwardAndCache,
             'self_interaction_correction_method': CachingLevel.Cache,
+            'x_cp2k_section_programinformation': CachingLevel.ForwardAndCache,
         }
 
         #=======================================================================
         # Globally cached values
-        self.cache_service.add_cache_object("simulation_cell", single=False, update=False)
+        self.cache_service.add_cache_object("simulation_cell", single=False, update=True)
         self.cache_service.add_cache_object("number_of_scf_iterations", 0)
         self.cache_service.add_cache_object("atom_positions", single=False, update=True)
         self.cache_service.add_cache_object("atom_labels", single=False, update=False)
@@ -49,25 +52,72 @@ class CommonMatcher(object):
 
     # SimpleMatcher for the header that is common to all run types
     def header(self):
-        return SM(r" DBCSR\| Multiplication driver",
+        return SM( " DBCSR\| Multiplication driver",
             forwardMatch=True,
             subMatchers=[
-                SM( r" DBCSR\| Multiplication driver",
+                SM( " DBCSR\| Multiplication driver",
+                    forwardMatch=True,
                     sections=['x_cp2k_section_dbcsr'],
+                    subMatchers=[
+                        SM( " DBCSR\| Multiplication driver\s+(?P<x_cp2k_dbcsr_multiplication_driver>{})".format(self.regex_word)),
+                        SM( " DBCSR\| Multrec recursion limit\s+(?P<x_cp2k_dbcsr_multrec_recursion_limit>{})".format(self.regex_i)),
+                        SM( " DBCSR\| Multiplication stack size\s+(?P<x_cp2k_dbcsr_multiplication_stack_size>{})".format(self.regex_i)),
+                        SM( " DBCSR\| Multiplication size stacks\s+(?P<x_cp2k_dbcsr_multiplication_size_stacks>{})".format(self.regex_i)),
+                        SM( " DBCSR\| Use subcommunicators\s+(?P<x_cp2k_dbcsr_use_subcommunicators>{})".format(self.regex_letter)),
+                        SM( " DBCSR\| Use MPI combined types\s+(?P<x_cp2k_dbcsr_use_mpi_combined_types>{})".format(self.regex_letter)),
+                        SM( " DBCSR\| Use MPI memory allocation\s+(?P<x_cp2k_dbcsr_use_mpi_memory_allocation>{})".format(self.regex_letter)),
+                        SM( " DBCSR\| Use Communication thread\s+(?P<x_cp2k_dbcsr_use_communication_thread>{})".format(self.regex_letter)),
+                        SM( " DBCSR\| Communication thread load\s+(?P<x_cp2k_dbcsr_communication_thread_load>{})".format(self.regex_i)),
+                    ]
                 ),
-                SM( r" \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s+(?P<x_cp2k_run_start_date>\d{4}-\d{2}-\d{2}) (?P<x_cp2k_run_start_time>\d{2}:\d{2}:\d{2}.\d{3})",
+                SM( "  **** **** ******  **  PROGRAM STARTED AT".replace("*", "\*"),
+                    forwardMatch=True,
                     sections=['x_cp2k_section_startinformation'],
+                    subMatchers=[
+                        SM( "  **** **** ******  **  PROGRAM STARTED AT\s+(?P<x_cp2k_start_time>{})".replace("*", "\*").format(self.regex_eol)),
+                        SM( " ***** ** ***  *** **   PROGRAM STARTED ON\s+(?P<x_cp2k_start_host>{})".replace("*", "\*").format(self.regex_word)),
+                        SM( " **    ****   ******    PROGRAM STARTED BY\s+(?P<x_cp2k_start_user>{})".replace("*", "\*").format(self.regex_word)),
+                        SM( " ***** **    ** ** **   PROGRAM PROCESS ID\s+(?P<x_cp2k_start_id>{})".replace("*", "\*").format(self.regex_i)),
+                        SM( "  **** **  *******  **  PROGRAM STARTED IN".replace("*", "\*"),
+                            forwardMatch=True,
+                            adHoc=self.adHoc_run_dir(),
+                        )
+                    ]
                 ),
-                SM( r" CP2K\|",
+                SM( " CP2K\| version string:",
                     sections=['x_cp2k_section_programinformation'],
                     forwardMatch=True,
                     subMatchers=[
-                        SM( r" CP2K\| version string:\s+(?P<program_version>[\w\d\W\s]+)"),
-                        SM( r" CP2K\| source code revision number:\s+svn:(?P<x_cp2k_svn_revision>\d+)"),
+                        SM( " CP2K\| version string:\s+(?P<program_version>{})".format(self.regex_eol)),
+                        SM( " CP2K\| source code revision number:\s+svn:(?P<x_cp2k_svn_revision>\d+)"),
+                        SM( " CP2K\| is freely available from{}".format(self.regex_word)),
+                        SM( " CP2K\| Program compiled at{}".format(self.regex_word)),
+                        SM( " CP2K\| Program compiled on{}".format(self.regex_word)),
+                        SM( " CP2K\| Program compiled for{}".format(self.regex_word)),
+                        SM( " CP2K\| Input file name\s+(?P<x_cp2k_input_filename>{})".format(self.regex_eol)),
                     ]
                 ),
-                SM( r" CP2K\| Input file name\s+(?P<x_cp2k_input_filename>.+$)",
-                    sections=['x_cp2k_section_filenames'],
+                SM( " GLOBAL\|",
+                    sections=['x_cp2k_section_global_settings'],
+                    subMatchers=[
+                        SM( " GLOBAL\| Force Environment number"),
+                        SM( " GLOBAL\| Basis set file name\s+(?P<x_cp2k_basis_set_filename>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Geminal file name\s+(?P<x_cp2k_geminal_filename>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Potential file name\s+(?P<x_cp2k_potential_filename>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| MM Potential file name\s+(?P<x_cp2k_mm_potential_filename>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Coordinate file name\s+(?P<x_cp2k_coordinate_filename>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Method name\s+(?P<x_cp2k_method_name>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Project name"),
+                        SM( " GLOBAL\| Preferred FFT library\s+(?P<x_cp2k_preferred_fft_library>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Preferred diagonalization lib.\s+(?P<x_cp2k_preferred_diagonalization_library>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Run type\s+(?P<x_cp2k_run_type>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| All-to-all communication in single precision"),
+                        SM( " GLOBAL\| FFTs using library dependent lengths"),
+                        SM( " GLOBAL\| Global print level"),
+                        SM( " GLOBAL\| Total number of message passing processes"),
+                        SM( " GLOBAL\| Number of threads for this process"),
+                        SM( " GLOBAL\| This output is from process"),
+                    ],
                     otherMetaInfo=[
                         "section_XC_functionals",
                         'XC_functional_name',
@@ -77,51 +127,11 @@ class CommonMatcher(object):
                         "stress_tensor_method",
                         "atom_positions",
                     ],
-                    subMatchers=[
-                        SM( r" GLOBAL\| Basis set file name\s+(?P<x_cp2k_basis_set_filename>.+$)"),
-                        SM( r" GLOBAL\| Geminal file name\s+(?P<x_cp2k_geminal_filename>.+$)"),
-                        SM( r" GLOBAL\| Potential file name\s+(?P<x_cp2k_potential_filename>.+$)"),
-                        SM( r" GLOBAL\| MM Potential file name\s+(?P<x_cp2k_mm_potential_filename>.+$)"),
-                        SM( r" GLOBAL\| Coordinate file name\s+(?P<x_cp2k_coordinate_filename>.+$)"),
-                    ]
                 ),
                 SM( " CELL\|",
                     adHoc=self.adHoc_x_cp2k_section_cell(),
                     otherMetaInfo=["simulation_cell"]
                 ),
-                SM( " DFT\|",
-                    otherMetaInfo=["self_interaction_correction_method"],
-                    forwardMatch=True,
-                    subMatchers=[
-                        SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regex_i)),
-                        SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regex_i)),
-                        SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
-                    ]
-                ),
-                SM( "  Total number of",
-                    forwardMatch=True,
-                    sections=["x_cp2k_section_total_numbers"],
-                    subMatchers=[
-                        SM( "  Total number of            - Atomic kinds:\s+(?P<x_cp2k_atomic_kinds>\d+)"),
-                        SM( "\s+- Atoms:\s+(?P<x_cp2k_atoms>\d+)",
-                            otherMetaInfo=["number_of_atoms"],
-                        ),
-                        SM( "\s+- Shell sets:\s+(?P<x_cp2k_shell_sets>\d+)"),
-                        SM( "\s+- Shells:\s+(?P<x_cp2k_shells>\d+)"),
-                        SM( "\s+- Primitive Cartesian functions:\s+(?P<x_cp2k_primitive_cartesian_functions>\d+)"),
-                        SM( "\s+- Cartesian basis functions:\s+(?P<x_cp2k_cartesian_basis_functions>\d+)"),
-                        SM( "\s+- Spherical basis functions:\s+(?P<x_cp2k_spherical_basis_functions>\d+)"),
-                    ]
-                ),
-                SM( " Maximum angular momentum of",
-                    forwardMatch=True,
-                    sections=["x_cp2k_section_maximum_angular_momentum"],
-                    subMatchers=[
-                        SM( "  Maximum angular momentum of- Orbital basis functions::\s+(?P<x_cp2k_orbital_basis_functions>\d+)"),
-                        SM( "\s+- Local part of the GTH pseudopotential:\s+(?P<x_cp2k_local_part_of_gth_pseudopotential>\d+)"),
-                        SM( "\s+- Non-local part of the GTH pseudopotential:\s+(?P<x_cp2k_non_local_part_of_gth_pseudopotential>\d+)"),
-                    ]
-                )
             ]
         )
 
@@ -177,13 +187,50 @@ class CommonMatcher(object):
 
     # SimpleMatcher the stuff that is done to initialize a quickstep calculation
     def quickstep_header(self):
-        return SM(
-            " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
+        return SM( " *******************************************************************************".replace("*", "\*"),
             forwardMatch=True,
             subMatchers=[
+                SM( " DFT\|",
+                    forwardMatch=True,
+                    subMatchers=[
+                        SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regex_i)),
+                        SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regex_i)),
+                        SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
+                    ],
+                    otherMetaInfo=["self_interaction_correction_method"],
+                ),
+                SM( "  Total number of",
+                    forwardMatch=True,
+                    sections=["x_cp2k_section_total_numbers"],
+                    subMatchers=[
+                        SM( "  Total number of            - Atomic kinds:\s+(?P<x_cp2k_atomic_kinds>\d+)"),
+                        SM( "\s+- Atoms:\s+(?P<x_cp2k_atoms>\d+)",
+                            otherMetaInfo=["number_of_atoms"],
+                        ),
+                        SM( "\s+- Shell sets:\s+(?P<x_cp2k_shell_sets>\d+)"),
+                        SM( "\s+- Shells:\s+(?P<x_cp2k_shells>\d+)"),
+                        SM( "\s+- Primitive Cartesian functions:\s+(?P<x_cp2k_primitive_cartesian_functions>\d+)"),
+                        SM( "\s+- Cartesian basis functions:\s+(?P<x_cp2k_cartesian_basis_functions>\d+)"),
+                        SM( "\s+- Spherical basis functions:\s+(?P<x_cp2k_spherical_basis_functions>\d+)"),
+                    ]
+                ),
+                SM( " Maximum angular momentum of",
+                    forwardMatch=True,
+                    sections=["x_cp2k_section_maximum_angular_momentum"],
+                    subMatchers=[
+                        SM( "  Maximum angular momentum of- Orbital basis functions::\s+(?P<x_cp2k_orbital_basis_functions>\d+)"),
+                        SM( "\s+- Local part of the GTH pseudopotential:\s+(?P<x_cp2k_local_part_of_gth_pseudopotential>\d+)"),
+                        SM( "\s+- Non-local part of the GTH pseudopotential:\s+(?P<x_cp2k_non_local_part_of_gth_pseudopotential>\d+)"),
+                    ]
+                ),
                 SM( " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
-                    adHoc=self.adHoc_x_cp2k_section_quickstep_atom_information(),
-                    otherMetaInfo=["atom_labels", "atom_positions"]
+                    forwardMatch=True,
+                    subMatchers=[
+                        SM( " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
+                            adHoc=self.adHoc_x_cp2k_section_quickstep_atom_information(),
+                            otherMetaInfo=["atom_labels", "atom_positions"]
+                        )
+                    ]
                 )
             ]
         )
@@ -229,12 +276,13 @@ class CommonMatcher(object):
         except:
             pass
 
-    def onClose_x_cp2k_section_filenames(self, backend, gIndex, section):
-        """
-        """
-        # If the input file is available, parse it
+    def onClose_x_cp2k_section_programinformation(self, backend, gIndex, section):
         input_file = section.get_latest_value("x_cp2k_input_filename")
-        filepath = self.file_service.get_absolute_path_to_file(input_file)
+        self.file_service.set_file_id(input_file, "input")
+
+    def onClose_x_cp2k_section_global_settings(self, backend, gIndex, section):
+        # If the input file is available, parse it
+        filepath = self.file_service.get_file_by_id("input")
         if filepath is not None:
             input_parser = CP2KInputParser(filepath, self.parser_context)
             input_parser.parse()
@@ -404,6 +452,27 @@ class CommonMatcher(object):
             if len(coordinates) != 0:
                 self.cache_service["atom_positions"] = coordinates
                 self.cache_service["atom_labels"] = labels
+
+        return wrapper
+
+    def adHoc_run_dir(self):
+        def wrapper(parser):
+            end_str = "\n"
+            end = False
+            path_array = []
+
+            # Loop through coordinates until the sum of forces is read
+            while not end:
+                line = parser.fIn.readline()
+                if line.startswith(end_str):
+                    end = True
+                else:
+                    path_part = line.split()[-1]
+                    path_array.append(path_part)
+
+            # Form the final path and push to backend
+            path = "".join(path_array)
+            parser.backend.addValue("x_cp2k_start_path", path)
 
         return wrapper
 
