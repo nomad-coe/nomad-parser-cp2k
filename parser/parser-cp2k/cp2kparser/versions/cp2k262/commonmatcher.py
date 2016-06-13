@@ -37,6 +37,7 @@ class CommonMatcher(object):
             'section_XC_functionals': CachingLevel.ForwardAndCache,
             'self_interaction_correction_method': CachingLevel.Cache,
             'x_cp2k_section_programinformation': CachingLevel.ForwardAndCache,
+            'x_cp2k_section_quickstep_settings': CachingLevel.ForwardAndCache,
         }
 
         #=======================================================================
@@ -189,11 +190,14 @@ class CommonMatcher(object):
     def quickstep_header(self):
         return SM( " *******************************************************************************".replace("*", "\*"),
             forwardMatch=True,
+            sections=["x_cp2k_section_quickstep_settings"],
             subMatchers=[
                 SM( " DFT\|",
                     forwardMatch=True,
                     subMatchers=[
+                        SM( " DFT\| Spin restricted Kohn-Sham (RKS) calculation\s+(?P<x_cp2k_spin_restriction>{})".format(self.regex_word)),
                         SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regex_i)),
+                        SM( " DFT\| Number of spin states\s+(?P<number_of_spin_channels>{})".format(self.regex_i)),
                         SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regex_i)),
                         SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
                     ],
@@ -231,6 +235,16 @@ class CommonMatcher(object):
                             otherMetaInfo=["atom_labels", "atom_positions"]
                         )
                     ]
+                ),
+                SM( " SCF PARAMETERS",
+                    forwardMatch=True,
+                    subMatchers=[
+                        SM( " SCF PARAMETERS         Density guess:\s+{}".format(self.regex_eol)),
+                        SM( "                        max_scf:\s+(?P<scf_max_iteration>{})".format(self.regex_i)),
+                        SM( "                        max_scf_history:\s+{}".format(self.regex_i)),
+                        SM( "                        max_diis:\s+{}".format(self.regex_i)),
+                        SM( "                        eps_scf:\s+(?P<scf_threshold_energy_change>{})".format(self.regex_f)),
+                    ]
                 )
             ]
         )
@@ -242,13 +256,6 @@ class CommonMatcher(object):
         number_of_atoms = section.get_latest_value("x_cp2k_atoms")
         if number_of_atoms is not None:
             self.cache_service["number_of_atoms"] = number_of_atoms
-
-    def onClose_section_run(self, backend, gIndex, section):
-        """Information that is pushed regardless at the end of parsing.
-        Contains also information that is totally agnostic on the calculation
-        contents, like program_basis_set_type.
-        """
-        backend.addValue("program_basis_set_type", "gaussian")
 
     def onClose_section_method(self, backend, gIndex, section):
         """When all the functional definitions have been gathered, matches them
@@ -275,6 +282,10 @@ class CommonMatcher(object):
                 logger.warning("Unknown self-interaction correction method used.")
         except:
             pass
+
+    def onClose_x_cp2k_section_quickstep_settings(self, backend, gIndex, section):
+        backend.addValue("program_basis_set_type", "gaussian")
+        # backend.addValue("electronic_structure_method", "DFT")
 
     def onClose_x_cp2k_section_programinformation(self, backend, gIndex, section):
         input_file = section.get_latest_value("x_cp2k_input_filename")

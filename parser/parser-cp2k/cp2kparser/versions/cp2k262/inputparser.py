@@ -64,6 +64,7 @@ class CP2KInputParser(BasicParser):
         self.cache_service.add("vel_add_last")
         self.cache_service.add("each_geo_opt")
         self.cache_service.add("traj_add_last")
+        self.cache_service.add("electronic_structure_method")
 
     def parse(self):
 
@@ -214,6 +215,10 @@ class CP2KInputParser(BasicParser):
         vel_unit = self.input_tree.get_keyword("MOTION/PRINT/VELOCITIES/UNIT")
         pint_vel_unit = self.get_pint_unit_string(vel_unit)
         self.cache_service["velocity_unit"] = pint_vel_unit
+
+        #=======================================================================
+        # See if some more exotic calculation is requested (e.g. MP2, DFT+U, GW, RPA)
+
 
         #=======================================================================
         # Stress tensor calculation method
