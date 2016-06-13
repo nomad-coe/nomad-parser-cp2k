@@ -13,16 +13,18 @@ def main():
         version="0.1",
         include_package_data=True,
         package_data={
-            'cp2kparser.versions.cp2k262': ['input_data/*.json', 'input_data/*.pickle'],
+            'cp2kparser.versions.cp2k262': ['input_data/cp2k_input_tree.pickle'],
         },
-        description="NoMaD parser implementation for CP2K",
+        description="NoMaD parser implementation for CP2K.",
         author="Lauri Himanen",
-        author_email="lauri.himanen@gmail.com",
+        author_email="lauri.himanen@aalto.fi",
         license="GPL3",
         packages=find_packages(),
         install_requires=[
             'pint',
             'numpy',
+            'mdtraj',
+            'ase'
         ],
         zip_safe=False
     )

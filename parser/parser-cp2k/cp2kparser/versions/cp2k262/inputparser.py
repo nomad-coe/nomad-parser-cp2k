@@ -39,13 +39,31 @@ class CP2KInputParser(BasicParser):
         super(CP2KInputParser, self).__init__(file_path, parser_context)
         self.input_tree = None
         self.input_lines = None
+        self.unit_mapping = {
+            # Distance
+            "BOHR": "bohr",
+            "M": "m",
+            "PM": "pm",
+            "NM": "nm",
+            "ANGSTROM": "angstrom",
+            # Time
+            "S": "s",
+            "FS": "fs",
+            "PS": "ps",
+            "AU_T": "(planckConstant/hartree)",
+            "WAVENUMBER_T": None,
+        }
 
         #=======================================================================
         # Cached values
-        self.cache_service.add_cache_object("configuration_periodic_dimensions", single=False, update=False)
-        self.cache_service.add_cache_object("trajectory_format")
-        self.cache_service.add_cache_object("each_geo_opt")
-        self.cache_service.add_cache_object("traj_add_last")
+        self.cache_service.add("configuration_periodic_dimensions", single=False, update=False)
+        self.cache_service.add("trajectory_format")
+        self.cache_service.add("trajectory_unit")
+        self.cache_service.add("velocity_format")
+        self.cache_service.add("velocity_unit")
+        self.cache_service.add("vel_add_last")
+        self.cache_service.add("each_geo_opt")
+        self.cache_service.add("traj_add_last")
 
     def parse(self):
 
@@ -178,8 +196,24 @@ class CP2KInputParser(BasicParser):
         self.setup_force_file_name()
 
         #=======================================================================
-        # Trajectory file name and print settings
+        # Trajectory file name
         self.setup_trajectory_file_name()
+
+        #=======================================================================
+        # Trajectory file format
+        self.cache_service["trajectory_format"] = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
+        self.cache_service["traj_add_last"] = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/ADD_LAST")
+        traj_unit = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/UNIT")
+        pint_traj_unit = self.get_pint_unit_string(traj_unit)
+        self.cache_service["trajectory_unit"] = pint_traj_unit
+
+        #=======================================================================
+        # Velocity file format
+        self.cache_service["velocity_format"] = self.input_tree.get_keyword("MOTION/PRINT/VELOCITIES/FORMAT")
+        self.cache_service["vel_add_last"] = self.input_tree.get_keyword("MOTION/PRINT/VELOCITIES/ADD_LAST")
+        vel_unit = self.input_tree.get_keyword("MOTION/PRINT/VELOCITIES/UNIT")
+        pint_vel_unit = self.get_pint_unit_string(vel_unit)
+        self.cache_service["velocity_unit"] = pint_vel_unit
 
         #=======================================================================
         # Stress tensor calculation method
@@ -214,6 +248,19 @@ class CP2KInputParser(BasicParser):
                 normalized_path = project_name
         return normalized_path
 
+    def get_pint_unit_string(self, cp2k_unit_string):
+        """Translate the CP2K unit definition into a valid pint unit.
+        """
+        units = re.split('[\^\-\+\*\d]+', cp2k_unit_string)
+        for unit in units:
+            if unit == "":
+                continue
+            pint_unit = self.unit_mapping.get(unit.upper())
+            if pint_unit is None:
+                return None
+            cp2k_unit_string = cp2k_unit_string.replace(unit, pint_unit)
+        return cp2k_unit_string
+
     def setup_force_file_name(self):
         """Setup the force file path.
         """
@@ -229,11 +276,9 @@ class CP2KInputParser(BasicParser):
         """
         traj_format = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FORMAT")
         traj_filename = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/FILENAME")
-        self.cache_service["traj_add_last"] = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/ADD_LAST")
         self.cache_service["each_geo_opt"] = self.input_tree.get_keyword("MOTION/PRINT/TRAJECTORY/EACH/GEO_OPT")
         if traj_filename is None:
             traj_filename = ""
-        self.cache_service["trajectory_format"] = traj_format
         extension_map = {
             "XYZ": "xyz",
             "XMOL": "xyz",
@@ -323,24 +368,7 @@ class CP2KInputParser(BasicParser):
                 else:
                     keyword_value = split[1]
                 keyword_name = split[0].upper()
-                try:
-                    self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
-                except UnboundLocalError:
-                    print line
-
-                # Here we store some exceptional print settings that are
-                # inportant to the parsing. These dont exist in the input tree
-                # because they take much space and are not really important
-                # otherwise.
-                # if path == "FORCE_EVAL/PRINT/FORCES":
-                    # if keyword_name == "FILENAME":
-                        # self.force_file_name = keyword_value
-                # if path == "MOTION/PRINT/TRAJECTORY":
-                    # if keyword_name == "FILENAME":
-                        # self.trajectory_file_name = keyword_value
-                # if path == "MOTION/PRINT/TRAJECTORY":
-                    # if keyword_name == "FORMAT":
-                        # self.trajectory_format = keyword_value
+                self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
 
     def fill_metadata(self):
         """Goes through the input data and pushes everything to the

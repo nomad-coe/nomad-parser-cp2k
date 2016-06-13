@@ -7,7 +7,6 @@ import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
 from nomadcore.unit_conversion.unit_conversion import convert_unit
 import logging
-import math
 logger = logging.getLogger("nomad")
 
 
@@ -23,6 +22,7 @@ class CP2KMDParser(MainHierarchicalParser):
         super(CP2KMDParser, self).__init__(file_path, parser_context)
         self.setup_common_matcher(CommonMatcher(parser_context))
         self.traj_iterator = None
+        self.vel_iterator = None
         self.energy_iterator = None
         self.cell_iterator = None
         self.n_steps = None
@@ -168,27 +168,34 @@ class CP2KMDParser(MainHierarchicalParser):
 
         # Files
         coord_filename = section.get_latest_value("x_cp2k_md_coordinates_filename")
-        velocities_filename = section.get_latest_value("x_cp2k_md_velocities_filename")
+        vel_filename = section.get_latest_value("x_cp2k_md_velocities_filename")
         energies_filename = section.get_latest_value("x_cp2k_md_energies_filename")
         cell_filename = section.get_latest_value("x_cp2k_md_simulation_cell_filename")
-        self.file_service.set_file_id(coord_filename, "coordinates")
-        self.file_service.set_file_id(velocities_filename, "velocities")
+        coord_filepath = self.file_service.set_file_id(coord_filename, "coordinates")
+        vel_filepath = self.file_service.set_file_id(vel_filename, "velocities")
         cell_filepath = self.file_service.set_file_id(cell_filename, "cell")
         energies_filepath = self.file_service.set_file_id(energies_filename, "energies")
 
         # Setup trajectory iterator
         traj_format = self.cache_service["trajectory_format"]
-        traj_file = self.file_service.get_file_by_id("coordinates")
-        if traj_format is not None and traj_file is not None:
+        if traj_format is not None and coord_filepath is not None:
 
             # Use special parsing for CP2K pdb files because they don't follow the proper syntax
             if traj_format == "PDB":
-                self.traj_iterator = cp2kparser.generic.csvparsing.iread(traj_file, columns=[3, 4, 5], start="CRYST", end="END")
+                self.traj_iterator = cp2kparser.generic.csvparsing.iread(coord_filepath, columns=[3, 4, 5], start="CRYST", end="END")
             else:
                 try:
-                    self.traj_iterator = cp2kparser.generic.configurationreading.iread(traj_file)
+                    self.traj_iterator = cp2kparser.generic.configurationreading.iread(coord_filepath)
                 except ValueError:
                     pass
+
+        # Setup velocity iterator
+        vel_format = self.cache_service["velocity_format"]
+        if vel_format is not None and vel_filepath is not None:
+            try:
+                self.vel_iterator = cp2kparser.generic.configurationreading.iread(vel_filepath)
+            except ValueError:
+                pass
 
         # Setup energy file iterator
         if energies_filepath is not None:
@@ -204,7 +211,7 @@ class CP2KMDParser(MainHierarchicalParser):
         # single configuration calculations
         freqs = {
             "output": [self.output_freq, True],
-            "coordinates": [self.coord_freq, True],
+            "trajectory": [self.coord_freq, True],
             "velocities": [self.velo_freq, True],
             "energies": [self.energy_freq, True],
             "cell": [self.cell_freq, True],
@@ -213,7 +220,7 @@ class CP2KMDParser(MainHierarchicalParser):
         # See if the files actually exist
         traj_file = self.file_service.get_file_by_id("coordinates")
         if traj_file is None:
-            freqs["coordinates"][1] = False
+            freqs["trajectory"][1] = False
         velocities_file = self.file_service.get_file_by_id("velocities")
         if velocities_file is None:
             freqs["velocities"][1] = False
@@ -224,11 +231,25 @@ class CP2KMDParser(MainHierarchicalParser):
         if cell_file is None:
             freqs["cell"][1] = False
 
+        # See if we can determine the units
+        traj_unit = self.cache_service["trajectory_unit"]
+        if traj_unit is None:
+            freqs["coordinates"][1] = False
+        vel_unit = self.cache_service["velocity_unit"]
+        if vel_unit is None:
+            freqs["velocities"][1] = False
+
         # Trajectory print settings
         add_last_traj = False
         add_last_traj_setting = self.cache_service["traj_add_last"]
         if add_last_traj_setting == "NUMERIC" or add_last_traj_setting == "SYMBOLIC":
             add_last_traj = True
+
+        # Velocities print settings
+        add_last_vel = False
+        add_last_vel_setting = self.cache_service["vel_add_last"]
+        if add_last_vel_setting == "NUMERIC" or add_last_vel_setting == "SYMBOLIC":
+            add_last_vel = True
 
         last_step = self.n_steps - 1
         md_steps = section["x_cp2k_section_md_step"]
@@ -249,14 +270,24 @@ class CP2KMDParser(MainHierarchicalParser):
             single_conf_gids.append(sectionGID)
 
             # Trajectory
-            if self.traj_iterator is not None:
-                if (i_step + 1) % freqs["coordinates"][0] == 0 or (i_step == last_step and add_last_traj):
+            if freqs["trajectory"][1] and self.traj_iterator is not None:
+                if (i_step + 1) % freqs["trajectory"][0] == 0 or (i_step == last_step and add_last_traj):
                     try:
                         pos = next(self.traj_iterator)
                     except StopIteration:
                         logger.error("Could not get the next geometries from an external file. It seems that the number of optimization steps in the CP2K outpufile doesn't match the number of steps found in the external trajectory file.")
                     else:
-                        backend.addArrayValues("atom_positions", pos, unit="angstrom")
+                        backend.addArrayValues("atom_positions", pos, unit=traj_unit)
+
+            # Velocities
+            if freqs["velocities"][1] and self.vel_iterator is not None:
+                if (i_step + 1) % freqs["velocities"][0] == 0 or (i_step == last_step and add_last_vel):
+                    try:
+                        vel = next(self.vel_iterator)
+                    except StopIteration:
+                        logger.error("Could not get the next velociies from an external file. It seems that the number of optimization steps in the CP2K outpufile doesn't match the number of steps found in the external velocities file.")
+                    else:
+                        backend.addArrayValues("atom_velocities", vel, unit=vel_unit)
 
             # Energy file
             if self.energy_iterator is not None:
@@ -334,31 +365,26 @@ class CP2KMDParser(MainHierarchicalParser):
 
         # Temperature stats
         mean_temp = frame_sequence_temperature.mean()
-        c = frame_sequence_temperature - mean_temp
-        std_temp = math.sqrt(np.dot(c, c)/frame_sequence_temperature.size)
+        std_temp = frame_sequence_temperature.std()
         backend.addArrayValues("frame_sequence_temperature_stats", np.array([mean_temp, std_temp]))
 
         # Potential energy stats
         mean_pot = frame_sequence_potential_energy.mean()
-        c = frame_sequence_potential_energy - mean_pot
-        std_pot = math.sqrt(np.dot(c, c)/frame_sequence_potential_energy.size)
+        std_pot = frame_sequence_potential_energy.std()
         backend.addArrayValues("frame_sequence_potential_energy_stats", np.array([mean_pot, std_pot]))
 
         # Kinetic energy stats
         mean_kin = frame_sequence_kinetic_energy.mean()
-        c = frame_sequence_kinetic_energy - mean_kin
-        std_kin = math.sqrt(np.dot(c, c)/frame_sequence_kinetic_energy.size)
+        std_kin = frame_sequence_kinetic_energy.std()
         backend.addArrayValues("frame_sequence_kinetic_energy_stats", np.array([mean_kin, std_kin]))
 
         # Conserved quantity stats
         mean_cons = frame_sequence_conserved_quantity.mean()
-        c = frame_sequence_conserved_quantity - mean_cons
-        std_cons = math.sqrt(np.dot(c, c)/frame_sequence_conserved_quantity.size)
+        std_cons = frame_sequence_conserved_quantity.std()
         backend.addArrayValues("frame_sequence_conserved_quantity_stats", np.array([mean_cons, std_cons]))
 
         # Pressure stats
         if frame_sequence_pressure.size != 0:
             mean_pressure = frame_sequence_pressure.mean()
-            c = frame_sequence_pressure - mean_pressure
-            std_pressure = math.sqrt(np.dot(c, c)/frame_sequence_pressure.size)
+            std_pressure = frame_sequence_pressure.std()
             backend.addArrayValues("frame_sequence_pressure_stats", np.array([mean_pressure, std_pressure]))

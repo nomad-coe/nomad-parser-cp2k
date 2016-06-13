@@ -41,11 +41,11 @@ class CommonMatcher(object):
 
         #=======================================================================
         # Globally cached values
-        self.cache_service.add_cache_object("simulation_cell", single=False, update=True)
-        self.cache_service.add_cache_object("number_of_scf_iterations", 0)
-        self.cache_service.add_cache_object("atom_positions", single=False, update=True)
-        self.cache_service.add_cache_object("atom_labels", single=False, update=False)
-        self.cache_service.add_cache_object("number_of_atoms", single=False, update=False)
+        self.cache_service.add("simulation_cell", single=False, update=True)
+        self.cache_service.add("number_of_scf_iterations", 0)
+        self.cache_service.add("atom_positions", single=False, update=True)
+        self.cache_service.add("atom_labels", single=False, update=False)
+        self.cache_service.add("number_of_atoms", single=False, update=False)
 
     #===========================================================================
     # SimpleMatchers

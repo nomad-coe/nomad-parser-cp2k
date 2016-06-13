@@ -22,10 +22,10 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
         #=======================================================================
         # Globally cached values
-        self.cache_service.add_cache_object("number_of_frames_in_sequence", 0)
-        self.cache_service.add_cache_object("frame_sequence_potential_energy", [])
-        self.cache_service.add_cache_object("frame_sequence_local_frames_ref", [])
-        self.cache_service.add_cache_object("geometry_optimization_method")
+        self.cache_service.add("number_of_frames_in_sequence", 0)
+        self.cache_service.add("frame_sequence_potential_energy", [])
+        self.cache_service.add("frame_sequence_local_frames_ref", [])
+        self.cache_service.add("geometry_optimization_method")
 
         #=======================================================================
         # Cache levels
