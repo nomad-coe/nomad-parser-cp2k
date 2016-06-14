@@ -29,6 +29,8 @@ class CommonMatcher(object):
         self.regex_eol = "[^\n]+"  # Regex for a single alphabetical letter
         self.section_method_index = None
         self.section_system_index = None
+        self.test_electronic_structure_method = "DFT"
+        self.basis_to_kind_mapping = []
 
         #=======================================================================
         # Cache levels
@@ -38,6 +40,8 @@ class CommonMatcher(object):
             'self_interaction_correction_method': CachingLevel.Cache,
             'x_cp2k_section_programinformation': CachingLevel.ForwardAndCache,
             'x_cp2k_section_quickstep_settings': CachingLevel.ForwardAndCache,
+            'x_cp2k_section_atomic_kind': CachingLevel.ForwardAndCache,
+            'x_cp2k_section_kind_basis_set': CachingLevel.ForwardAndCache,
         }
 
         #=======================================================================
@@ -203,6 +207,51 @@ class CommonMatcher(object):
                     ],
                     otherMetaInfo=["self_interaction_correction_method"],
                 ),
+                SM( " DFT\+U\|",
+                    adHoc=self.adHoc_dft_plus_u(),
+                ),
+                SM( " QS\|",
+                    forwardMatch=True,
+                    subMatchers=[
+                        SM( " QS\| Method:\s+{}".format(self.regex_word)),
+                        SM( " QS\| Density plane wave grid type\s+{}".format(self.regex_eol)),
+                        SM( " QS\| Number of grid levels:\s+{}".format(self.regex_i)),
+                        SM( " QS\| Density cutoff \[a\.u\.\]:\s+{}".format(self.regex_f)),
+                        SM( " QS\| Multi grid cutoff \[a\.u\.\]: 1\) grid level\s+{}".format(self.regex_f)),
+                        SM( " QS\|                           2\) grid level\s+{}".format(self.regex_f)),
+                        SM( " QS\|                           3\) grid level\s+{}".format(self.regex_f)),
+                        SM( " QS\|                           4\) grid level\s+{}".format(self.regex_f)),
+                        SM( " QS\| Grid level progression factor:\s+{}".format(self.regex_f)),
+                        SM( " QS\| Relative density cutoff \[a\.u\.\]:".format(self.regex_f)),
+                        SM( " QS\| Consistent realspace mapping and integration"),
+                        SM( " QS\| Interaction thresholds: eps_pgf_orb:\s+{}".format(self.regex_f)),
+                        SM( " QS\|                         eps_filter_matrix:\s+{}".format(self.regex_f)),
+                        SM( " QS\|                         eps_core_charge:\s+{}".format(self.regex_f)),
+                        SM( " QS\|                         eps_rho_gspace:\s+{}".format(self.regex_f)),
+                        SM( " QS\|                         eps_rho_rspace:\s+{}".format(self.regex_f)),
+                        SM( " QS\|                         eps_gvg_rspace:\s+{}".format(self.regex_f)),
+                        SM( " QS\|                         eps_ppl:\s+{}".format(self.regex_f)),
+                        SM( " QS\|                         eps_ppnl:\s+{}".format(self.regex_f)),
+                    ],
+                ),
+                SM( " ATOMIC KIND INFORMATION",
+                    sections=["x_cp2k_section_atomic_kinds", "section_method_basis_set"],
+                    subMatchers=[
+                        SM( "\s+(?P<x_cp2k_kind_number>{0})\. Atomic kind: (?P<x_cp2k_kind_element_symbol>{1})\s+Number of atoms:\s+(?P<x_cp2k_kind_number_of_atoms>{1})".format(self.regex_i, self.regex_word),
+                            repeats=True,
+                            sections=["x_cp2k_section_atomic_kind", "x_cp2k_section_kind_basis_set"],
+                            subMatchers=[
+                                SM( "     Orbital Basis Set\s+(?P<x_cp2k_kind_basis_set_name>{})".format(self.regex_word)),
+                                SM( "       Number of orbital shell sets:\s+(?P<x_cp2k_basis_set_number_of_orbital_shell_sets>{})".format(self.regex_i)),
+                                SM( "       Number of orbital shells:\s+(?P<x_cp2k_basis_set_number_of_orbital_shells>{})".format(self.regex_i)),
+                                SM( "       Number of primitive Cartesian functions:\s+(?P<x_cp2k_basis_set_number_of_primitive_cartesian_functions>{})".format(self.regex_i)),
+                                SM( "       Number of Cartesian basis functions:\s+(?P<x_cp2k_basis_set_number_of_cartesian_basis_functions>{})".format(self.regex_i)),
+                                SM( "       Number of spherical basis functions:\s+(?P<x_cp2k_basis_set_number_of_spherical_basis_functions>{})".format(self.regex_i)),
+                                SM( "       Norm type:\s+(?P<x_cp2k_basis_set_norm_type>{})".format(self.regex_i)),
+                            ]
+                        )
+                    ]
+                ),
                 SM( "  Total number of",
                     forwardMatch=True,
                     sections=["x_cp2k_section_total_numbers"],
@@ -245,7 +294,13 @@ class CommonMatcher(object):
                         SM( "                        max_diis:\s+{}".format(self.regex_i)),
                         SM( "                        eps_scf:\s+(?P<scf_threshold_energy_change>{})".format(self.regex_f)),
                     ]
-                )
+                ),
+                SM( " MP2\|",
+                    adHoc=self.adHoc_mp2()
+                ),
+                SM( " RI-RPA\|",
+                    adHoc=self.adHoc_rpa()
+                ),
             ]
         )
 
@@ -285,7 +340,32 @@ class CommonMatcher(object):
 
     def onClose_x_cp2k_section_quickstep_settings(self, backend, gIndex, section):
         backend.addValue("program_basis_set_type", "gaussian")
-        # backend.addValue("electronic_structure_method", "DFT")
+        backend.addValue("electronic_structure_method", self.test_electronic_structure_method)
+
+    def onClose_section_method_basis_set(self, backend, gIndex, section):
+        backend.addValue("method_basis_set_kind", "wavefunction")
+        backend.addValue("number_of_basis_sets_atom_centered", len(self.basis_to_kind_mapping))
+        backend.addArrayValues("mapping_section_method_basis_set_atom_centered", np.array(self.basis_to_kind_mapping))
+
+    def onClose_x_cp2k_section_atomic_kind(self, backend, gIndex, section):
+        kindID = backend.openSection("section_method_atom_kind")
+        basisID = backend.openSection("section_basis_set_atom_centered")
+
+        element_symbol = section.get_latest_value("x_cp2k_kind_element_symbol")
+        kind_number = section.get_latest_value("x_cp2k_kind_number")
+        basis_set_name = section.get_latest_value(["x_cp2k_section_kind_basis_set", "x_cp2k_kind_basis_set_name"])
+        atom_number = self.get_atomic_number(element_symbol)
+        kind_label = element_symbol + str(kind_number)
+        backend.addValue("method_atom_kind_atom_number", atom_number)
+        backend.addValue("method_atom_kind_label", kind_label)
+        backend.addValue("basis_set_atom_number", atom_number)
+        backend.addValue("basis_set_atom_centered_short_name", basis_set_name)
+
+        # Add the reference based mapping between basis and atomic kind
+        self.basis_to_kind_mapping.append([basisID, kindID])
+
+        backend.closeSection("section_basis_set_atom_centered", basisID)
+        backend.closeSection("section_method_atom_kind", kindID)
 
     def onClose_x_cp2k_section_programinformation(self, backend, gIndex, section):
         input_file = section.get_latest_value("x_cp2k_input_filename")
@@ -401,12 +481,12 @@ class CommonMatcher(object):
         """
         def wrapper(parser):
             parser.fIn.readline()
-            eigenvalues = np.array([float(x) for x in parser.fIn.readline().split()][::-1])
+            eigenvalues = np.array([float(x) for x in parser.fIn.readline().split()])
             parser.fIn.readline()
             row1 = [float(x) for x in parser.fIn.readline().split()]
             row2 = [float(x) for x in parser.fIn.readline().split()]
             row3 = [float(x) for x in parser.fIn.readline().split()]
-            eigenvectors = np.fliplr(np.array([row1, row2, row3]))
+            eigenvectors = np.array([row1, row2, row3])
             parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvalues", eigenvalues, unit="GPa")
             parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvectors", eigenvectors)
         return wrapper
@@ -432,7 +512,7 @@ class CommonMatcher(object):
         def wrapper(parser):
 
             # Define the regex that extracts the information
-            regex_string = r"\s+\d+\s+\d+\s+(\w+)\s+\d+\s+({0})\s+({0})\s+({0})".format(self.regex_f)
+            regex_string = r"\s+\d+\s+(\d+)\s+(\w+)\s+\d+\s+({0})\s+({0})\s+({0})".format(self.regex_f)
             regex_compiled = re.compile(regex_string)
 
             match = True
@@ -450,9 +530,9 @@ class CommonMatcher(object):
 
                 if result:
                     match = True
-                    label = result.groups()[0]
+                    label = result.groups()[1] + result.groups()[0]
                     labels.append(label)
-                    coordinate = [float(x) for x in result.groups()[1:]]
+                    coordinate = [float(x) for x in result.groups()[2:]]
                     coordinates.append(coordinate)
                 else:
                     match = False
@@ -487,12 +567,28 @@ class CommonMatcher(object):
 
         return wrapper
 
+    def adHoc_dft_plus_u(self):
+        def wrapper(parser):
+            self.test_electronic_structure_method = "DFT+U"
+        return wrapper
+
+    def adHoc_mp2(self):
+        def wrapper(parser):
+            self.test_electronic_structure_method = "MP2"
+        return wrapper
+
+    def adHoc_rpa(self):
+        def wrapper(parser):
+            self.test_electronic_structure_method = "RPA"
+        return wrapper
+
     def debug(self):
         def wrapper(parser):
-            print "FOUND"
+            print("FOUND")
         return wrapper
 
     #===========================================================================
+    # MISC functions
     def getOnCloseTriggers(self):
         """
         Returns:
@@ -503,3 +599,42 @@ class CommonMatcher(object):
         for attr, callback in extractOnCloseTriggers(self).items():
             onClose[attr] = [callback]
         return onClose
+
+    def get_atomic_number(self, symbol):
+        """ Returns the atomic number when given the atomic symbol.
+
+        Args:
+            symbol: atomic symbol as string
+
+        Returns:
+            The atomic number (number of protons) for the given symbol.
+        """
+        chemical_symbols = [
+            'X',  'H',  'He', 'Li', 'Be',
+            'B',  'C',  'N',  'O',  'F',
+            'Ne', 'Na', 'Mg', 'Al', 'Si',
+            'P',  'S',  'Cl', 'Ar', 'K',
+            'Ca', 'Sc', 'Ti', 'V',  'Cr',
+            'Mn', 'Fe', 'Co', 'Ni', 'Cu',
+            'Zn', 'Ga', 'Ge', 'As', 'Se',
+            'Br', 'Kr', 'Rb', 'Sr', 'Y',
+            'Zr', 'Nb', 'Mo', 'Tc', 'Ru',
+            'Rh', 'Pd', 'Ag', 'Cd', 'In',
+            'Sn', 'Sb', 'Te', 'I',  'Xe',
+            'Cs', 'Ba', 'La', 'Ce', 'Pr',
+            'Nd', 'Pm', 'Sm', 'Eu', 'Gd',
+            'Tb', 'Dy', 'Ho', 'Er', 'Tm',
+            'Yb', 'Lu', 'Hf', 'Ta', 'W',
+            'Re', 'Os', 'Ir', 'Pt', 'Au',
+            'Hg', 'Tl', 'Pb', 'Bi', 'Po',
+            'At', 'Rn', 'Fr', 'Ra', 'Ac',
+            'Th', 'Pa', 'U',  'Np', 'Pu',
+            'Am', 'Cm', 'Bk', 'Cf', 'Es',
+            'Fm', 'Md', 'No', 'Lr'
+        ]
+
+        atomic_numbers = {}
+        for Z, name in enumerate(chemical_symbols):
+            atomic_numbers[name] = Z
+
+        return atomic_numbers[symbol]

@@ -69,6 +69,7 @@ parser/parser-cp2k/cp2kparser/versions/**/input_data/*.html
 parser/parser-cp2k/cp2kparser/tools/input_metainfo.json
 test/unittests/BASIS_SET
 test/unittests/GTH_POTENTIALS
+test/unittests/cp2k_2.6.2/data
 
 # Setuptools install folder
 parser/parser-cp2k/cp2kparser.egg-info/

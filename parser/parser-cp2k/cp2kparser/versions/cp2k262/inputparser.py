@@ -64,7 +64,7 @@ class CP2KInputParser(BasicParser):
         self.cache_service.add("vel_add_last")
         self.cache_service.add("each_geo_opt")
         self.cache_service.add("traj_add_last")
-        self.cache_service.add("electronic_structure_method")
+        # self.cache_service.add("electronic_structure_method")
 
     def parse(self):
 
@@ -219,6 +219,23 @@ class CP2KInputParser(BasicParser):
         #=======================================================================
         # See if some more exotic calculation is requested (e.g. MP2, DFT+U, GW, RPA)
 
+        # Search for a WF_CORRELATION section
+        # correlation = self.input_tree.get_section("FORCE_EVAL/DFT/XC/WF_CORRELATION")
+        # method = "DFT"
+        # if correlation.accessed:
+            # method = correlation.get_keyword_value_raw("METHOD")
+            # if method != "NONE":
+                # # Can't really decide which method used (MP2, RPA, GW)
+                # method = None
+
+        # # Search for DFT+U settings
+        # kinds = self.input_tree.get_section_list("FORCE_EVAL/SUBSYS/KIND")
+        # for kind in kinds:
+            # dft_u = kind.get_subsection("DFT_PLUS_U")
+            # if dft_u.accessed:
+                # method = "DFT+U"
+
+        # self.cache_service["electronic_structure_method"] = method
 
         #=======================================================================
         # Stress tensor calculation method

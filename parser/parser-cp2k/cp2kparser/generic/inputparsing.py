@@ -76,6 +76,19 @@ class CP2KInput(object):
                 return None
         return section
 
+    def get_section_list(self, path):
+        split_path = path.split("/")
+        last_section = split_path[-1]
+        split_path.pop()
+        section = self.root_section
+        for part in split_path:
+            section = section.get_subsection(part)
+            if not section:
+                message = "The CP2K input does not contain the section {}".format(path)
+                logger.warning(message)
+                return None
+        return section.get_subsection_list(last_section)
+
     def get_keyword_and_section(self, path):
         split_path = path.rsplit("/", 1)
         keyword = split_path[1]
@@ -349,6 +362,10 @@ class Section(object):
                 logger.error("The subsection '{}' in '{}' has too many entries.".format(name, self.name))
         else:
             logger.error("The subsection '{}' in '{}' does not exist.".format(name, self.name))
+
+    def get_subsection_list(self, name):
+        subsection = self.sections.get(name)
+        return subsection
 
     def get_section_parameter(self):
         """Get the section parameter, or if not specified the lone keyword
