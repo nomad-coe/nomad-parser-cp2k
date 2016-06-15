@@ -26,27 +26,23 @@ overridden only where necesssary.
 
 # Upload Folder Structure, File Naming and CP2K Settings
 
-## CP2K Settings
+## Notes for Uploaders
 The CP2K input setting
 [PRINT_LEVEL](https://manual.cp2k.org/trunk/CP2K_INPUT/GLOBAL.html#PRINT_LEVEL)
 controls the amount of details that are outputted during the calculation. The
 higher this setting is, the more can be parsed from the upload.
 
-## Structure
-The following upload structure will maximize the amount of parsed contents. If
-the parser cannot find certain files from their assumed locations, they are
-simply ignored.
-
-  -The input file is assumed to be on the same folder as the output file. The
-  name of the input file is read from the output file, where it is stated
-  without the full path.
+The parser will try to find the paths to all the input and output files, but if
+they are located very deep inside some folder structure or outside the folder
+where the output file is, the parser will not be able to locate them. For this
+reason it is recommended to keep the upload structure as flat as possible.
 
 # Standalone Mode
 The parser is designed to be usable also outside the NoMaD project as a
 separate python package. This standalone python-only mode is primarily for
 people who want to easily access the parser without the need to setup the whole
 "NOMAD Stack". It is also used when running custom unit tests found in the
-folder "cp2k/test/unittests". Here is an example of the call syntax:
+folder *cp2k/test/unittests*. Here is an example of the call syntax:
 
 ```python
     from cp2kparser import CP2KParser
@@ -72,7 +68,7 @@ This section describes some of the guidelines that are used in the development
 of this parser.
 
 ## Documentation
-This parser follows the [google style
+This parser tries to follow the [google style
 guide](https://google.github.io/styleguide/pyguide.html?showone=Comments#Comments)
 for documenting python code. Documenting makes it much easier to follow the
 logic behind your parser.
@@ -85,8 +81,8 @@ but can only test that the data is outputted in the correct format and
 according to some general rules. These tests cannot verify that the contents
 are correct.
 
-In order to truly test the parser output, unit testing is needed. This unit
-tests for this parser are located in test/unittests. Unit tests provide one way
+In order to truly test the parser output, unit testing is needed. The unit
+tests for this parser are located in **cp2k/test/unittests**. Unit tests provide one way
 to test each parseable quantity and python has a very good [library for unit
 testing](https://docs.python.org/2/library/unittest.html).  When the parser
 supports a new quantity it is quite fast to create unit tests for it. These
@@ -114,3 +110,7 @@ easier:
    supposed to be written only once in the file. The [format
    specification](http://www.wwpdb.org/documentation/file-format) states that
    different configurations should start with MODEL and end with ENDMDL tags.
+ - The output file should contain the paths/filenames of different input and
+   output files that are accessed during the program run. This data is already
+   available for some files (input file, most files produced by MD), but many
+   are not mentioned.
