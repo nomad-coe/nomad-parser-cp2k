@@ -4,6 +4,7 @@ import logging
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.simple_parser import extractOnCloseTriggers
 from nomadcore.caching_backend import CachingLevel
+from nomadcore.unit_conversion.unit_conversion import convert_unit
 from inputparser import CP2KInputParser
 logger = logging.getLogger("nomad")
 
@@ -213,10 +214,10 @@ class CommonMatcher(object):
                 SM( " QS\|",
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " QS\| Method:\s+{}".format(self.regex_word)),
+                        SM( " QS\| Method:\s+(?P<x_cp2k_quickstep_method>{})".format(self.regex_word)),
                         SM( " QS\| Density plane wave grid type\s+{}".format(self.regex_eol)),
                         SM( " QS\| Number of grid levels:\s+{}".format(self.regex_i)),
-                        SM( " QS\| Density cutoff \[a\.u\.\]:\s+{}".format(self.regex_f)),
+                        SM( " QS\| Density cutoff \[a\.u\.\]:\s+(?P<x_cp2k_planewave_cutoff>{})".format(self.regex_f)),
                         SM( " QS\| Multi grid cutoff \[a\.u\.\]: 1\) grid level\s+{}".format(self.regex_f)),
                         SM( " QS\|                           2\) grid level\s+{}".format(self.regex_f)),
                         SM( " QS\|                           3\) grid level\s+{}".format(self.regex_f)),
@@ -341,6 +342,14 @@ class CommonMatcher(object):
     def onClose_x_cp2k_section_quickstep_settings(self, backend, gIndex, section):
         backend.addValue("program_basis_set_type", "gaussian")
         backend.addValue("electronic_structure_method", self.test_electronic_structure_method)
+
+        # See if the cutoff is available
+        cutoff = section.get_latest_value("x_cp2k_planewave_cutoff")
+        if cutoff is not None:
+            gid = backend.openSection("section_basis_set_cell_dependent")
+            cutoff = convert_unit(2*cutoff, "hartree")
+            backend.addValue("basis_set_planewave_cutoff", cutoff)
+            backend.closeSection("section_basis_set_cell_dependent", gid)
 
     def onClose_section_method_basis_set(self, backend, gIndex, section):
         backend.addValue("method_basis_set_kind", "wavefunction")

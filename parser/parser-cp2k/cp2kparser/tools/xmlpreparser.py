@@ -201,7 +201,7 @@ def generate_input_metainfos(object_tree):
     parent = Section("dummy")
     root_section = object_tree.root_section
     root_section.name = "CP2K_INPUT"
-    root_section.description = "The section containing all information that is explicitly stated in the CP2K input file. The sections that control printing (PRINT, EACH) and the hidden input keywords starting with a double underscore are not included."
+    root_section.description = "This section contains the explicitly stated keywords, default keywords, and section parameters in the CP2K input file. Only some of the sections that control printing (PRINT, EACH) are supported, because including all of them would double the size of this metadata without adding much useful information. The hidden input keywords starting with a double underscore are not included."
     container = []
     name_stack = []
     generate_metainfo_recursively(root_section, parent, container, name_stack)
