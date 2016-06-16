@@ -19,6 +19,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         super(CP2KGeoOptParser, self).__init__(file_path, parser_context)
         self.setup_common_matcher(CommonMatcher(parser_context))
         self.traj_iterator = None
+        self.energy_reeval_quickstep = None
 
         #=======================================================================
         # Globally cached values
@@ -30,11 +31,10 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         #=======================================================================
         # Cache levels
         self.caching_level_for_metaname.update({
-            'x_cp2k_optimization_energy': CachingLevel.ForwardAndCache,
             'x_cp2k_section_geometry_optimization_step': CachingLevel.ForwardAndCache,
             'x_cp2k_section_quickstep_calculation': CachingLevel.ForwardAndCache,
             'x_cp2k_section_geometry_optimization': CachingLevel.ForwardAndCache,
-            'x_cp2k_section_geometry_optimization_energy_reevaluation': CachingLevel.ForwardAndCache,
+            # 'x_cp2k_section_geometry_optimization_energy_reevaluation': CachingLevel.ForwardAndCache,
         })
 
         #=======================================================================
@@ -73,7 +73,6 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     endReStr="  Conv. in RMS gradients     =",
                     name="geooptstep",
                     repeats=True,
-                    # sections=["section_single_configuration_calculation", "section_system"],
                     subMatchers=[
                         SM( "",
                             forwardMatch=True,
@@ -140,12 +139,19 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     otherMetaInfo=["geometry_optimization_converged"]
                 ),
                 SM( "                    Reevaluating energy at the minimum",
-                    sections=["x_cp2k_section_geometry_optimization_energy_reevaluation"],
+                    # sections=["x_cp2k_section_geometry_optimization_energy_reevaluation"],
                     subMatchers=[
                         self.cm.quickstep_calculation(),
+                        # SM("",
+                            # adHoc=self.adHoc_save_energy_reeval_quickstep()
+                        # )
                     ],
-                    # adHoc=self.adHoc_step()
+                    # adHoc=self.adHoc_save_energy_reeval_quickstep()
                 ),
+                # SM( "",
+                    # forwardMatch=True,
+                    # adHoc=self.adHoc_save_energy_reeval_quickstep()
+                # )
             ],
         )
 
@@ -173,13 +179,11 @@ class CP2KGeoOptParser(MainHierarchicalParser):
     def onClose_x_cp2k_section_geometry_optimization(self, backend, gIndex, section):
 
         # Get the re-evaluated energy and add it to frame_sequence_potential_energy
-        energy = section.get_latest_value([
-            "x_cp2k_section_geometry_optimization_energy_reevaluation",
-            "x_cp2k_section_quickstep_calculation",
-            "x_cp2k_energy_total"]
-        )
-        if energy is not None:
-            self.cache_service["frame_sequence_potential_energy"].append(energy)
+        reeval_quickstep = self.energy_reeval_quickstep
+        if reeval_quickstep is not None:
+            energy = reeval_quickstep.get_latest_value("x_cp2k_energy_total")
+            if energy is not None:
+                self.cache_service["frame_sequence_potential_energy"].append(energy)
 
         # Push values from cache
         self.cache_service.push_array_values("frame_sequence_potential_energy")
@@ -230,6 +234,9 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
     def onClose_section_sampling_method(self, backend, gIndex, section):
         self.backend.addValue("sampling_method", "geometry_optimization")
+
+    def onClose_x_cp2k_section_quickstep_calculation(self, backend, gIndex, section):
+        self.energy_reeval_quickstep = section
 
     def onClose_x_cp2k_section_geometry_optimization_step(self, backend, gIndex, section):
         energy = section["x_cp2k_optimization_energy"]
@@ -283,11 +290,18 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             self.cache_service["geometry_optimization_method"] = "bfgs"
         return wrapper
 
-    # def adHoc_step(self):
-        # """Called when all the step information has been retrieved from the
-        # output file. Here further information is gathered from external files.
-        # """
+    # def adHoc_save_energy_reeval_quickstep(self):
         # def wrapper(parser):
-            # self.cache_service["number_of_frames_in_sequence"] += 1
-
+            # section_managers = parser.backend.sectionManagers
+            # section_run_manager = section_managers["section_run"]
+            # section_run = section_run_manager.openSections[0]
+            # print section_run.subSectionValues
+            # # quickstep = section_run.get_latest_value("x_cp2k_section_quickstep_calculation")
+            # # print quickstep
+            # # self.energy_reeval_quickstep = quickstep
         # return wrapper
+
+    def debug(self):
+        def wrapper(parser):
+            print "DEBUG"
+        return wrapper

@@ -47,7 +47,7 @@ class CommonMatcher(object):
 
         #=======================================================================
         # Globally cached values
-        self.cache_service.add("simulation_cell", single=False, update=True)
+        self.cache_service.add("simulation_cell", single=False, update=False)
         self.cache_service.add("number_of_scf_iterations", 0)
         self.cache_service.add("atom_positions", single=False, update=True)
         self.cache_service.add("atom_labels", single=False, update=False)
@@ -312,6 +312,12 @@ class CommonMatcher(object):
         number_of_atoms = section.get_latest_value("x_cp2k_atoms")
         if number_of_atoms is not None:
             self.cache_service["number_of_atoms"] = number_of_atoms
+
+    # def onClose_x_cp2k_section_quickstep_calculation(self, backend, gIndex, section):
+        # print "quickstep CLOSED"
+
+    # def onClose_x_cp2k_section_geometry_optimization_step(self, backend, gIndex, section):
+        # print "Optimisation step CLOSED"
 
     def onClose_section_method(self, backend, gIndex, section):
         """When all the functional definitions have been gathered, matches them
@@ -591,10 +597,10 @@ class CommonMatcher(object):
             self.test_electronic_structure_method = "RPA"
         return wrapper
 
-    def debug(self):
-        def wrapper(parser):
-            print("FOUND")
-        return wrapper
+    # def debug(self):
+        # def wrapper(parser):
+            # print("FOUND")
+        # return wrapper
 
     #===========================================================================
     # MISC functions

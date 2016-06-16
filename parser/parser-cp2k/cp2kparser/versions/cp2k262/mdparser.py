@@ -31,6 +31,7 @@ class CP2KMDParser(MainHierarchicalParser):
         self.velo_freq = None
         self.energy_freq = None
         self.cell_freq = None
+        self.md_quicksteps = []
 
         #=======================================================================
         # Globally cached values
@@ -88,10 +89,12 @@ class CP2KMDParser(MainHierarchicalParser):
                         SM( " INITIAL CELL LNTHS\[bohr\]              =\s+(?P<x_cp2k_md_cell_length_a_instantaneous__bohr>{0})\s+(?P<x_cp2k_md_cell_length_b_instantaneous__bohr>{0})\s+(?P<x_cp2k_md_cell_length_c_instantaneous__bohr>{0})".format(self.cm.regex_f)),
                         SM( " INITIAL CELL ANGLS\[deg\]               =\s+(?P<x_cp2k_md_cell_angle_a_instantaneous__deg>{0})\s+(?P<x_cp2k_md_cell_angle_b_instantaneous__deg>{0})\s+(?P<x_cp2k_md_cell_angle_c_instantaneous__deg>{0})".format(self.cm.regex_f)),
                     ],
+                    adHoc=self.adHoc_save_md_quickstep()
                 ),
                 SM( " SCF WAVEFUNCTION OPTIMIZATION",
                     endReStr=" TEMPERATURE \[K\]              =",
                     name="md_step",
+                    forwardMatch=True,
                     repeats=True,
                     sections=["x_cp2k_section_md_step"],
                     subMatchers=[
@@ -113,6 +116,7 @@ class CP2KMDParser(MainHierarchicalParser):
                         SM( " CELL ANGLS\[deg\]              =\s+(?P<x_cp2k_md_cell_angle_a_instantaneous__deg>{0})\s+(?P<x_cp2k_md_cell_angle_b_instantaneous__deg>{0})\s+(?P<x_cp2k_md_cell_angle_c_instantaneous__deg>{0})".format(self.cm.regex_f)),
                         SM( " AVE. CELL ANGLS\[deg\]         =\s+(?P<x_cp2k_md_cell_angle_a_average__deg>{0})\s+(?P<x_cp2k_md_cell_angle_b_average__deg>{0})\s+(?P<x_cp2k_md_cell_angle_c_average__deg>{0})".format(self.cm.regex_f)),
                     ],
+                    adHoc=self.adHoc_save_md_quickstep()
                 ),
             ]
         )
@@ -321,7 +325,7 @@ class CP2KMDParser(MainHierarchicalParser):
             if md_steps:
                 if (i_step + 1) % freqs["output"][0] == 0:
                     md_step = md_steps[i_md_step]
-                    quickstep = md_step.get_latest_value("x_cp2k_section_quickstep_calculation")
+                    quickstep = self.md_quicksteps[i_md_step]
                     if quickstep is not None:
                         quickstep.add_latest_value("x_cp2k_atom_forces", "atom_forces")
                         quickstep.add_latest_value("x_cp2k_stress_tensor", "stress_tensor")
@@ -388,3 +392,14 @@ class CP2KMDParser(MainHierarchicalParser):
             mean_pressure = frame_sequence_pressure.mean()
             std_pressure = frame_sequence_pressure.std()
             backend.addArrayValues("frame_sequence_pressure_stats", np.array([mean_pressure, std_pressure]))
+
+    #===========================================================================
+    # adHoc functions
+    def adHoc_save_md_quickstep(self):
+        def wrapper(parser):
+            section_managers = parser.backend.sectionManagers
+            section_run_manager = section_managers["section_run"]
+            section_run = section_run_manager.openSections[0]
+            quickstep = section_run.get_latest_value("x_cp2k_section_quickstep_calculation")
+            self.md_quicksteps.append(quickstep)
+        return wrapper
