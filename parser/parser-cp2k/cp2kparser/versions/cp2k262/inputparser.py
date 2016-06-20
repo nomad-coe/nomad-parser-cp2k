@@ -135,9 +135,9 @@ class CP2KInputParser(BasicParser):
                     if pbe.accessed:
                         sp = pbe.get_section_parameter()
                         if sp == "T":
-                            parametrization = pbe.get_keyword("PARAMETRIZATION")
-                            scale_x = pbe.get_keyword("SCALE_X")
-                            scale_c = pbe.get_keyword("SCALE_C")
+                            parametrization = pbe.get_keyword("PARAMETRIZATION", allow_default=True)
+                            scale_x = pbe.get_keyword("SCALE_X", allow_default=True)
+                            scale_c = pbe.get_keyword("SCALE_C", allow_default=True)
                             if parametrization == "ORIG":
                                 xc_list.append(XCFunctional("GGA_X_PBE", scale_x))
                                 xc_list.append(XCFunctional("GGA_C_PBE", scale_c))
@@ -152,8 +152,8 @@ class CP2KInputParser(BasicParser):
                     if tpss.accessed:
                         sp = tpss.get_section_parameter()
                         if sp == "T":
-                            scale_x = tpss.get_keyword("SCALE_X")
-                            scale_c = tpss.get_keyword("SCALE_C")
+                            scale_x = tpss.get_keyword("SCALE_X", allow_default=True)
+                            scale_c = tpss.get_keyword("SCALE_C", allow_default=True)
                             xc_list.append(XCFunctional("MGGA_X_TPSS", scale_x))
                             xc_list.append(XCFunctional("MGGA_C_TPSS", scale_c))
 
