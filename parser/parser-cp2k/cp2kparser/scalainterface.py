@@ -4,7 +4,7 @@ nomad project.
 """
 from __future__ import absolute_import
 import sys
-from . import setup_paths
+import setup_paths
 from nomadcore.parser_backend import JsonParseEventsWriterBackend
 from cp2kparser import CP2KParser
 
