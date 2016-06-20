@@ -91,6 +91,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         let's get it dynamically just in case there's something wrong.
         """
         self.cache_service.push_array_values("atom_positions", unit="angstrom")
+        self.cache_service.push_array_values("simulation_cell", unit="angstrom")
 
     #===========================================================================
     # adHoc functions

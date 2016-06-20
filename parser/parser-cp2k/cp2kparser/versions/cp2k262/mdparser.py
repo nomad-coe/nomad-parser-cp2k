@@ -33,6 +33,7 @@ class CP2KMDParser(MainHierarchicalParser):
         self.energy_freq = None
         self.cell_freq = None
         self.md_quicksteps = []
+        self.ensemble = None
 
         #=======================================================================
         # Globally cached values
@@ -156,6 +157,7 @@ class CP2KMDParser(MainHierarchicalParser):
             }
             sampling = sampling_map.get(sampling)
             if sampling is not None:
+                self.ensemble = sampling
                 backend.addValue("ensemble_type", sampling)
 
         # Sampling type
@@ -274,6 +276,11 @@ class CP2KMDParser(MainHierarchicalParser):
             systemGID = backend.openSection("section_system")
             single_conf_gids.append(sectionGID)
 
+            # If NPT is run, and the cell file is not available, output the
+            # simulation cel only on the first step to section_system
+            if i_step == 0 and self.ensemble == "NPT" and self.cell_iterator is None:
+                self.cache_service.push_array_values("simulation_cell", unit="angstrom")
+
             # Trajectory
             if freqs["trajectory"][1] and self.traj_iterator is not None:
                 if (i_step + 1) % freqs["trajectory"][0] == 0 or (i_step == last_step and add_last_traj):
@@ -320,7 +327,8 @@ class CP2KMDParser(MainHierarchicalParser):
                 if (i_step + 1) % freqs["cell"][0] == 0:
                     line = next(self.cell_iterator)
                     cell = np.reshape(line, (3, 3))
-                    self.cache_service["simulation_cell"] = cell
+                    self.backend.addArrayValues("simulation_cell", cell, unit="angstrom")
+                    # self.cache_service["simulation_cell"] = cell
 
             # Output file
             if md_steps:

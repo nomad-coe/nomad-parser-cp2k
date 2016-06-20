@@ -402,7 +402,7 @@ class CommonMatcher(object):
         """
         self.section_system_index = gIndex
         self.cache_service.push_value("number_of_atoms")
-        self.cache_service.push_array_values("simulation_cell", unit="angstrom")
+        # self.cache_service.push_array_values("simulation_cell", unit="angstrom")
         self.cache_service.push_array_values("configuration_periodic_dimensions")
         self.cache_service.push_array_values("atom_labels")
 

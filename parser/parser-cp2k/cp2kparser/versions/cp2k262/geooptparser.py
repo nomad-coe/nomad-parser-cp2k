@@ -245,6 +245,9 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         if energy is not None:
             self.cache_service["frame_sequence_potential_energy"].append(energy[0])
 
+    def onClose_section_system(self, backend, gIndex, section):
+        self.cache_service.push_array_values("simulation_cell", unit="angstrom")
+
     def onClose_section_method(self, backend, gIndex, section):
         traj_file = self.file_service.get_file_by_id("trajectory")
         traj_format = self.cache_service["trajectory_format"]

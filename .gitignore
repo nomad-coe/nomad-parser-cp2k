@@ -56,7 +56,6 @@ env/
 # CP2K files
 test/**/*.wfn
 test/**/*.cube
-test/**/*.cell
 test/**/*.restart
 test/**/*.restart.bak-1
 test/**/*.restart.bak-2
