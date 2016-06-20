@@ -12,6 +12,7 @@ The actual calculation input contents can later be added to this object. Then
 the object can be queried for the results, or the default values defined by the
 cp2k_input.xml.
 """
+from __future__ import print_function
 
 import xml.etree.cElementTree as ET
 import logging
@@ -68,7 +69,7 @@ def recursive_tree_generation(xml_element, for_metainfo=False, name_stack=[], ig
             ]
             name = "/".join(name_stack)
             if "/".join(name_stack) in kept_print_settings:
-                print "KEPT {}".format(name)
+                print("KEPT {}".format(name))
                 ignore = False
             else:
                 return

@@ -2,8 +2,9 @@
 This is the access point to the parser for the scala layer in the
 nomad project.
 """
+from __future__ import absolute_import
 import sys
-import setup_paths
+from . import setup_paths
 from nomadcore.parser_backend import JsonParseEventsWriterBackend
 from cp2kparser import CP2KParser
 

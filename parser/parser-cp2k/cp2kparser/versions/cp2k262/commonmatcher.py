@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import re
 import numpy as np
 import logging
@@ -5,7 +6,7 @@ from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.simple_parser import extractOnCloseTriggers
 from nomadcore.caching_backend import CachingLevel
 from nomadcore.unit_conversion.unit_conversion import convert_unit
-from inputparser import CP2KInputParser
+from .inputparser import CP2KInputParser
 logger = logging.getLogger("nomad")
 
 

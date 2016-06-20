@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 import numpy as np
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser
-from commonmatcher import CommonMatcher
+from .commonmatcher import CommonMatcher
 import cp2kparser.generic.configurationreading
 import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
@@ -296,7 +297,7 @@ class CP2KMDParser(MainHierarchicalParser):
             # Energy file
             if self.energy_iterator is not None:
                 if (i_step + 1) % freqs["energies"][0] == 0:
-                    line = self.energy_iterator.next()
+                    line = next(self.energy_iterator)
 
                     time = line[1]
                     kinetic_energy = line[2]
@@ -317,7 +318,7 @@ class CP2KMDParser(MainHierarchicalParser):
             # Cell file
             if self.cell_iterator is not None:
                 if (i_step + 1) % freqs["cell"][0] == 0:
-                    line = self.cell_iterator.next()
+                    line = next(self.cell_iterator)
                     cell = np.reshape(line, (3, 3))
                     self.cache_service["simulation_cell"] = cell
 

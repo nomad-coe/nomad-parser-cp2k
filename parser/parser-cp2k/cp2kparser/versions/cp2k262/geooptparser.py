@@ -1,6 +1,8 @@
+from __future__ import print_function
+from __future__ import absolute_import
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser
-from commonmatcher import CommonMatcher
+from .commonmatcher import CommonMatcher
 import cp2kparser.generic.configurationreading
 import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
@@ -303,5 +305,5 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
     def debug(self):
         def wrapper(parser):
-            print "DEBUG"
+            print("DEBUG")
         return wrapper
