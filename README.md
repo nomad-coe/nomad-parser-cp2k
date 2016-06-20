@@ -63,6 +63,15 @@ folder *cp2k/test/unittests*. Here is an example of the call syntax:
     mpl.show()
 ```
 
+To install this standalone version, you need to clone the repositories
+"python-common", "nomad-meta-info", and "parser-cp2k" into the same folder.
+Then install the python-common according to the instructions found in the
+README. After that, you can install this package by running:
+
+```sh
+python setup.py develop --user
+```
+
 # Tools and Methods
 This section describes some of the guidelines that are used in the development
 of this parser.
