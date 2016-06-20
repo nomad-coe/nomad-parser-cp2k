@@ -40,7 +40,7 @@ class CommonMatcher(object):
             'x_cp2k_atoms': CachingLevel.ForwardAndCache,
             'section_XC_functionals': CachingLevel.ForwardAndCache,
             'self_interaction_correction_method': CachingLevel.Cache,
-            'x_cp2k_section_programinformation': CachingLevel.ForwardAndCache,
+            'x_cp2k_section_program_information': CachingLevel.ForwardAndCache,
             'x_cp2k_section_quickstep_settings': CachingLevel.ForwardAndCache,
             'x_cp2k_section_atomic_kind': CachingLevel.ForwardAndCache,
             'x_cp2k_section_kind_basis_set': CachingLevel.ForwardAndCache,
@@ -92,15 +92,15 @@ class CommonMatcher(object):
                     ]
                 ),
                 SM( " CP2K\| version string:",
-                    sections=['x_cp2k_section_programinformation'],
+                    sections=['x_cp2k_section_program_information'],
                     forwardMatch=True,
                     subMatchers=[
                         SM( " CP2K\| version string:\s+(?P<program_version>{})".format(self.regex_eol)),
                         SM( " CP2K\| source code revision number:\s+svn:(?P<x_cp2k_svn_revision>\d+)"),
-                        SM( " CP2K\| is freely available from{}".format(self.regex_word)),
-                        SM( " CP2K\| Program compiled at{}".format(self.regex_word)),
-                        SM( " CP2K\| Program compiled on{}".format(self.regex_word)),
-                        SM( " CP2K\| Program compiled for{}".format(self.regex_word)),
+                        SM( " CP2K\| is freely available from{}".format(self.regex_eol)),
+                        SM( " CP2K\| Program compiled at\s+(?P<x_cp2k_program_compilation_datetime>{})".format(self.regex_eol)),
+                        SM( " CP2K\| Program compiled on\s+(?P<program_compilation_host>{})".format(self.regex_eol)),
+                        SM( " CP2K\| Program compiled for{}".format(self.regex_eol)),
                         SM( " CP2K\| Input file name\s+(?P<x_cp2k_input_filename>{})".format(self.regex_eol)),
                     ]
                 ),
@@ -346,6 +346,9 @@ class CommonMatcher(object):
         except:
             pass
 
+    def onClose_section_run(self, backend, gIndex, section):
+        backend.addValue("program_name", "CP2K")
+
     def onClose_x_cp2k_section_quickstep_settings(self, backend, gIndex, section):
         backend.addValue("program_basis_set_type", "gaussian")
         backend.addValue("electronic_structure_method", self.test_electronic_structure_method)
@@ -383,7 +386,7 @@ class CommonMatcher(object):
         backend.closeSection("section_basis_set_atom_centered", basisID)
         backend.closeSection("section_method_atom_kind", kindID)
 
-    def onClose_x_cp2k_section_programinformation(self, backend, gIndex, section):
+    def onClose_x_cp2k_section_program_information(self, backend, gIndex, section):
         input_file = section.get_latest_value("x_cp2k_input_filename")
         self.file_service.set_file_id(input_file, "input")
 
