@@ -1,7 +1,10 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import os
 import re
 import logging
-import cPickle as pickle
+import pickle
 import numpy as np
 from nomadcore.baseclasses import BasicParser
 from cp2kparser.generic.inputparsing import *
@@ -435,7 +438,7 @@ class CP2KInputParser(BasicParser):
             self.backend.addValue(name, default_keyword.value)
 
         # Subsections
-        for name, subsections in section.sections.iteritems():
+        for name, subsections in section.sections.items():
             for subsection in subsections:
                 self.fill_metadata_recursively(subsection, name_stack)
 

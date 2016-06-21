@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+from builtins import next
+from builtins import range
 import numpy as np
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser

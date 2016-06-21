@@ -1,3 +1,5 @@
+from builtins import next
+from builtins import range
 import os
 import re
 import logging
@@ -31,7 +33,7 @@ class CP2KParser(ParserInterface):
         version_id = None
         run_type = None
         with open(self.parser_context.main_file, 'r') as outputfile:
-            for i_line in xrange(n_lines):
+            for i_line in range(n_lines):
                 line = next(outputfile)
                 result_version = regex_version.match(line)
                 result_run_type = regex_run_type.match(line)

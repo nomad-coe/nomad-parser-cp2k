@@ -13,11 +13,13 @@ the object can be queried for the results, or the default values defined by the
 cp2k_input.xml.
 """
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 
 import xml.etree.cElementTree as ET
 import logging
 import json
-import cPickle as pickle
+import pickle
 from cp2kparser.generic.inputparsing import *
 logger = logging
 
@@ -217,9 +219,9 @@ def generate_metainfo_recursively(obj, parent, container, name_stack):
     if isinstance(obj, Section):
         name_stack.append(obj.name)
         json = generate_section_metainfo_json(obj, parent, name_stack)
-        for child in obj.sections.itervalues():
+        for child in obj.sections.values():
             generate_metainfo_recursively(child[0], obj, container, name_stack)
-        for child in obj.keywords.itervalues():
+        for child in obj.keywords.values():
             generate_metainfo_recursively(child[0], obj, container, name_stack)
         if obj.section_parameter is not None:
             generate_metainfo_recursively(obj.section_parameter, obj, container, name_stack)
