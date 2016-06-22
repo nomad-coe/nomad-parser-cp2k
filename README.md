@@ -66,10 +66,12 @@ folder *cp2k/test/unittests*. Here is an example of the call syntax:
 To install this standalone version, you need to clone the repositories
 "python-common", "nomad-meta-info", and "parser-cp2k" into the same folder.
 Then install the python-common according to the instructions found in the
-README. After that, you can install this package by running:
+README. After that, you can install this package by running(if using python3,
+use the python3 executable):
 
 ```sh
 python setup.py develop --user
+#python3 setup.py develop --user
 ```
 
 # Tools and Methods
