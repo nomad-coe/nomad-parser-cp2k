@@ -31,7 +31,7 @@ object Cp2kParser extends SimpleExternalParserGenerator(
 (?:\s*CP2K\| version string:\s*(?<cp2kVersionString>.*)
 )?(?:\s*CP2K\| source code revision number:\s*(?<cp2kRevision>.*)
 )?""".r,
-  cmd = Seq(DefaultPythonInterpreter.python2Exe(), "${envDir}/parsers/cp2k/parser/parser-cp2k/cp2kparser/scalainterface.py",
+  cmd = Seq(DefaultPythonInterpreter.pythonExe(), "${envDir}/parsers/cp2k/parser/parser-cp2k/cp2kparser/scalainterface.py",
     "${mainFilePath}"),
   cmdCwd = "${mainFilePath}/..",
   resList = Seq(
