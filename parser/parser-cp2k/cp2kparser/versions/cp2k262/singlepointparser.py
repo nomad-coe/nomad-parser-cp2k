@@ -3,7 +3,7 @@ from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser
 from .singlepointforceparser import CP2KSinglePointForceParser
 from nomadcore.caching_backend import CachingLevel
-from .commonmatcher import CommonMatcher
+from .commonmatcher import CP2KCommonMatcher
 import logging
 logger = logging.getLogger("nomad")
 
@@ -18,11 +18,11 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         """
         """
         super(CP2KSinglePointParser, self).__init__(file_path, parser_context)
-        self.setup_common_matcher(CommonMatcher(parser_context))
+        self.setup_common_matcher(CP2KCommonMatcher(parser_context))
 
         #=======================================================================
         # Cache levels
-        self.caching_level_for_metaname.update({
+        self.caching_levels.update({
             'x_cp2k_energy_total_scf_iteration': CachingLevel.ForwardAndCache,
             'x_cp2k_energy_XC_scf_iteration': CachingLevel.ForwardAndCache,
             'x_cp2k_energy_change_scf_iteration': CachingLevel.ForwardAndCache,

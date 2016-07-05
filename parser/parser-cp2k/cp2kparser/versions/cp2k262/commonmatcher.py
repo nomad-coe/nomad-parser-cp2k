@@ -1,36 +1,25 @@
 from __future__ import absolute_import
 from builtins import str
-from builtins import object
 import re
 import numpy as np
 import logging
 from nomadcore.simple_parser import SimpleMatcher as SM
-from nomadcore.simple_parser import extractOnCloseTriggers
 from nomadcore.caching_backend import CachingLevel
 from nomadcore.unit_conversion.unit_conversion import convert_unit
+from nomadcore.baseclasses import CommonMatcher
 from .inputparser import CP2KInputParser
 logger = logging.getLogger("nomad")
 
 
 #===============================================================================
-class CommonMatcher(object):
+class CP2KCommonMatcher(CommonMatcher):
     """
     This class is used to store and instantiate common parts of the
     hierarchical SimpleMatcher structure used in the parsing of a CP2K
     output file.
     """
     def __init__(self, parser_context):
-
-        # Repeating regex definitions
-        self.parser_context = parser_context
-        self.backend = parser_context.caching_backend
-        self.file_service = parser_context.file_service
-        self.cache_service = parser_context.cache_service
-        self.regex_f = "-?\d+\.\d+(?:E(?:\+|-)\d+)?"  # Regex for a floating point value
-        self.regex_i = "-?\d+"  # Regex for an integer
-        self.regex_word = "[\S]+"  # Regex for a single word. Can contain anything else but whitespace
-        self.regex_letter = "[^\W\d_]"  # Regex for a single alphabetical letter
-        self.regex_eol = "[^\n]+"  # Regex for a single alphabetical letter
+        super(CP2KCommonMatcher, self).__init__(parser_context)
         self.section_method_index = None
         self.section_system_index = None
         self.test_electronic_structure_method = "DFT"
@@ -68,25 +57,25 @@ class CommonMatcher(object):
                     forwardMatch=True,
                     sections=['x_cp2k_section_dbcsr'],
                     subMatchers=[
-                        SM( " DBCSR\| Multiplication driver\s+(?P<x_cp2k_dbcsr_multiplication_driver>{})".format(self.regex_word)),
-                        SM( " DBCSR\| Multrec recursion limit\s+(?P<x_cp2k_dbcsr_multrec_recursion_limit>{})".format(self.regex_i)),
-                        SM( " DBCSR\| Multiplication stack size\s+(?P<x_cp2k_dbcsr_multiplication_stack_size>{})".format(self.regex_i)),
-                        SM( " DBCSR\| Multiplication size stacks\s+(?P<x_cp2k_dbcsr_multiplication_size_stacks>{})".format(self.regex_i)),
-                        SM( " DBCSR\| Use subcommunicators\s+(?P<x_cp2k_dbcsr_use_subcommunicators>{})".format(self.regex_letter)),
-                        SM( " DBCSR\| Use MPI combined types\s+(?P<x_cp2k_dbcsr_use_mpi_combined_types>{})".format(self.regex_letter)),
-                        SM( " DBCSR\| Use MPI memory allocation\s+(?P<x_cp2k_dbcsr_use_mpi_memory_allocation>{})".format(self.regex_letter)),
-                        SM( " DBCSR\| Use Communication thread\s+(?P<x_cp2k_dbcsr_use_communication_thread>{})".format(self.regex_letter)),
-                        SM( " DBCSR\| Communication thread load\s+(?P<x_cp2k_dbcsr_communication_thread_load>{})".format(self.regex_i)),
+                        SM( " DBCSR\| Multiplication driver\s+(?P<x_cp2k_dbcsr_multiplication_driver>{})".format(self.regexs.regex_word)),
+                        SM( " DBCSR\| Multrec recursion limit\s+(?P<x_cp2k_dbcsr_multrec_recursion_limit>{})".format(self.regexs.regex_i)),
+                        SM( " DBCSR\| Multiplication stack size\s+(?P<x_cp2k_dbcsr_multiplication_stack_size>{})".format(self.regexs.regex_i)),
+                        SM( " DBCSR\| Multiplication size stacks\s+(?P<x_cp2k_dbcsr_multiplication_size_stacks>{})".format(self.regexs.regex_i)),
+                        SM( " DBCSR\| Use subcommunicators\s+(?P<x_cp2k_dbcsr_use_subcommunicators>{})".format(self.regexs.regex_letter)),
+                        SM( " DBCSR\| Use MPI combined types\s+(?P<x_cp2k_dbcsr_use_mpi_combined_types>{})".format(self.regexs.regex_letter)),
+                        SM( " DBCSR\| Use MPI memory allocation\s+(?P<x_cp2k_dbcsr_use_mpi_memory_allocation>{})".format(self.regexs.regex_letter)),
+                        SM( " DBCSR\| Use Communication thread\s+(?P<x_cp2k_dbcsr_use_communication_thread>{})".format(self.regexs.regex_letter)),
+                        SM( " DBCSR\| Communication thread load\s+(?P<x_cp2k_dbcsr_communication_thread_load>{})".format(self.regexs.regex_i)),
                     ]
                 ),
                 SM( "  **** **** ******  **  PROGRAM STARTED AT".replace("*", "\*"),
                     forwardMatch=True,
                     sections=['x_cp2k_section_startinformation'],
                     subMatchers=[
-                        SM( "  **** **** ******  **  PROGRAM STARTED AT\s+(?P<x_cp2k_start_time>{})".replace("*", "\*").format(self.regex_eol)),
-                        SM( " ***** ** ***  *** **   PROGRAM STARTED ON\s+(?P<x_cp2k_start_host>{})".replace("*", "\*").format(self.regex_word)),
-                        SM( " **    ****   ******    PROGRAM STARTED BY\s+(?P<x_cp2k_start_user>{})".replace("*", "\*").format(self.regex_word)),
-                        SM( " ***** **    ** ** **   PROGRAM PROCESS ID\s+(?P<x_cp2k_start_id>{})".replace("*", "\*").format(self.regex_i)),
+                        SM( "  **** **** ******  **  PROGRAM STARTED AT\s+(?P<x_cp2k_start_time>{})".replace("*", "\*").format(self.regexs.regex_eol)),
+                        SM( " ***** ** ***  *** **   PROGRAM STARTED ON\s+(?P<x_cp2k_start_host>{})".replace("*", "\*").format(self.regexs.regex_word)),
+                        SM( " **    ****   ******    PROGRAM STARTED BY\s+(?P<x_cp2k_start_user>{})".replace("*", "\*").format(self.regexs.regex_word)),
+                        SM( " ***** **    ** ** **   PROGRAM PROCESS ID\s+(?P<x_cp2k_start_id>{})".replace("*", "\*").format(self.regexs.regex_i)),
                         SM( "  **** **  *******  **  PROGRAM STARTED IN".replace("*", "\*"),
                             forwardMatch=True,
                             adHoc=self.adHoc_run_dir(),
@@ -97,29 +86,29 @@ class CommonMatcher(object):
                     sections=['x_cp2k_section_program_information'],
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " CP2K\| version string:\s+(?P<program_version>{})".format(self.regex_eol)),
+                        SM( " CP2K\| version string:\s+(?P<program_version>{})".format(self.regexs.regex_eol)),
                         SM( " CP2K\| source code revision number:\s+svn:(?P<x_cp2k_svn_revision>\d+)"),
-                        SM( " CP2K\| is freely available from{}".format(self.regex_eol)),
-                        SM( " CP2K\| Program compiled at\s+(?P<x_cp2k_program_compilation_datetime>{})".format(self.regex_eol)),
-                        SM( " CP2K\| Program compiled on\s+(?P<program_compilation_host>{})".format(self.regex_eol)),
-                        SM( " CP2K\| Program compiled for{}".format(self.regex_eol)),
-                        SM( " CP2K\| Input file name\s+(?P<x_cp2k_input_filename>{})".format(self.regex_eol)),
+                        SM( " CP2K\| is freely available from{}".format(self.regexs.regex_eol)),
+                        SM( " CP2K\| Program compiled at\s+(?P<x_cp2k_program_compilation_datetime>{})".format(self.regexs.regex_eol)),
+                        SM( " CP2K\| Program compiled on\s+(?P<program_compilation_host>{})".format(self.regexs.regex_eol)),
+                        SM( " CP2K\| Program compiled for{}".format(self.regexs.regex_eol)),
+                        SM( " CP2K\| Input file name\s+(?P<x_cp2k_input_filename>{})".format(self.regexs.regex_eol)),
                     ]
                 ),
                 SM( " GLOBAL\|",
                     sections=['x_cp2k_section_global_settings'],
                     subMatchers=[
                         SM( " GLOBAL\| Force Environment number"),
-                        SM( " GLOBAL\| Basis set file name\s+(?P<x_cp2k_basis_set_filename>{})".format(self.regex_eol)),
-                        SM( " GLOBAL\| Geminal file name\s+(?P<x_cp2k_geminal_filename>{})".format(self.regex_eol)),
-                        SM( " GLOBAL\| Potential file name\s+(?P<x_cp2k_potential_filename>{})".format(self.regex_eol)),
-                        SM( " GLOBAL\| MM Potential file name\s+(?P<x_cp2k_mm_potential_filename>{})".format(self.regex_eol)),
-                        SM( " GLOBAL\| Coordinate file name\s+(?P<x_cp2k_coordinate_filename>{})".format(self.regex_eol)),
-                        SM( " GLOBAL\| Method name\s+(?P<x_cp2k_method_name>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Basis set file name\s+(?P<x_cp2k_basis_set_filename>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| Geminal file name\s+(?P<x_cp2k_geminal_filename>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| Potential file name\s+(?P<x_cp2k_potential_filename>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| MM Potential file name\s+(?P<x_cp2k_mm_potential_filename>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| Coordinate file name\s+(?P<x_cp2k_coordinate_filename>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| Method name\s+(?P<x_cp2k_method_name>{})".format(self.regexs.regex_eol)),
                         SM( " GLOBAL\| Project name"),
-                        SM( " GLOBAL\| Preferred FFT library\s+(?P<x_cp2k_preferred_fft_library>{})".format(self.regex_eol)),
-                        SM( " GLOBAL\| Preferred diagonalization lib.\s+(?P<x_cp2k_preferred_diagonalization_library>{})".format(self.regex_eol)),
-                        SM( " GLOBAL\| Run type\s+(?P<x_cp2k_run_type>{})".format(self.regex_eol)),
+                        SM( " GLOBAL\| Preferred FFT library\s+(?P<x_cp2k_preferred_fft_library>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| Preferred diagonalization lib.\s+(?P<x_cp2k_preferred_diagonalization_library>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| Run type\s+(?P<x_cp2k_run_type>{})".format(self.regexs.regex_eol)),
                         SM( " GLOBAL\| All-to-all communication in single precision"),
                         SM( " GLOBAL\| FFTs using library dependent lengths"),
                         SM( " GLOBAL\| Global print level"),
@@ -153,8 +142,8 @@ class CommonMatcher(object):
                     sections=["x_cp2k_section_scf_iteration"],
                     repeats=True,
                     subMatchers=[
-                        SM( r"  Exchange-correlation energy:\s+(?P<x_cp2k_energy_XC_scf_iteration__hartree>{})".format(self.regex_f)),
-                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<x_cp2k_energy_total_scf_iteration__hartree>{0})\s+(?P<x_cp2k_energy_change_scf_iteration__hartree>{0})".format(self.regex_f)),
+                        SM( r"  Exchange-correlation energy:\s+(?P<x_cp2k_energy_XC_scf_iteration__hartree>{})".format(self.regexs.regex_f)),
+                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<x_cp2k_energy_total_scf_iteration__hartree>{0})\s+(?P<x_cp2k_energy_change_scf_iteration__hartree>{0})".format(self.regexs.regex_f)),
                     ]
                 ),
                 SM( r"  \*\*\* SCF run converged in\s+(\d+) steps \*\*\*",
@@ -165,12 +154,12 @@ class CommonMatcher(object):
                     otherMetaInfo=["single_configuration_calculation_converged"],
                     adHoc=self.adHoc_single_point_not_converged()
                 ),
-                SM( r"  Electronic kinetic energy:\s+(?P<x_cp2k_electronic_kinetic_energy__hartree>{})".format(self.regex_f)),
+                SM( r"  Electronic kinetic energy:\s+(?P<x_cp2k_electronic_kinetic_energy__hartree>{})".format(self.regexs.regex_f)),
                 SM( r" **************************** NUMERICAL STRESS ********************************".replace("*", "\*"),
                     # endReStr=" **************************** NUMERICAL STRESS END *****************************".replace("*", "\*"),
                     adHoc=self.adHoc_stress_calculation(),
                 ),
-                SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<x_cp2k_energy_total__hartree>{0})".format(self.regex_f),
+                SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<x_cp2k_energy_total__hartree>{0})".format(self.regexs.regex_f),
                     otherMetaInfo=["energy_total"],
                 ),
                 SM( r" ATOMIC FORCES in \[a\.u\.\]"),
@@ -185,8 +174,8 @@ class CommonMatcher(object):
                             adHoc=self.adHoc_stress_tensor(),
                             otherMetaInfo=["stress_tensor", "section_stress_tensor"],
                         ),
-                        SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.regex_f)),
-                        SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.regex_f)),
+                        SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.regexs.regex_f)),
+                        SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.regexs.regex_f)),
                         SM( " EIGENVECTORS AND EIGENVALUES OF THE STRESS TENSOR",
                             adHoc=self.adHoc_stress_tensor_eigenpairs()),
                     ]
@@ -203,10 +192,10 @@ class CommonMatcher(object):
                 SM( " DFT\|",
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " DFT\| Spin restricted Kohn-Sham (RKS) calculation\s+(?P<x_cp2k_spin_restriction>{})".format(self.regex_word)),
-                        SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regex_i)),
-                        SM( " DFT\| Number of spin states\s+(?P<number_of_spin_channels>{})".format(self.regex_i)),
-                        SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regex_i)),
+                        SM( " DFT\| Spin restricted Kohn-Sham (RKS) calculation\s+(?P<x_cp2k_spin_restriction>{})".format(self.regexs.regex_word)),
+                        SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regexs.regex_i)),
+                        SM( " DFT\| Number of spin states\s+(?P<number_of_spin_channels>{})".format(self.regexs.regex_i)),
+                        SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regexs.regex_i)),
                         SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
                     ],
                     otherMetaInfo=["self_interaction_correction_method"],
@@ -217,41 +206,41 @@ class CommonMatcher(object):
                 SM( " QS\|",
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " QS\| Method:\s+(?P<x_cp2k_quickstep_method>{})".format(self.regex_word)),
-                        SM( " QS\| Density plane wave grid type\s+{}".format(self.regex_eol)),
-                        SM( " QS\| Number of grid levels:\s+{}".format(self.regex_i)),
-                        SM( " QS\| Density cutoff \[a\.u\.\]:\s+(?P<x_cp2k_planewave_cutoff>{})".format(self.regex_f)),
-                        SM( " QS\| Multi grid cutoff \[a\.u\.\]: 1\) grid level\s+{}".format(self.regex_f)),
-                        SM( " QS\|                           2\) grid level\s+{}".format(self.regex_f)),
-                        SM( " QS\|                           3\) grid level\s+{}".format(self.regex_f)),
-                        SM( " QS\|                           4\) grid level\s+{}".format(self.regex_f)),
-                        SM( " QS\| Grid level progression factor:\s+{}".format(self.regex_f)),
-                        SM( " QS\| Relative density cutoff \[a\.u\.\]:".format(self.regex_f)),
+                        SM( " QS\| Method:\s+(?P<x_cp2k_quickstep_method>{})".format(self.regexs.regex_word)),
+                        SM( " QS\| Density plane wave grid type\s+{}".format(self.regexs.regex_eol)),
+                        SM( " QS\| Number of grid levels:\s+{}".format(self.regexs.regex_i)),
+                        SM( " QS\| Density cutoff \[a\.u\.\]:\s+(?P<x_cp2k_planewave_cutoff>{})".format(self.regexs.regex_f)),
+                        SM( " QS\| Multi grid cutoff \[a\.u\.\]: 1\) grid level\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                           2\) grid level\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                           3\) grid level\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                           4\) grid level\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\| Grid level progression factor:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\| Relative density cutoff \[a\.u\.\]:".format(self.regexs.regex_f)),
                         SM( " QS\| Consistent realspace mapping and integration"),
-                        SM( " QS\| Interaction thresholds: eps_pgf_orb:\s+{}".format(self.regex_f)),
-                        SM( " QS\|                         eps_filter_matrix:\s+{}".format(self.regex_f)),
-                        SM( " QS\|                         eps_core_charge:\s+{}".format(self.regex_f)),
-                        SM( " QS\|                         eps_rho_gspace:\s+{}".format(self.regex_f)),
-                        SM( " QS\|                         eps_rho_rspace:\s+{}".format(self.regex_f)),
-                        SM( " QS\|                         eps_gvg_rspace:\s+{}".format(self.regex_f)),
-                        SM( " QS\|                         eps_ppl:\s+{}".format(self.regex_f)),
-                        SM( " QS\|                         eps_ppnl:\s+{}".format(self.regex_f)),
+                        SM( " QS\| Interaction thresholds: eps_pgf_orb:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                         eps_filter_matrix:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                         eps_core_charge:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                         eps_rho_gspace:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                         eps_rho_rspace:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                         eps_gvg_rspace:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                         eps_ppl:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\|                         eps_ppnl:\s+{}".format(self.regexs.regex_f)),
                     ],
                 ),
                 SM( " ATOMIC KIND INFORMATION",
                     sections=["x_cp2k_section_atomic_kinds", "section_method_basis_set"],
                     subMatchers=[
-                        SM( "\s+(?P<x_cp2k_kind_number>{0})\. Atomic kind: (?P<x_cp2k_kind_element_symbol>{1})\s+Number of atoms:\s+(?P<x_cp2k_kind_number_of_atoms>{1})".format(self.regex_i, self.regex_word),
+                        SM( "\s+(?P<x_cp2k_kind_number>{0})\. Atomic kind: (?P<x_cp2k_kind_element_symbol>{1})\s+Number of atoms:\s+(?P<x_cp2k_kind_number_of_atoms>{1})".format(self.regexs.regex_i, self.regexs.regex_word),
                             repeats=True,
                             sections=["x_cp2k_section_atomic_kind", "x_cp2k_section_kind_basis_set"],
                             subMatchers=[
-                                SM( "     Orbital Basis Set\s+(?P<x_cp2k_kind_basis_set_name>{})".format(self.regex_word)),
-                                SM( "       Number of orbital shell sets:\s+(?P<x_cp2k_basis_set_number_of_orbital_shell_sets>{})".format(self.regex_i)),
-                                SM( "       Number of orbital shells:\s+(?P<x_cp2k_basis_set_number_of_orbital_shells>{})".format(self.regex_i)),
-                                SM( "       Number of primitive Cartesian functions:\s+(?P<x_cp2k_basis_set_number_of_primitive_cartesian_functions>{})".format(self.regex_i)),
-                                SM( "       Number of Cartesian basis functions:\s+(?P<x_cp2k_basis_set_number_of_cartesian_basis_functions>{})".format(self.regex_i)),
-                                SM( "       Number of spherical basis functions:\s+(?P<x_cp2k_basis_set_number_of_spherical_basis_functions>{})".format(self.regex_i)),
-                                SM( "       Norm type:\s+(?P<x_cp2k_basis_set_norm_type>{})".format(self.regex_i)),
+                                SM( "     Orbital Basis Set\s+(?P<x_cp2k_kind_basis_set_name>{})".format(self.regexs.regex_word)),
+                                SM( "       Number of orbital shell sets:\s+(?P<x_cp2k_basis_set_number_of_orbital_shell_sets>{})".format(self.regexs.regex_i)),
+                                SM( "       Number of orbital shells:\s+(?P<x_cp2k_basis_set_number_of_orbital_shells>{})".format(self.regexs.regex_i)),
+                                SM( "       Number of primitive Cartesian functions:\s+(?P<x_cp2k_basis_set_number_of_primitive_cartesian_functions>{})".format(self.regexs.regex_i)),
+                                SM( "       Number of Cartesian basis functions:\s+(?P<x_cp2k_basis_set_number_of_cartesian_basis_functions>{})".format(self.regexs.regex_i)),
+                                SM( "       Number of spherical basis functions:\s+(?P<x_cp2k_basis_set_number_of_spherical_basis_functions>{})".format(self.regexs.regex_i)),
+                                SM( "       Norm type:\s+(?P<x_cp2k_basis_set_norm_type>{})".format(self.regexs.regex_i)),
                             ]
                         )
                     ]
@@ -292,11 +281,11 @@ class CommonMatcher(object):
                 SM( " SCF PARAMETERS",
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " SCF PARAMETERS         Density guess:\s+{}".format(self.regex_eol)),
-                        SM( "                        max_scf:\s+(?P<scf_max_iteration>{})".format(self.regex_i)),
-                        SM( "                        max_scf_history:\s+{}".format(self.regex_i)),
-                        SM( "                        max_diis:\s+{}".format(self.regex_i)),
-                        SM( "                        eps_scf:\s+(?P<scf_threshold_energy_change>{})".format(self.regex_f)),
+                        SM( " SCF PARAMETERS         Density guess:\s+{}".format(self.regexs.regex_eol)),
+                        SM( "                        max_scf:\s+(?P<scf_max_iteration>{})".format(self.regexs.regex_i)),
+                        SM( "                        max_scf_history:\s+{}".format(self.regexs.regex_i)),
+                        SM( "                        max_diis:\s+{}".format(self.regexs.regex_i)),
+                        SM( "                        eps_scf:\s+(?P<scf_threshold_energy_change>{})".format(self.regexs.regex_f)),
                     ]
                 ),
                 SM( " MP2\|",
@@ -428,7 +417,7 @@ class CommonMatcher(object):
             c_line = parser.fIn.readline()
 
             # Define the regex that extracts the components and apply it to the lines
-            regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.regex_f)
+            regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.regexs.regex_f)
             regex_compiled = re.compile(regex_string)
             a_result = regex_compiled.match(a_line)
             b_result = regex_compiled.match(b_line)
@@ -533,7 +522,7 @@ class CommonMatcher(object):
         def wrapper(parser):
 
             # Define the regex that extracts the information
-            regex_string = r"\s+\d+\s+(\d+)\s+(\w+)\s+\d+\s+({0})\s+({0})\s+({0})".format(self.regex_f)
+            regex_string = r"\s+\d+\s+(\d+)\s+(\w+)\s+\d+\s+({0})\s+({0})\s+({0})".format(self.regexs.regex_f)
             regex_compiled = re.compile(regex_string)
 
             match = True
@@ -610,17 +599,6 @@ class CommonMatcher(object):
 
     #===========================================================================
     # MISC functions
-    def getOnCloseTriggers(self):
-        """
-        Returns:
-            A dictionary containing a section name as a key, and a list of
-            trigger functions associated with closing that section.
-        """
-        onClose = {}
-        for attr, callback in extractOnCloseTriggers(self).items():
-            onClose[attr] = [callback]
-        return onClose
-
     def get_atomic_number(self, symbol):
         """ Returns the atomic number when given the atomic symbol.
 
