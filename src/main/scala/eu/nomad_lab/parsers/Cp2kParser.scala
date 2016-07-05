@@ -43,7 +43,6 @@ object Cp2kParser extends SimpleExternalParserGenerator(
     "parser-cp2k/cp2kparser/generic/configurationreading.py",
     "parser-cp2k/cp2kparser/generic/csvparsing.py",
     "parser-cp2k/cp2kparser/versions/__init__.py",
-    "parser-cp2k/cp2kparser/versions/versionsetup.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/__init__.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/singlepointparser.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/geooptparser.py",
