@@ -6,20 +6,20 @@ import logging
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.caching_backend import CachingLevel
 from nomadcore.unit_conversion.unit_conversion import convert_unit
-from nomadcore.baseclasses import CommonMatcher
+from nomadcore.baseclasses import CommonParser
 from .inputparser import CP2KInputParser
 logger = logging.getLogger("nomad")
 
 
 #===============================================================================
-class CP2KCommonMatcher(CommonMatcher):
+class CP2KCommonParser(CommonParser):
     """
     This class is used to store and instantiate common parts of the
     hierarchical SimpleMatcher structure used in the parsing of a CP2K
     output file.
     """
     def __init__(self, parser_context):
-        super(CP2KCommonMatcher, self).__init__(parser_context)
+        super(CP2KCommonParser, self).__init__(parser_context)
         self.section_method_index = None
         self.section_system_index = None
         self.test_electronic_structure_method = "DFT"
@@ -285,7 +285,7 @@ class CP2KCommonMatcher(CommonMatcher):
                         SM( "                        max_scf:\s+(?P<scf_max_iteration>{})".format(self.regexs.regex_i)),
                         SM( "                        max_scf_history:\s+{}".format(self.regexs.regex_i)),
                         SM( "                        max_diis:\s+{}".format(self.regexs.regex_i)),
-                        SM( "                        eps_scf:\s+(?P<scf_threshold_energy_change>{})".format(self.regexs.regex_f)),
+                        SM( "                        eps_scf:\s+(?P<scf_threshold_energy_change__hartree>{})".format(self.regexs.regex_f)),
                     ]
                 ),
                 SM( " MP2\|",

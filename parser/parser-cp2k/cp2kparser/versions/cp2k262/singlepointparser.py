@@ -3,7 +3,7 @@ from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser
 from .singlepointforceparser import CP2KSinglePointForceParser
 from nomadcore.caching_backend import CachingLevel
-from .commonmatcher import CP2KCommonMatcher
+from .commonparser import CP2KCommonParser
 import logging
 logger = logging.getLogger("nomad")
 
@@ -18,7 +18,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         """
         """
         super(CP2KSinglePointParser, self).__init__(file_path, parser_context)
-        self.setup_common_matcher(CP2KCommonMatcher(parser_context))
+        self.setup_common_matcher(CP2KCommonParser(parser_context))
 
         #=======================================================================
         # Cache levels

@@ -49,7 +49,7 @@ object Cp2kParser extends SimpleExternalParserGenerator(
     "parser-cp2k/cp2kparser/versions/cp2k262/mdparser.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/singlepointforceparser.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/inputparser.py",
-    "parser-cp2k/cp2kparser/versions/cp2k262/commonmatcher.py",
+    "parser-cp2k/cp2kparser/versions/cp2k262/commonparser.py",
     "parser-cp2k/cp2kparser/versions/cp2k262/input_data/cp2k_input_tree.pickle",
     "parser-cp2k/cp2kparser/scalainterface.py",
     "nomad_meta_info/public.nomadmetainfo.json",

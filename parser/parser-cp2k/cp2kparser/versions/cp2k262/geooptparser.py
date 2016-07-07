@@ -4,7 +4,7 @@ from builtins import next
 from builtins import range
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser
-from .commonmatcher import CP2KCommonMatcher
+from .commonparser import CP2KCommonParser
 import cp2kparser.generic.configurationreading
 import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
@@ -21,7 +21,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         """
         """
         super(CP2KGeoOptParser, self).__init__(file_path, parser_context)
-        self.setup_common_matcher(CP2KCommonMatcher(parser_context))
+        self.setup_common_matcher(CP2KCommonParser(parser_context))
         self.traj_iterator = None
         self.energy_reeval_quickstep = None
 
