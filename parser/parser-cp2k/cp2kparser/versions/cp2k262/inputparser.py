@@ -7,7 +7,7 @@ import logging
 import pickle
 import numpy as np
 from nomadcore.baseclasses import BasicParser
-from cp2kparser.generic.inputparsing import *
+from cp2kparser.generic.inputparsing import metainfo_data_prefix, metainfo_section_prefix
 logger = logging.getLogger("nomad")
 
 
@@ -409,9 +409,13 @@ class CP2KInputParser(BasicParser):
         if not section.accessed:
             return
 
-        name_stack.append(section.name)
-        path = "x_cp2k_section_{}".format(".".join(name_stack))
-        not_section_path = "x_cp2k_{}".format(".".join(name_stack))
+        if section.name == "CP2K_INPUT":
+            path = "x_cp2k_section_input"
+        else:
+            name_stack.append(section.name)
+            path = metainfo_section_prefix + "{}".format(".".join(name_stack))
+
+        not_section_path = metainfo_data_prefix + "{}".format(".".join(name_stack))
 
         gid = self.backend.openSection(path)
 
@@ -444,14 +448,15 @@ class CP2KInputParser(BasicParser):
 
         self.backend.closeSection(path, gid)
 
-        name_stack.pop()
+        if section.name != "CP2K_INPUT":
+            name_stack.pop()
 
     def setup_version(self, version_number):
         """ The pickle file which contains preparsed data from the
         x_cp2k_input.xml is version specific. By calling this function before
         parsing the correct file can be found.
         """
-        pickle_path = os.path.dirname(__file__) + "/input_data/cp2k_input_tree.pickle".format(version_number)
+        pickle_path = os.path.dirname(__file__) + "/input_data/cp2k_input_tree.pickle"
         input_tree_pickle_file = open(pickle_path, 'rb')
         self.input_tree = pickle.load(input_tree_pickle_file)
 

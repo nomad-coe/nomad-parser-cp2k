@@ -40,6 +40,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
                 self.cm.header(),
                 self.cm.quickstep_header(),
                 self.cm.quickstep_calculation(),
+                self.cm.footer(),
             ]
         )
 

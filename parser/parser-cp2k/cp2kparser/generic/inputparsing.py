@@ -3,7 +3,10 @@ from builtins import object
 import numpy as np
 import logging
 from collections import defaultdict
+
 logger = logging.getLogger("nomad")
+metainfo_section_prefix = "x_cp2k_section_input_"
+metainfo_data_prefix = "x_cp2k_input_"
 
 
 #===============================================================================

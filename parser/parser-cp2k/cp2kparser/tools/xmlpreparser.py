@@ -20,7 +20,7 @@ import xml.etree.cElementTree as ET
 import logging
 import json
 import pickle
-from cp2kparser.generic.inputparsing import *
+from cp2kparser.generic.inputparsing import Section, Keyword, DefaultKeyword, SectionParameters, CP2KInput, metainfo_data_prefix, metainfo_section_prefix
 logger = logging
 
 
@@ -201,15 +201,25 @@ def recursive_tree_generation(xml_element, for_metainfo=False, name_stack=[], ig
 
 #===============================================================================
 def generate_input_metainfos(object_tree):
+
+    json_root = {
+        "type": "nomad_meta_info_1_0",
+        "description": "Metainfo for the values parsed from a CP2K input file.",
+        "dependencies": [ {
+            "relativePath": "cp2k.general.nomadmetainfo.json"
+            }],
+    }
+
     parent = Section("dummy")
     root_section = object_tree.root_section
-    root_section.name = "CP2K_INPUT"
+    root_section.name = None
     root_section.description = "This section contains the explicitly stated keywords, default keywords, and section parameters in the CP2K input file. Only some of the sections that control printing (PRINT, EACH) are supported, because including all of them would double the size of this metadata without adding much useful information. The hidden input keywords starting with a double underscore are not included."
     container = []
     name_stack = []
     generate_metainfo_recursively(root_section, parent, container, name_stack)
+    json_root["metaInfos"] = container
     with open("input_metainfo.json", "w") as f:
-        f.write(json.dumps(container, indent=2, separators=(',', ': ')))
+        f.write(json.dumps(json_root, indent=2, separators=(',', ': ')))
 
 
 #===============================================================================
@@ -217,7 +227,8 @@ def generate_metainfo_recursively(obj, parent, container, name_stack):
 
     json = None
     if isinstance(obj, Section):
-        name_stack.append(obj.name)
+        if obj.name is not None:
+            name_stack.append(obj.name)
         json = generate_section_metainfo_json(obj, parent, name_stack)
         for child in obj.sections.values():
             generate_metainfo_recursively(child[0], obj, container, name_stack)
@@ -227,7 +238,8 @@ def generate_metainfo_recursively(obj, parent, container, name_stack):
             generate_metainfo_recursively(obj.section_parameter, obj, container, name_stack)
         if obj.default_keyword is not None:
             generate_metainfo_recursively(obj.default_keyword, obj, container, name_stack)
-        name_stack.pop()
+        if obj.name is not None:
+            name_stack.pop()
     else:
         json = generate_input_object_metainfo_json(obj, parent, name_stack)
     container.append(json)
@@ -236,9 +248,11 @@ def generate_metainfo_recursively(obj, parent, container, name_stack):
 #===============================================================================
 def generate_input_object_metainfo_json(child, parent, name_stack):
     path = ".".join(name_stack)
+    # if path.startswith("."):
+        # path = path[1:]
     json_obj = {}
-    json_obj["name"] = "x_cp2k_{}.{}".format(path, child.name)
-    json_obj["superNames"] = ["x_cp2k_section_{}".format(path)]
+    json_obj["name"] = metainfo_data_prefix + "{}.{}".format(path, child.name)
+    json_obj["superNames"] = [metainfo_section_prefix + "{}".format(path)]
 
     # Description
     description = child.description
@@ -271,13 +285,20 @@ def generate_input_object_metainfo_json(child, parent, name_stack):
 
 #===============================================================================
 def generate_section_metainfo_json(child, parent, name_stack):
-    name = ".".join(name_stack)
     path = ".".join(name_stack[:-1])
     json_obj = {}
+    if child.name is None:
+        json_obj["name"] = "x_cp2k_section_input"
+        json_obj["superNames"] = ["section_run"]
+    else:
+        name = ".".join(name_stack)
+        json_obj["name"] = metainfo_section_prefix + "{}".format(name)
+        if parent.name is not None:
+            json_obj["superNames"] = [metainfo_section_prefix + "{}".format(path)]
+        else:
+            json_obj["superNames"] = ["x_cp2k_section_input"]
 
-    json_obj["name"] = "x_cp2k_section_{}".format(name)
     json_obj["kindStr"] = "type_section"
-    json_obj["superNames"] = ["x_cp2k_section_{}".format(path)]
 
     description = child.description
     if description is None or description.isspace():

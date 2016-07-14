@@ -174,7 +174,8 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                         self.cm.quickstep_header(),
                     ],
                 ),
-                self.geo_opt
+                self.geo_opt,
+                self.cm.footer(),
             ]
         )
 

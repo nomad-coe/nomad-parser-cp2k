@@ -141,6 +141,7 @@ class CP2KMDParser(MainHierarchicalParser):
                     ],
                 ),
                 self.md,
+                self.cm.footer(),
             ]
         )
 
