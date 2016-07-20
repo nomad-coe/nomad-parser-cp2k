@@ -65,8 +65,8 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     # subMatchers=[
                         # self.cm.quickstep_calculation(),
                         # SM( " --------  Informations at step"),
-                        # SM( "  Optimization Method        =\s+(?P<x_cp2k_optimization_method>{})".format(self.regexs.regex_word)),
-                        # SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.regexs.regex_f),
+                        # SM( "  Optimization Method        =\s+(?P<x_cp2k_optimization_method>{})".format(self.regexs.word)),
+                        # SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.regexs.float),
                             # otherMetaInfo=["frame_sequence_potential_energy"]
                         # ),
                     # ],
@@ -87,7 +87,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                             subMatchers=[
                                 # SM( "",
                                     # forwardMatch=True,
-                                    # endReStr=" ***                 MNBRACK - NUMBER OF ENERGY EVALUATIONS :\s+{}\s+***".replace("*", "\*").format(self.regexs.regex_i),
+                                    # endReStr=" ***                 MNBRACK - NUMBER OF ENERGY EVALUATIONS :\s+{}\s+***".replace("*", "\*").format(self.regexs.int),
                                     # subMatchers=[
                                         # SM(" SCF WAVEFUNCTION OPTIMIZATION",
                                             # forwardMatch=True,
@@ -100,7 +100,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                                 # ),
                                 # SM( "",
                                     # forwardMatch=True,
-                                    # endReStr=" ***                 BRENT   - NUMBER OF ENERGY EVALUATIONS :\s+{}\s+***".replace("*", "\*").format(self.regexs.regex_i),
+                                    # endReStr=" ***                 BRENT   - NUMBER OF ENERGY EVALUATIONS :\s+{}\s+***".replace("*", "\*").format(self.regexs.int),
                                     # subMatchers=[
                                         # SM(" SCF WAVEFUNCTION OPTIMIZATION",
                                             # forwardMatch=True,
@@ -112,27 +112,27 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                                     # ]
                                 # ),
                                 SM( " --------  Informations at step"),
-                                SM( "  Optimization Method        =\s+(?P<x_cp2k_optimization_method>{})".format(self.regexs.regex_word)),
-                                SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.regexs.regex_f),
+                                SM( "  Optimization Method        =\s+(?P<x_cp2k_optimization_method>{})".format(self.regexs.word)),
+                                SM( "  Total Energy               =\s+(?P<x_cp2k_optimization_energy__hartree>{})".format(self.regexs.float),
                                     otherMetaInfo=["frame_sequence_potential_energy"]
                                 ),
-                                SM( "  Real energy change         =\s+(?P<x_cp2k_optimization_energy_change__hartree>{})".format(self.regexs.regex_f)),
-                                SM( "  Decrease in energy         =\s+(?P<x_cp2k_optimization_energy_decrease>{})".format(self.regexs.regex_word)),
-                                SM( "  Used time                  =\s+(?P<x_cp2k_optimization_used_time>{})".format(self.regexs.regex_f)),
-                                SM( "  Max. step size             =\s+(?P<x_cp2k_optimization_max_step_size__bohr>{})".format(self.regexs.regex_f)),
-                                SM( "  Conv. limit for step size  =\s+(?P<x_cp2k_optimization_step_size_convergence_limit__bohr>{})".format(self.regexs.regex_f),
+                                SM( "  Real energy change         =\s+(?P<x_cp2k_optimization_energy_change__hartree>{})".format(self.regexs.float)),
+                                SM( "  Decrease in energy         =\s+(?P<x_cp2k_optimization_energy_decrease>{})".format(self.regexs.word)),
+                                SM( "  Used time                  =\s+(?P<x_cp2k_optimization_used_time>{})".format(self.regexs.float)),
+                                SM( "  Max. step size             =\s+(?P<x_cp2k_optimization_max_step_size__bohr>{})".format(self.regexs.float)),
+                                SM( "  Conv. limit for step size  =\s+(?P<x_cp2k_optimization_step_size_convergence_limit__bohr>{})".format(self.regexs.float),
                                     otherMetaInfo=["geometry_optimization_geometry_change"]
                                 ),
-                                SM( "  Convergence in step size   =\s+(?P<x_cp2k_optimization_step_size_convergence>{})".format(self.regexs.regex_word)),
-                                SM( "  RMS step size              =\s+(?P<x_cp2k_optimization_rms_step_size__bohr>{})".format(self.regexs.regex_f)),
-                                SM( "  Convergence in RMS step    =\s+(?P<x_cp2k_optimization_rms_step_size_convergence>{})".format(self.regexs.regex_word)),
-                                SM( "  Max. gradient              =\s+(?P<x_cp2k_optimization_max_gradient__bohr_1hartree>{})".format(self.regexs.regex_f)),
-                                SM( "  Conv. limit for gradients  =\s+(?P<x_cp2k_optimization_gradient_convergence_limit__bohr_1hartree>{})".format(self.regexs.regex_f),
+                                SM( "  Convergence in step size   =\s+(?P<x_cp2k_optimization_step_size_convergence>{})".format(self.regexs.word)),
+                                SM( "  RMS step size              =\s+(?P<x_cp2k_optimization_rms_step_size__bohr>{})".format(self.regexs.float)),
+                                SM( "  Convergence in RMS step    =\s+(?P<x_cp2k_optimization_rms_step_size_convergence>{})".format(self.regexs.word)),
+                                SM( "  Max. gradient              =\s+(?P<x_cp2k_optimization_max_gradient__bohr_1hartree>{})".format(self.regexs.float)),
+                                SM( "  Conv. limit for gradients  =\s+(?P<x_cp2k_optimization_gradient_convergence_limit__bohr_1hartree>{})".format(self.regexs.float),
                                     otherMetaInfo=["geometry_optimization_threshold_force"]
                                 ),
-                                SM( "  Conv. for gradients        =\s+(?P<x_cp2k_optimization_max_gradient_convergence>{})".format(self.regexs.regex_word)),
-                                SM( "  RMS gradient               =\s+(?P<x_cp2k_optimization_rms_gradient__bohr_1hartree>{})".format(self.regexs.regex_f)),
-                                SM( "  Conv. in RMS gradients     =\s+(?P<x_cp2k_optimization_rms_gradient_convergence>{})".format(self.regexs.regex_word)),
+                                SM( "  Conv. for gradients        =\s+(?P<x_cp2k_optimization_max_gradient_convergence>{})".format(self.regexs.word)),
+                                SM( "  RMS gradient               =\s+(?P<x_cp2k_optimization_rms_gradient__bohr_1hartree>{})".format(self.regexs.float)),
+                                SM( "  Conv. in RMS gradients     =\s+(?P<x_cp2k_optimization_rms_gradient_convergence>{})".format(self.regexs.word)),
                             ],
                             # adHoc=self.adHoc_step()
                         ),
@@ -191,8 +191,8 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                 self.cache_service["frame_sequence_potential_energy"].append(energy)
 
         # Push values from cache
-        self.cache_service.push_array_values("frame_sequence_potential_energy")
-        self.cache_service.push_value("geometry_optimization_method")
+        self.cache_service.addArrayValues("frame_sequence_potential_energy")
+        self.cache_service.addValue("geometry_optimization_method")
         self.backend.addValue("frame_sequence_to_sampling_ref", 0)
 
         # Get the optimization convergence criteria from the last optimization
@@ -234,7 +234,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             backend.closeSection("section_system", systemId)
             backend.closeSection("section_single_configuration_calculation", singleId)
 
-        self.cache_service.push_array_values("frame_sequence_local_frames_ref")
+        self.cache_service.addArrayValues("frame_sequence_local_frames_ref")
         backend.addValue("number_of_frames_in_sequence", n_steps)
 
     def onClose_section_sampling_method(self, backend, gIndex, section):
@@ -249,7 +249,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             self.cache_service["frame_sequence_potential_energy"].append(energy[0])
 
     def onClose_section_system(self, backend, gIndex, section):
-        self.cache_service.push_array_values("simulation_cell", unit="angstrom")
+        self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
 
     def onClose_section_method(self, backend, gIndex, section):
         traj_file = self.file_service.get_file_by_id("trajectory")

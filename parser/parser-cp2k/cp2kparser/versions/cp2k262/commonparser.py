@@ -67,25 +67,25 @@ class CP2KCommonParser(CommonParser):
                     forwardMatch=True,
                     sections=['x_cp2k_section_dbcsr'],
                     subMatchers=[
-                        SM( " DBCSR\| Multiplication driver\s+(?P<x_cp2k_dbcsr_multiplication_driver>{})".format(self.regexs.regex_word)),
-                        SM( " DBCSR\| Multrec recursion limit\s+(?P<x_cp2k_dbcsr_multrec_recursion_limit>{})".format(self.regexs.regex_i)),
-                        SM( " DBCSR\| Multiplication stack size\s+(?P<x_cp2k_dbcsr_multiplication_stack_size>{})".format(self.regexs.regex_i)),
-                        SM( " DBCSR\| Multiplication size stacks\s+(?P<x_cp2k_dbcsr_multiplication_size_stacks>{})".format(self.regexs.regex_i)),
-                        SM( " DBCSR\| Use subcommunicators\s+(?P<x_cp2k_dbcsr_use_subcommunicators>{})".format(self.regexs.regex_letter)),
-                        SM( " DBCSR\| Use MPI combined types\s+(?P<x_cp2k_dbcsr_use_mpi_combined_types>{})".format(self.regexs.regex_letter)),
-                        SM( " DBCSR\| Use MPI memory allocation\s+(?P<x_cp2k_dbcsr_use_mpi_memory_allocation>{})".format(self.regexs.regex_letter)),
-                        SM( " DBCSR\| Use Communication thread\s+(?P<x_cp2k_dbcsr_use_communication_thread>{})".format(self.regexs.regex_letter)),
-                        SM( " DBCSR\| Communication thread load\s+(?P<x_cp2k_dbcsr_communication_thread_load>{})".format(self.regexs.regex_i)),
+                        SM( " DBCSR\| Multiplication driver\s+(?P<x_cp2k_dbcsr_multiplication_driver>{})".format(self.regexs.word)),
+                        SM( " DBCSR\| Multrec recursion limit\s+(?P<x_cp2k_dbcsr_multrec_recursion_limit>{})".format(self.regexs.int)),
+                        SM( " DBCSR\| Multiplication stack size\s+(?P<x_cp2k_dbcsr_multiplication_stack_size>{})".format(self.regexs.int)),
+                        SM( " DBCSR\| Multiplication size stacks\s+(?P<x_cp2k_dbcsr_multiplication_size_stacks>{})".format(self.regexs.int)),
+                        SM( " DBCSR\| Use subcommunicators\s+(?P<x_cp2k_dbcsr_use_subcommunicators>{})".format(self.regexs.letter)),
+                        SM( " DBCSR\| Use MPI combined types\s+(?P<x_cp2k_dbcsr_use_mpi_combined_types>{})".format(self.regexs.letter)),
+                        SM( " DBCSR\| Use MPI memory allocation\s+(?P<x_cp2k_dbcsr_use_mpi_memory_allocation>{})".format(self.regexs.letter)),
+                        SM( " DBCSR\| Use Communication thread\s+(?P<x_cp2k_dbcsr_use_communication_thread>{})".format(self.regexs.letter)),
+                        SM( " DBCSR\| Communication thread load\s+(?P<x_cp2k_dbcsr_communication_thread_load>{})".format(self.regexs.int)),
                     ]
                 ),
                 SM( "  **** **** ******  **  PROGRAM STARTED AT".replace("*", "\*"),
                     forwardMatch=True,
                     sections=['x_cp2k_section_startinformation'],
                     subMatchers=[
-                        SM( "  **** **** ******  **  PROGRAM STARTED AT\s+(?P<x_cp2k_start_time>{})".replace("*", "\*").format(self.regexs.regex_eol)),
-                        SM( " ***** ** ***  *** **   PROGRAM STARTED ON\s+(?P<x_cp2k_start_host>{})".replace("*", "\*").format(self.regexs.regex_word)),
-                        SM( " **    ****   ******    PROGRAM STARTED BY\s+(?P<x_cp2k_start_user>{})".replace("*", "\*").format(self.regexs.regex_word)),
-                        SM( " ***** **    ** ** **   PROGRAM PROCESS ID\s+(?P<x_cp2k_start_id>{})".replace("*", "\*").format(self.regexs.regex_i)),
+                        SM( "  **** **** ******  **  PROGRAM STARTED AT\s+(?P<x_cp2k_start_time>{})".replace("*", "\*").format(self.regexs.eol)),
+                        SM( " ***** ** ***  *** **   PROGRAM STARTED ON\s+(?P<x_cp2k_start_host>{})".replace("*", "\*").format(self.regexs.word)),
+                        SM( " **    ****   ******    PROGRAM STARTED BY\s+(?P<x_cp2k_start_user>{})".replace("*", "\*").format(self.regexs.word)),
+                        SM( " ***** **    ** ** **   PROGRAM PROCESS ID\s+(?P<x_cp2k_start_id>{})".replace("*", "\*").format(self.regexs.int)),
                         SM( "  **** **  *******  **  PROGRAM STARTED IN".replace("*", "\*"),
                             forwardMatch=True,
                             adHoc=self.adHoc_run_dir("x_cp2k_start_path"),
@@ -96,29 +96,29 @@ class CP2KCommonParser(CommonParser):
                     sections=['x_cp2k_section_program_information'],
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " CP2K\| version string:\s+(?P<program_version>{})".format(self.regexs.regex_eol)),
+                        SM( " CP2K\| version string:\s+(?P<program_version>{})".format(self.regexs.eol)),
                         SM( " CP2K\| source code revision number:\s+svn:(?P<x_cp2k_svn_revision>\d+)"),
-                        SM( " CP2K\| is freely available from{}".format(self.regexs.regex_eol)),
-                        SM( " CP2K\| Program compiled at\s+(?P<x_cp2k_program_compilation_datetime>{})".format(self.regexs.regex_eol)),
-                        SM( " CP2K\| Program compiled on\s+(?P<program_compilation_host>{})".format(self.regexs.regex_eol)),
-                        SM( " CP2K\| Program compiled for{}".format(self.regexs.regex_eol)),
-                        SM( " CP2K\| Input file name\s+(?P<x_cp2k_input_filename>{})".format(self.regexs.regex_eol)),
+                        SM( " CP2K\| is freely available from{}".format(self.regexs.eol)),
+                        SM( " CP2K\| Program compiled at\s+(?P<x_cp2k_program_compilation_datetime>{})".format(self.regexs.eol)),
+                        SM( " CP2K\| Program compiled on\s+(?P<program_compilation_host>{})".format(self.regexs.eol)),
+                        SM( " CP2K\| Program compiled for{}".format(self.regexs.eol)),
+                        SM( " CP2K\| Input file name\s+(?P<x_cp2k_input_filename>{})".format(self.regexs.eol)),
                     ]
                 ),
                 SM( " GLOBAL\|",
                     sections=['x_cp2k_section_global_settings'],
                     subMatchers=[
                         SM( " GLOBAL\| Force Environment number"),
-                        SM( " GLOBAL\| Basis set file name\s+(?P<x_cp2k_basis_set_filename>{})".format(self.regexs.regex_eol)),
-                        SM( " GLOBAL\| Geminal file name\s+(?P<x_cp2k_geminal_filename>{})".format(self.regexs.regex_eol)),
-                        SM( " GLOBAL\| Potential file name\s+(?P<x_cp2k_potential_filename>{})".format(self.regexs.regex_eol)),
-                        SM( " GLOBAL\| MM Potential file name\s+(?P<x_cp2k_mm_potential_filename>{})".format(self.regexs.regex_eol)),
-                        SM( " GLOBAL\| Coordinate file name\s+(?P<x_cp2k_coordinate_filename>{})".format(self.regexs.regex_eol)),
-                        SM( " GLOBAL\| Method name\s+(?P<x_cp2k_method_name>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| Basis set file name\s+(?P<x_cp2k_basis_set_filename>{})".format(self.regexs.eol)),
+                        SM( " GLOBAL\| Geminal file name\s+(?P<x_cp2k_geminal_filename>{})".format(self.regexs.eol)),
+                        SM( " GLOBAL\| Potential file name\s+(?P<x_cp2k_potential_filename>{})".format(self.regexs.eol)),
+                        SM( " GLOBAL\| MM Potential file name\s+(?P<x_cp2k_mm_potential_filename>{})".format(self.regexs.eol)),
+                        SM( " GLOBAL\| Coordinate file name\s+(?P<x_cp2k_coordinate_filename>{})".format(self.regexs.eol)),
+                        SM( " GLOBAL\| Method name\s+(?P<x_cp2k_method_name>{})".format(self.regexs.eol)),
                         SM( " GLOBAL\| Project name"),
-                        SM( " GLOBAL\| Preferred FFT library\s+(?P<x_cp2k_preferred_fft_library>{})".format(self.regexs.regex_eol)),
-                        SM( " GLOBAL\| Preferred diagonalization lib.\s+(?P<x_cp2k_preferred_diagonalization_library>{})".format(self.regexs.regex_eol)),
-                        SM( " GLOBAL\| Run type\s+(?P<x_cp2k_run_type>{})".format(self.regexs.regex_eol)),
+                        SM( " GLOBAL\| Preferred FFT library\s+(?P<x_cp2k_preferred_fft_library>{})".format(self.regexs.eol)),
+                        SM( " GLOBAL\| Preferred diagonalization lib.\s+(?P<x_cp2k_preferred_diagonalization_library>{})".format(self.regexs.eol)),
+                        SM( " GLOBAL\| Run type\s+(?P<x_cp2k_run_type>{})".format(self.regexs.eol)),
                         SM( " GLOBAL\| All-to-all communication in single precision"),
                         SM( " GLOBAL\| FFTs using library dependent lengths"),
                         SM( " GLOBAL\| Global print level"),
@@ -152,10 +152,10 @@ class CP2KCommonParser(CommonParser):
                     forwardMatch=True,
                     sections=['x_cp2k_section_end_information'],
                     subMatchers=[
-                        SM( "  **** **** ******  **  PROGRAM ENDED AT\s+(?P<x_cp2k_end_time>{})".replace("*", "\*").format(self.regexs.regex_eol)),
-                        SM( " ***** ** ***  *** **   PROGRAM RAN ON\s+(?P<x_cp2k_end_host>{})".replace("*", "\*").format(self.regexs.regex_word)),
-                        SM( " **    ****   ******    PROGRAM RAN BY\s+(?P<x_cp2k_end_user>{})".replace("*", "\*").format(self.regexs.regex_word)),
-                        SM( " ***** **    ** ** **   PROGRAM PROCESS ID\s+(?P<x_cp2k_end_id>{})".replace("*", "\*").format(self.regexs.regex_i)),
+                        SM( "  **** **** ******  **  PROGRAM ENDED AT\s+(?P<x_cp2k_end_time>{})".replace("*", "\*").format(self.regexs.eol)),
+                        SM( " ***** ** ***  *** **   PROGRAM RAN ON\s+(?P<x_cp2k_end_host>{})".replace("*", "\*").format(self.regexs.word)),
+                        SM( " **    ****   ******    PROGRAM RAN BY\s+(?P<x_cp2k_end_user>{})".replace("*", "\*").format(self.regexs.word)),
+                        SM( " ***** **    ** ** **   PROGRAM PROCESS ID\s+(?P<x_cp2k_end_id>{})".replace("*", "\*").format(self.regexs.int)),
                         SM( "  **** **  *******  **  PROGRAM STOPPED IN".replace("*", "\*"),
                             forwardMatch=True,
                             adHoc=self.adHoc_run_dir("x_cp2k_end_path"),
@@ -174,8 +174,8 @@ class CP2KCommonParser(CommonParser):
                     sections=["x_cp2k_section_scf_iteration"],
                     repeats=True,
                     subMatchers=[
-                        SM( r"  Exchange-correlation energy:\s+(?P<x_cp2k_energy_XC_scf_iteration__hartree>{})".format(self.regexs.regex_f)),
-                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<x_cp2k_energy_total_scf_iteration__hartree>{0})\s+(?P<x_cp2k_energy_change_scf_iteration__hartree>{0})".format(self.regexs.regex_f)),
+                        SM( r"  Exchange-correlation energy:\s+(?P<x_cp2k_energy_XC_scf_iteration__hartree>{})".format(self.regexs.float)),
+                        SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<x_cp2k_energy_total_scf_iteration__hartree>{0})\s+(?P<x_cp2k_energy_change_scf_iteration__hartree>{0})".format(self.regexs.float)),
                     ]
                 ),
                 SM( r"  \*\*\* SCF run converged in\s+(\d+) steps \*\*\*",
@@ -186,12 +186,12 @@ class CP2KCommonParser(CommonParser):
                     otherMetaInfo=["single_configuration_calculation_converged"],
                     adHoc=self.adHoc_single_point_not_converged()
                 ),
-                SM( r"  Electronic kinetic energy:\s+(?P<x_cp2k_electronic_kinetic_energy__hartree>{})".format(self.regexs.regex_f)),
+                SM( r"  Electronic kinetic energy:\s+(?P<x_cp2k_electronic_kinetic_energy__hartree>{})".format(self.regexs.float)),
                 SM( r" **************************** NUMERICAL STRESS ********************************".replace("*", "\*"),
                     # endReStr=" **************************** NUMERICAL STRESS END *****************************".replace("*", "\*"),
                     adHoc=self.adHoc_stress_calculation(),
                 ),
-                SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<x_cp2k_energy_total__hartree>{0})".format(self.regexs.regex_f),
+                SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<x_cp2k_energy_total__hartree>{0})".format(self.regexs.float),
                     otherMetaInfo=["energy_total"],
                 ),
                 SM( r" ATOMIC FORCES in \[a\.u\.\]"),
@@ -206,8 +206,8 @@ class CP2KCommonParser(CommonParser):
                             adHoc=self.adHoc_stress_tensor(),
                             otherMetaInfo=["stress_tensor", "section_stress_tensor"],
                         ),
-                        SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.regexs.regex_f)),
-                        SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.regexs.regex_f)),
+                        SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.regexs.float)),
+                        SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.regexs.float)),
                         SM( " EIGENVECTORS AND EIGENVALUES OF THE STRESS TENSOR",
                             adHoc=self.adHoc_stress_tensor_eigenpairs()),
                     ]
@@ -224,10 +224,10 @@ class CP2KCommonParser(CommonParser):
                 SM( " DFT\|",
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " DFT\| Spin restricted Kohn-Sham (RKS) calculation\s+(?P<x_cp2k_spin_restriction>{})".format(self.regexs.regex_word)),
-                        SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regexs.regex_i)),
-                        SM( " DFT\| Number of spin states\s+(?P<number_of_spin_channels>{})".format(self.regexs.regex_i)),
-                        SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regexs.regex_i)),
+                        SM( " DFT\| Spin restricted Kohn-Sham (RKS) calculation\s+(?P<x_cp2k_spin_restriction>{})".format(self.regexs.word)),
+                        SM( " DFT\| Multiplicity\s+(?P<spin_target_multiplicity>{})".format(self.regexs.int)),
+                        SM( " DFT\| Number of spin states\s+(?P<number_of_spin_channels>{})".format(self.regexs.int)),
+                        SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regexs.int)),
                         SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
                     ],
                     otherMetaInfo=["self_interaction_correction_method"],
@@ -238,41 +238,41 @@ class CP2KCommonParser(CommonParser):
                 SM( " QS\|",
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " QS\| Method:\s+(?P<x_cp2k_quickstep_method>{})".format(self.regexs.regex_word)),
-                        SM( " QS\| Density plane wave grid type\s+{}".format(self.regexs.regex_eol)),
-                        SM( " QS\| Number of grid levels:\s+{}".format(self.regexs.regex_i)),
-                        SM( " QS\| Density cutoff \[a\.u\.\]:\s+(?P<x_cp2k_planewave_cutoff>{})".format(self.regexs.regex_f)),
-                        SM( " QS\| Multi grid cutoff \[a\.u\.\]: 1\) grid level\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                           2\) grid level\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                           3\) grid level\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                           4\) grid level\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\| Grid level progression factor:\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\| Relative density cutoff \[a\.u\.\]:".format(self.regexs.regex_f)),
+                        SM( " QS\| Method:\s+(?P<x_cp2k_quickstep_method>{})".format(self.regexs.word)),
+                        SM( " QS\| Density plane wave grid type\s+{}".format(self.regexs.eol)),
+                        SM( " QS\| Number of grid levels:\s+{}".format(self.regexs.int)),
+                        SM( " QS\| Density cutoff \[a\.u\.\]:\s+(?P<x_cp2k_planewave_cutoff>{})".format(self.regexs.float)),
+                        SM( " QS\| Multi grid cutoff \[a\.u\.\]: 1\) grid level\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                           2\) grid level\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                           3\) grid level\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                           4\) grid level\s+{}".format(self.regexs.float)),
+                        SM( " QS\| Grid level progression factor:\s+{}".format(self.regexs.float)),
+                        SM( " QS\| Relative density cutoff \[a\.u\.\]:".format(self.regexs.float)),
                         SM( " QS\| Consistent realspace mapping and integration"),
-                        SM( " QS\| Interaction thresholds: eps_pgf_orb:\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                         eps_filter_matrix:\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                         eps_core_charge:\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                         eps_rho_gspace:\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                         eps_rho_rspace:\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                         eps_gvg_rspace:\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                         eps_ppl:\s+{}".format(self.regexs.regex_f)),
-                        SM( " QS\|                         eps_ppnl:\s+{}".format(self.regexs.regex_f)),
+                        SM( " QS\| Interaction thresholds: eps_pgf_orb:\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                         eps_filter_matrix:\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                         eps_core_charge:\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                         eps_rho_gspace:\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                         eps_rho_rspace:\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                         eps_gvg_rspace:\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                         eps_ppl:\s+{}".format(self.regexs.float)),
+                        SM( " QS\|                         eps_ppnl:\s+{}".format(self.regexs.float)),
                     ],
                 ),
                 SM( " ATOMIC KIND INFORMATION",
                     sections=["x_cp2k_section_atomic_kinds"],
                     subMatchers=[
-                        SM( "\s+(?P<x_cp2k_kind_number>{0})\. Atomic kind: (?P<x_cp2k_kind_label>{1})\s+Number of atoms:\s+(?P<x_cp2k_kind_number_of_atoms>{1})".format(self.regexs.regex_i, self.regexs.regex_word),
+                        SM( "\s+(?P<x_cp2k_kind_number>{0})\. Atomic kind: (?P<x_cp2k_kind_label>{1})\s+Number of atoms:\s+(?P<x_cp2k_kind_number_of_atoms>{1})".format(self.regexs.int, self.regexs.word),
                             repeats=True,
                             sections=["x_cp2k_section_atomic_kind", "x_cp2k_section_kind_basis_set"],
                             subMatchers=[
-                                SM( "     Orbital Basis Set\s+(?P<x_cp2k_kind_basis_set_name>{})".format(self.regexs.regex_word)),
-                                SM( "       Number of orbital shell sets:\s+(?P<x_cp2k_basis_set_number_of_orbital_shell_sets>{})".format(self.regexs.regex_i)),
-                                SM( "       Number of orbital shells:\s+(?P<x_cp2k_basis_set_number_of_orbital_shells>{})".format(self.regexs.regex_i)),
-                                SM( "       Number of primitive Cartesian functions:\s+(?P<x_cp2k_basis_set_number_of_primitive_cartesian_functions>{})".format(self.regexs.regex_i)),
-                                SM( "       Number of Cartesian basis functions:\s+(?P<x_cp2k_basis_set_number_of_cartesian_basis_functions>{})".format(self.regexs.regex_i)),
-                                SM( "       Number of spherical basis functions:\s+(?P<x_cp2k_basis_set_number_of_spherical_basis_functions>{})".format(self.regexs.regex_i)),
-                                SM( "       Norm type:\s+(?P<x_cp2k_basis_set_norm_type>{})".format(self.regexs.regex_i)),
+                                SM( "     Orbital Basis Set\s+(?P<x_cp2k_kind_basis_set_name>{})".format(self.regexs.word)),
+                                SM( "       Number of orbital shell sets:\s+(?P<x_cp2k_basis_set_number_of_orbital_shell_sets>{})".format(self.regexs.int)),
+                                SM( "       Number of orbital shells:\s+(?P<x_cp2k_basis_set_number_of_orbital_shells>{})".format(self.regexs.int)),
+                                SM( "       Number of primitive Cartesian functions:\s+(?P<x_cp2k_basis_set_number_of_primitive_cartesian_functions>{})".format(self.regexs.int)),
+                                SM( "       Number of Cartesian basis functions:\s+(?P<x_cp2k_basis_set_number_of_cartesian_basis_functions>{})".format(self.regexs.int)),
+                                SM( "       Number of spherical basis functions:\s+(?P<x_cp2k_basis_set_number_of_spherical_basis_functions>{})".format(self.regexs.int)),
+                                SM( "       Norm type:\s+(?P<x_cp2k_basis_set_norm_type>{})".format(self.regexs.int)),
                             ]
                         )
                     ]
@@ -313,11 +313,11 @@ class CP2KCommonParser(CommonParser):
                 SM( " SCF PARAMETERS",
                     forwardMatch=True,
                     subMatchers=[
-                        SM( " SCF PARAMETERS         Density guess:\s+{}".format(self.regexs.regex_eol)),
-                        SM( "                        max_scf:\s+(?P<scf_max_iteration>{})".format(self.regexs.regex_i)),
-                        SM( "                        max_scf_history:\s+{}".format(self.regexs.regex_i)),
-                        SM( "                        max_diis:\s+{}".format(self.regexs.regex_i)),
-                        SM( "                        eps_scf:\s+(?P<scf_threshold_energy_change__hartree>{})".format(self.regexs.regex_f)),
+                        SM( " SCF PARAMETERS         Density guess:\s+{}".format(self.regexs.eol)),
+                        SM( "                        max_scf:\s+(?P<scf_max_iteration>{})".format(self.regexs.int)),
+                        SM( "                        max_scf_history:\s+{}".format(self.regexs.int)),
+                        SM( "                        max_diis:\s+{}".format(self.regexs.int)),
+                        SM( "                        eps_scf:\s+(?P<scf_threshold_energy_change__hartree>{})".format(self.regexs.float)),
                     ]
                 ),
                 SM( " MP2\|",
@@ -426,7 +426,7 @@ class CP2KCommonParser(CommonParser):
             self.cache_service["map_kind_to_basis"] = dict_map
             backend.addArrayValues("mapping_section_method_basis_set_atom_centered", np.array(mapping))
         backend.addValue("method_basis_set_kind", "wavefunction")
-        self.cache_service.push_value("mapping_section_method_basis_set_cell_associated")
+        self.cache_service.addValue("mapping_section_method_basis_set_cell_associated")
         backend.addValue("number_of_basis_sets_atom_centered", len(self.basis_set_info))
         backend.closeSection("section_method_basis_set", method_basis_id)
 
@@ -475,10 +475,10 @@ class CP2KCommonParser(CommonParser):
         let's get it dynamically just in case there's something wrong.
         """
         self.section_system_index = gIndex
-        self.cache_service.push_value("number_of_atoms")
+        self.cache_service.addValue("number_of_atoms")
         # self.cache_service.push_array_values("simulation_cell", unit="angstrom")
-        self.cache_service.push_array_values("configuration_periodic_dimensions")
-        self.cache_service.push_array_values("atom_labels")
+        self.cache_service.addArrayValues("configuration_periodic_dimensions")
+        self.cache_service.addArrayValues("atom_labels")
 
     def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
         # Write the references to section_method and section_system
@@ -488,7 +488,7 @@ class CP2KCommonParser(CommonParser):
         scc_basis_id = backend.openSection("section_basis_set")
 
         # Basis kind
-        self.cache_service.push_value("basis_set_kind")
+        self.cache_service.addValue("basis_set_kind")
 
         # Basis name
         basis_name = self.cache_service["basis_set_name"]
@@ -515,7 +515,7 @@ class CP2KCommonParser(CommonParser):
             backend.addArrayValues("mapping_section_basis_set_atom_centered", map_index_to_basis)
 
         # Cell dependent basis mapping
-        self.cache_service.push_value("mapping_section_basis_set_cell_dependent")
+        self.cache_service.addValue("mapping_section_basis_set_cell_dependent")
 
         backend.closeSection("section_basis_set", scc_basis_id)
 
@@ -531,7 +531,7 @@ class CP2KCommonParser(CommonParser):
             c_line = parser.fIn.readline()
 
             # Define the regex that extracts the components and apply it to the lines
-            regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.regexs.regex_f)
+            regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.regexs.float)
             regex_compiled = re.compile(regex_string)
             a_result = regex_compiled.match(a_line)
             b_result = regex_compiled.match(b_line)
@@ -636,7 +636,7 @@ class CP2KCommonParser(CommonParser):
         def wrapper(parser):
 
             # Define the regex that extracts the information
-            regex_string = r"\s+(\d+)\s+(\d+)\s+(\w+)\s+(\d+)\s+({0})\s+({0})\s+({0})".format(self.regexs.regex_f)
+            regex_string = r"\s+(\d+)\s+(\d+)\s+(\w+)\s+(\d+)\s+({0})\s+({0})\s+({0})".format(self.regexs.float)
             regex_compiled = re.compile(regex_string)
 
             match = True

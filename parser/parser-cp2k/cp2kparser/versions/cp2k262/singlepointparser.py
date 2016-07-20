@@ -63,7 +63,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         # Only in the single configuration calculations the number of scf
         # iterations is given. E.g. in geometry optimization there are multiple
         # scf calculations so this loses it's meaning sort of.
-        self.cache_service.push_value("number_of_scf_iterations")
+        self.cache_service.addValue("number_of_scf_iterations")
 
     def onClose_x_cp2k_section_scf_iteration(self, backend, gIndex, section):
         """Keep track of how many SCF iteration are made."""
@@ -91,8 +91,8 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         """Stores the index of the section method. Should always be 0, but
         let's get it dynamically just in case there's something wrong.
         """
-        self.cache_service.push_array_values("atom_positions", unit="angstrom")
-        self.cache_service.push_array_values("simulation_cell", unit="angstrom")
+        self.cache_service.addArrayValues("atom_positions", unit="angstrom")
+        self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
 
     #===========================================================================
     # adHoc functions
