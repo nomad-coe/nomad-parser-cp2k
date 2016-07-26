@@ -4,9 +4,9 @@ from builtins import next
 from builtins import range
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser
+import nomadcore.configurationreading
+import nomadcore.csvparsing
 from .commonparser import CP2KCommonParser
-import cp2kparser.generic.configurationreading
-import cp2kparser.generic.csvparsing
 from nomadcore.caching_backend import CachingLevel
 import logging
 logger = logging.getLogger("nomad")
@@ -258,10 +258,10 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
             # Use special parsing for CP2K pdb files because they don't follow the proper syntax
             if traj_format == "PDB":
-                self.traj_iterator = cp2kparser.generic.csvparsing.iread(traj_file, columns=[3, 4, 5], start="CRYST", end="END")
+                self.traj_iterator = nomadcore.csvparsing.iread(traj_file, columns=[3, 4, 5], start="CRYST", end="END")
             else:
                 try:
-                    self.traj_iterator = cp2kparser.generic.configurationreading.iread(traj_file)
+                    self.traj_iterator = nomadcore.configurationreading.iread(traj_file)
                 except ValueError:
                     pass
 
