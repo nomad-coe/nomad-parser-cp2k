@@ -53,7 +53,7 @@ class CP2KInputParser(BasicParser):
             "S": "s",
             "FS": "fs",
             "PS": "ps",
-            "AU_T": "(planckConstant/hartree)",
+            "AU_T": "(hbar/hartree)",
             "WAVENUMBER_T": None,
         }
 
