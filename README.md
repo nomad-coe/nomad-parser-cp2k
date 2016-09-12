@@ -92,9 +92,10 @@ but can only test that the data is outputted in the correct format and
 according to some general rules. These tests cannot verify that the contents
 are correct.
 
-In order to truly test the parser output, unit testing is needed. The unit
-tests for this parser are located in **cp2k/test/unittests**. Unit tests provide one way
-to test each parseable quantity and python has a very good [library for unit
+In order to truly test the parser output, regression testing is needed. The
+tests for this parser are located in
+**/cp2k/parser/parser-cp2k/cp2kparser/regtest**. Tests provide one way to test
+each parseable quantity and python has a very good [library for unit
 testing](https://docs.python.org/2/library/unittest.html).  When the parser
 supports a new quantity it is quite fast to create unit tests for it. These
 tests will validate the parsing, and also easily detect bugs that may rise when
