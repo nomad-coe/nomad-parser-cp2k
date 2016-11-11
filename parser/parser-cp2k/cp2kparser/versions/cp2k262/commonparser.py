@@ -373,7 +373,7 @@ class CP2KCommonParser(CommonParser):
         backend.addValue("program_name", "CP2K")
 
     def onClose_x_cp2k_section_quickstep_settings(self, backend, gIndex, section):
-        backend.addValue("program_basis_set_type", "gaussian")
+        backend.addValue("program_basis_set_type", "gaussians")
         backend.addValue("electronic_structure_method", self.test_electronic_structure_method)
 
         # Collect the atomic kind information and push it to backend
