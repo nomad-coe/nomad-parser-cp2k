@@ -479,7 +479,7 @@ class TestEnergyForce(unittest.TestCase):
 
     def test_program_basis_set_type(self):
         result = self.results["program_basis_set_type"]
-        self.assertEqual(result, "gaussian")
+        self.assertEqual(result, "gaussians")
 
 
 #===============================================================================

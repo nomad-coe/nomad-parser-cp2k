@@ -6,13 +6,13 @@ import re
 import logging
 import pickle
 import numpy as np
-from nomadcore.baseclasses import BasicParser
+from nomadcore.baseclasses import AbstractBaseParser
 from cp2kparser.generic.inputparsing import metainfo_data_prefix, metainfo_section_prefix
 logger = logging.getLogger("nomad")
 
 
 #===============================================================================
-class CP2KInputParser(BasicParser):
+class CP2KInputParser(AbstractBaseParser):
     """Used to parse out a CP2K input file.
 
     CP2K offers a complete structure for the input in an XML file, which can be
