@@ -21,6 +21,7 @@ def main():
         package_dir={'': 'parser/parser-cp2k'},
         packages=find_packages(),
         install_requires=[
+            'future',
             'pint',
             'numpy',
             'mdtraj',
