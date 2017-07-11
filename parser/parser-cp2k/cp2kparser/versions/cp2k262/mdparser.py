@@ -273,6 +273,7 @@ class CP2KMDParser(MainHierarchicalParser):
 
         single_conf_gids = []
         i_md_step = 0
+
         for i_step in range(self.n_steps + 1):
 
             sectionGID = backend.openSection("section_single_configuration_calculation")
@@ -282,6 +283,10 @@ class CP2KMDParser(MainHierarchicalParser):
             # If NPT is run, and the cell file is not available, output the
             # simulation cel only on the first step to section_system
             if i_step == 0 and self.ensemble == "NPT" and self.cell_iterator is None:
+                self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
+
+            # Unchanging cell
+            if self.ensemble != "NPT":
                 self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
 
             # Trajectory
@@ -331,7 +336,6 @@ class CP2KMDParser(MainHierarchicalParser):
                     line = next(self.cell_iterator)
                     cell = np.reshape(line, (3, 3))
                     self.backend.addArrayValues("simulation_cell", cell, unit="angstrom")
-                    # self.cache_service["simulation_cell"] = cell
 
             # Output file
             if md_steps:

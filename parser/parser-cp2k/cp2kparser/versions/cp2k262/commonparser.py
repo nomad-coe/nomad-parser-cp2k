@@ -126,19 +126,9 @@ class CP2KCommonParser(CommonParser):
                         SM( " GLOBAL\| Number of threads for this process"),
                         SM( " GLOBAL\| This output is from process"),
                     ],
-                    otherMetaInfo=[
-                        "section_XC_functionals",
-                        'XC_functional_name',
-                        'XC_functional_weight',
-                        'XC_functional',
-                        'configuration_periodic_dimensions',
-                        "stress_tensor_method",
-                        "atom_positions",
-                    ],
                 ),
                 SM( " CELL\|",
                     adHoc=self.adHoc_x_cp2k_section_cell(),
-                    otherMetaInfo=["simulation_cell"]
                 ),
             ]
         )
@@ -179,11 +169,9 @@ class CP2KCommonParser(CommonParser):
                     ]
                 ),
                 SM( r"  \*\*\* SCF run converged in\s+(\d+) steps \*\*\*",
-                    otherMetaInfo=["single_configuration_calculation_converged"],
                     adHoc=self.adHoc_single_point_converged()
                 ),
                 SM( r"  \*\*\* SCF run NOT converged \*\*\*",
-                    otherMetaInfo=["single_configuration_calculation_converged"],
                     adHoc=self.adHoc_single_point_not_converged()
                 ),
                 SM( r"  Electronic kinetic energy:\s+(?P<x_cp2k_electronic_kinetic_energy__hartree>{})".format(self.regexs.float)),
@@ -192,19 +180,16 @@ class CP2KCommonParser(CommonParser):
                     adHoc=self.adHoc_stress_calculation(),
                 ),
                 SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<x_cp2k_energy_total__hartree>{0})".format(self.regexs.float),
-                    otherMetaInfo=["energy_total"],
                 ),
                 SM( r" ATOMIC FORCES in \[a\.u\.\]"),
                 SM( r" # Atom   Kind   Element          X              Y              Z",
                     adHoc=self.adHoc_atom_forces(),
-                    otherMetaInfo=["atom_forces", "x_cp2k_atom_forces"],
                 ),
                 SM( r" (?:NUMERICAL )?STRESS TENSOR \[GPa\]",
                     sections=["x_cp2k_section_stress_tensor"],
                     subMatchers=[
                         SM( r"\s+X\s+Y\s+Z",
                             adHoc=self.adHoc_stress_tensor(),
-                            otherMetaInfo=["stress_tensor", "section_stress_tensor"],
                         ),
                         SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.regexs.float)),
                         SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.regexs.float)),
@@ -230,7 +215,6 @@ class CP2KCommonParser(CommonParser):
                         SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regexs.int)),
                         SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
                     ],
-                    otherMetaInfo=["self_interaction_correction_method"],
                 ),
                 SM( " DFT\+U\|",
                     adHoc=self.adHoc_dft_plus_u(),
@@ -282,9 +266,7 @@ class CP2KCommonParser(CommonParser):
                     sections=["x_cp2k_section_total_numbers"],
                     subMatchers=[
                         SM( "  Total number of            - Atomic kinds:\s+(?P<x_cp2k_atomic_kinds>\d+)"),
-                        SM( "\s+- Atoms:\s+(?P<x_cp2k_atoms>\d+)",
-                            otherMetaInfo=["number_of_atoms"],
-                        ),
+                        SM( "\s+- Atoms:\s+(?P<x_cp2k_atoms>\d+)"),
                         SM( "\s+- Shell sets:\s+(?P<x_cp2k_shell_sets>\d+)"),
                         SM( "\s+- Shells:\s+(?P<x_cp2k_shells>\d+)"),
                         SM( "\s+- Primitive Cartesian functions:\s+(?P<x_cp2k_primitive_cartesian_functions>\d+)"),
@@ -306,7 +288,6 @@ class CP2KCommonParser(CommonParser):
                     subMatchers=[
                         SM( " MODULE QUICKSTEP:  ATOMIC COORDINATES IN angstrom",
                             adHoc=self.adHoc_x_cp2k_section_quickstep_atom_information(),
-                            otherMetaInfo=["atom_labels", "atom_positions"]
                         )
                     ]
                 ),

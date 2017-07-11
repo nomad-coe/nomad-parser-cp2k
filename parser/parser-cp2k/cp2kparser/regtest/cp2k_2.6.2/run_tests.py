@@ -15,6 +15,7 @@ import unittest
 import logging
 import numpy as np
 from cp2kparser import CP2KParser
+from nomadcore.local_backend import ParserKeyError
 from nomadcore.unit_conversion.unit_conversion import convert_unit
 
 
@@ -423,7 +424,7 @@ class TestEnergyForce(unittest.TestCase):
         kind = self.results["section_method_basis_set"][0]
         self.assertEqual(kind["method_basis_set_kind"], "wavefunction")
         self.assertEqual(kind["number_of_basis_sets_atom_centered"], 1)
-        self.assertTrue(np.array_equal(kind["mapping_section_method_basis_set_atom_centered"], np.array([[0,0]])))
+        self.assertTrue(np.array_equal(kind["mapping_section_method_basis_set_atom_centered"], np.array([[0, 0]])))
 
     def test_single_configuration_calculation_converged(self):
         result = self.results["single_configuration_calculation_converged"]
@@ -589,8 +590,8 @@ class TestGeoOpt(unittest.TestCase):
             ]),
             "angstrom"
         )
-        result_start = result[0,:,:]
-        result_end = result[-1,:,:]
+        result_start = result[0, :, :]
+        result_end = result[-1, :, :]
         self.assertTrue(np.array_equal(result_start, expected_start))
         self.assertTrue(np.array_equal(result_end, expected_end))
 
@@ -617,8 +618,8 @@ class TestGeoOptTrajFormats(unittest.TestCase):
             ]),
             "angstrom"
         )
-        result_start = result[0,:,:]
-        result_end = result[-1,:,:]
+        result_start = result[0, :, :]
+        result_end = result[-1, :, :]
         self.assertTrue(np.array_equal(result_start, expected_start))
         self.assertTrue(np.array_equal(result_end, expected_end))
 
@@ -640,8 +641,8 @@ class TestGeoOptTrajFormats(unittest.TestCase):
             ]),
             "angstrom"
         )
-        result_start = result[0,:,:]
-        result_end = result[-1,:,:]
+        result_start = result[0, :, :]
+        result_end = result[-1, :, :]
         self.assertTrue(np.array_equal(result_start, expected_start))
         self.assertTrue(np.array_equal(result_end, expected_end))
 
@@ -676,13 +677,13 @@ class TestGeoOptTrajectory(unittest.TestCase):
         systems = results["section_system"]
 
         i_conf = 0
-        for calc in single_conf.values():
+        for calc in single_conf:
             system_index = calc["single_configuration_calculation_to_system_ref"]
             system = systems[system_index]
-            pos = system["atom_positions"]
 
             if i_conf == 0 or i_conf == 2 or i_conf == 4:
-                self.assertEqual(pos, None)
+                with self.assertRaises(ParserKeyError):
+                    pos = system["atom_positions"]
             else:
                 pos = system["atom_positions"]
                 if i_conf == 1:
@@ -806,6 +807,19 @@ class TestMD(unittest.TestCase):
         expected_result = np.array(11*[6])
         self.assertTrue(np.array_equal(result, expected_result))
 
+    def test_simulation_cell(self):
+        result = self.results["simulation_cell"]
+        self.assertEqual(len(result), 11)
+        expected_start = convert_unit(
+            np.array([
+                [9.853, 0, 0],
+                [0, 9.853, 0],
+                [0, 0, 9.853],
+            ]),
+            "angstrom"
+        )
+        self.assertTrue(np.array_equal(result[0], expected_start))
+
     def test_ensemble_type(self):
         result = self.results["ensemble_type"]
         self.assertEqual(result, "NVE")
@@ -842,8 +856,8 @@ class TestMD(unittest.TestCase):
             ]),
             "angstrom"
         )
-        self.assertTrue(np.array_equal(result[0,:], expected_start))
-        self.assertTrue(np.array_equal(result[-1,:], expected_end))
+        self.assertTrue(np.array_equal(result[0, :], expected_start))
+        self.assertTrue(np.array_equal(result[-1, :], expected_end))
 
     def test_atom_velocities(self):
         result = self.results["atom_velocities"]
@@ -870,8 +884,8 @@ class TestMD(unittest.TestCase):
             "bohr*(hbar/hartree)^-1"
         )
 
-        self.assertTrue(np.array_equal(result[0,:], expected_start))
-        self.assertTrue(np.array_equal(result[-1,:], expected_end))
+        self.assertTrue(np.array_equal(result[0, :], expected_start))
+        self.assertTrue(np.array_equal(result[-1, :], expected_end))
 
     def test_frame_sequence_potential_energy(self):
         result = self.results["frame_sequence_potential_energy"]
