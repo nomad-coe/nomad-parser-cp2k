@@ -60,6 +60,17 @@ class CP2KParser(ParserInterface):
         # for the version is found, use the main parser for CP2K 2.6.2
         self.setup_main_parser({"version_id": version_id, "run_type": run_type})
 
+    @staticmethod
+    def get_mainfile_regex():
+        regex_str = (
+            "  \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED AT\s.*\n"
+            " \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*\n"
+            " \*\*    \*\*\*\*   \*\*\*\*\*\*    PROGRAM STARTED BY .*\n"
+            " \*\*\*\*\* \*\*    \*\* \*\* \*\*   PROGRAM PROCESS ID .*\n"
+            "  \*\*\*\* \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n"
+        )
+        return regex_str
+
     def get_metainfo_filename(self):
         return "cp2k.nomadmetainfo.json"
 
