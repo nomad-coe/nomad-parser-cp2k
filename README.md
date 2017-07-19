@@ -32,7 +32,14 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-Download and install the parser:
+Then download the metainfo definitions to the same folder where the
+'python-common' repository was cloned:
+
+```sh
+git clone https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-meta-info.git
+```
+
+Finally download and install the parser:
 
 ```sh
 git clone https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k.git
