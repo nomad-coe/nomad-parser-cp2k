@@ -14,4 +14,5 @@ parserDir = os.path.normpath(os.path.join(baseDir, "../../parser-cp2k"))
 # http://stackoverflow.com/questions/10095037/why-use-sys-path-appendpath-instead-of-sys-path-insert1-path
 if commonDir not in sys.path:
     sys.path.insert(1, commonDir)
+if parserDir not in sys.path:
     sys.path.insert(1, parserDir)
