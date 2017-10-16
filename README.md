@@ -1,4 +1,4 @@
-This is the main repository of the [NOMAD](http://nomad-lab.eu) parser for
+This is the main repository of the [NOMAD](https://www.nomad-coe.eu/) parser for
 [CP2K](https://www.cp2k.org/).
 
 # Example

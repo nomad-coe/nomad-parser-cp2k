@@ -13,5 +13,5 @@ if __name__ == "__main__":
 
     # Initialise the parser with the main filename and a JSON backend
     main_file = sys.argv[1]
-    parser = CP2KParser(main_file, backend=JsonParseEventsWriterBackend)
-    parser.parse()
+    parser = CP2KParser(backend=JsonParseEventsWriterBackend)
+    parser.parse(main_file)
