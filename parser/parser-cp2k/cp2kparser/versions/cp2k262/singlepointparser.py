@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 from nomadcore.simple_parser import SimpleMatcher as SM
 from nomadcore.baseclasses import MainHierarchicalParser
-from .singlepointforceparser import CP2KSinglePointForceParser
+from cp2kparser.versions.cp2k262.singlepointforceparser import CP2KSinglePointForceParser
 from nomadcore.caching_backend import CachingLevel
-from .commonparser import CP2KCommonParser
+from cp2kparser.versions.cp2k262.commonparser import CP2KCommonParser
 import logging
 logger = logging.getLogger("nomad")
 
 
-#===============================================================================
 class CP2KSinglePointParser(MainHierarchicalParser):
     """The main parser class. Used to parse the CP2K calculation with run types:
         -ENERGY

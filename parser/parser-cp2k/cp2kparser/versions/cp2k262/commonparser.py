@@ -12,7 +12,6 @@ from collections import defaultdict
 logger = logging.getLogger("nomad")
 
 
-#===============================================================================
 class CP2KCommonParser(CommonParser):
     """
     This class is used to store and instantiate common parts of the

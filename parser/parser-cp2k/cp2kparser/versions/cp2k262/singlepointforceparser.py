@@ -4,7 +4,6 @@ from nomadcore.baseclasses import AbstractBaseParser
 logger = logging.getLogger("nomad")
 
 
-#===============================================================================
 class CP2KSinglePointForceParser(AbstractBaseParser):
     """Used to parse out a force file printed out by a CP2K single point
     calculation. It is not exactly an ZYX file, so here we define separate

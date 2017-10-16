@@ -12,7 +12,6 @@ import logging
 logger = logging.getLogger("nomad")
 
 
-#===============================================================================
 class CP2KGeoOptParser(MainHierarchicalParser):
     """Used to parse the CP2K calculation with run types:
         -GEO_OPT/GEOMETRY_OPTIMIZATION

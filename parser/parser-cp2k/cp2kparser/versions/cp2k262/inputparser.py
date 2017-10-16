@@ -11,7 +11,6 @@ from cp2kparser.generic.inputparsing import metainfo_data_prefix, metainfo_secti
 logger = logging.getLogger("nomad")
 
 
-#===============================================================================
 class CP2KInputParser(AbstractBaseParser):
     """Used to parse out a CP2K input file.
 

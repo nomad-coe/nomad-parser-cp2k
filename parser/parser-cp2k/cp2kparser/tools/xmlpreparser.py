@@ -24,7 +24,6 @@ from cp2kparser.generic.inputparsing import Section, Keyword, DefaultKeyword, Se
 logger = logging
 
 
-#===============================================================================
 def generate_object_tree(xml_file, for_metainfo=False):
 
     xml_element = ET.parse(xml_file)
@@ -48,7 +47,6 @@ def generate_object_tree(xml_file, for_metainfo=False):
     return object_tree
 
 
-#===============================================================================
 def recursive_tree_generation(xml_element, for_metainfo=False, name_stack=[], ignore=True):
 
     # Make new section object for the root
@@ -199,7 +197,6 @@ def recursive_tree_generation(xml_element, for_metainfo=False, name_stack=[], ig
     return section
 
 
-#===============================================================================
 def generate_input_metainfos(object_tree):
 
     json_root = {
@@ -222,7 +219,6 @@ def generate_input_metainfos(object_tree):
         f.write(json.dumps(json_root, indent=2, separators=(',', ': ')))
 
 
-#===============================================================================
 def generate_metainfo_recursively(obj, parent, container, name_stack):
 
     json = None
@@ -245,7 +241,6 @@ def generate_metainfo_recursively(obj, parent, container, name_stack):
     container.append(json)
 
 
-#===============================================================================
 def generate_input_object_metainfo_json(child, parent, name_stack):
     path = ".".join(name_stack)
     # if path.startswith("."):
@@ -283,7 +278,6 @@ def generate_input_object_metainfo_json(child, parent, name_stack):
     return json_obj
 
 
-#===============================================================================
 def generate_section_metainfo_json(child, parent, name_stack):
     path = ".".join(name_stack[:-1])
     json_obj = {}
@@ -307,7 +301,6 @@ def generate_section_metainfo_json(child, parent, name_stack):
     return json_obj
 
 
-#===============================================================================
 # Run main function by default
 if __name__ == "__main__":
 

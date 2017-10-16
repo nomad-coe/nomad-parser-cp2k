@@ -13,7 +13,6 @@ import logging
 logger = logging.getLogger("nomad")
 
 
-#===============================================================================
 class CP2KMDParser(MainHierarchicalParser):
     """Used to parse the CP2K calculation with run types:
         -MD
