@@ -16,10 +16,10 @@ class CP2KGeoOptParser(MainHierarchicalParser):
     """Used to parse the CP2K calculation with run types:
         -GEO_OPT/GEOMETRY_OPTIMIZATION
     """
-    def __init__(self, file_path, parser_context):
+    def __init__(self, parser_context):
         """
         """
-        super(CP2KGeoOptParser, self).__init__(file_path, parser_context)
+        super(CP2KGeoOptParser, self).__init__(parser_context)
         self.setup_common_matcher(CP2KCommonParser(parser_context))
         self.traj_iterator = None
         self.energy_reeval_quickstep = None

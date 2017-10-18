@@ -445,8 +445,8 @@ class CP2KCommonParser(CommonParser):
         # If the input file is available, parse it
         filepath = self.file_service.get_file_by_id("input")
         if filepath is not None:
-            input_parser = CP2KInputParser(filepath, self.parser_context)
-            input_parser.parse()
+            input_parser = CP2KInputParser(self.parser_context)
+            input_parser.parse(filepath)
         else:
             logger.warning("The input file of the calculation could not be found.")
 

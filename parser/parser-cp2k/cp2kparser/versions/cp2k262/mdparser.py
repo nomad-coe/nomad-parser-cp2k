@@ -18,10 +18,10 @@ class CP2KMDParser(MainHierarchicalParser):
         -MD
         -MOLECULAR_DYNAMICS
     """
-    def __init__(self, file_path, parser_context):
+    def __init__(self, parser_context):
         """
         """
-        super(CP2KMDParser, self).__init__(file_path, parser_context)
+        super(CP2KMDParser, self).__init__(parser_context)
         self.setup_common_matcher(CP2KCommonParser(parser_context))
         self.traj_iterator = None
         self.vel_iterator = None

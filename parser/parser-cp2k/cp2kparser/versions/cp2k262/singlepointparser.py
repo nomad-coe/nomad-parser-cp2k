@@ -13,10 +13,10 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         -ENERGY
         -ENERGY_FORCE
     """
-    def __init__(self, file_path, parser_context):
+    def __init__(self, parser_context):
         """
         """
-        super(CP2KSinglePointParser, self).__init__(file_path, parser_context)
+        super(CP2KSinglePointParser, self).__init__(parser_context)
         self.setup_common_matcher(CP2KCommonParser(parser_context))
 
         #=======================================================================
@@ -54,8 +54,8 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         if section["atom_forces"] is None:
             force_file = self.file_service.get_file_by_id("force_file_single_point")
             if force_file is not None:
-                force_parser = CP2KSinglePointForceParser(force_file, self.parser_context)
-                force_parser.parse()
+                force_parser = CP2KSinglePointForceParser(self.parser_context)
+                force_parser.parse(force_file)
             else:
                 logger.warning("The file containing the forces printed by ENERGY_FORCE calculation could not be found.")
 

@@ -9,13 +9,13 @@ class CP2KSinglePointForceParser(AbstractBaseParser):
     calculation. It is not exactly an ZYX file, so here we define separate
     parser.
     """
-    def __init__(self, file_path, parser_context):
-        super(CP2KSinglePointForceParser, self).__init__(file_path, parser_context)
+    def __init__(self, parser_context):
+        super(CP2KSinglePointForceParser, self).__init__(parser_context)
 
-    def parse(self):
+    def parse(self, filepath):
         start = False
         forces = []
-        with open(self.file_path) as f:
+        with open(filepath) as f:
             for line in f:
                 if line.startswith(" # Atom"):
                     start = True

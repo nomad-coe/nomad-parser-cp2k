@@ -28,7 +28,7 @@ class CP2KInputParser(AbstractBaseParser):
     supports variables. This is currently not supported, but may be added at
     some point.
     """
-    def __init__(self, file_path, parser_context):
+    def __init__(self, parser_context):
         """
         Attributes:
             input_tree: The input structure for this version of CP2K. The
@@ -38,7 +38,7 @@ class CP2KInputParser(AbstractBaseParser):
                 variables have been stated explicitly and the additional input files have
                 been merged.
         """
-        super(CP2KInputParser, self).__init__(file_path, parser_context)
+        super(CP2KInputParser, self).__init__(parser_context)
         self.input_tree = None
         self.input_lines = None
         self.unit_mapping = {
@@ -68,16 +68,16 @@ class CP2KInputParser(AbstractBaseParser):
         self.cache_service.add("traj_add_last")
         # self.cache_service.add("electronic_structure_method")
 
-    def parse(self):
+    def parse(self, filepath):
 
         #=======================================================================
         # Preprocess to spell out variables and to include stuff from other
         # files
-        self.preprocess_input()
+        self.preprocess_input(filepath)
 
         #=======================================================================
         # Gather the information from the input file
-        self.fill_input_tree(self.file_path)
+        self.fill_input_tree(filepath)
 
         #=======================================================================
         # Parse everything in the input to cp2k specific metadata
@@ -459,14 +459,14 @@ class CP2KInputParser(AbstractBaseParser):
         input_tree_pickle_file = open(pickle_path, 'rb')
         self.input_tree = pickle.load(input_tree_pickle_file)
 
-    def preprocess_input(self):
+    def preprocess_input(self, filepath):
         """Preprocess the input file. Concatenate .inc files into the main
         input file and explicitly state all variables.
         """
         # Read the input file into memory. It shouldn't be that big so we can
         # do this easily
         input_lines = []
-        with open(self.file_path, "r") as f:
+        with open(filepath, "r") as f:
             for line in f:
                 input_lines.append(line.strip())
 
@@ -477,7 +477,7 @@ class CP2KInputParser(AbstractBaseParser):
             if line.startswith("@INCLUDE") or line.startswith("@include"):
                 split = line.split(None, 1)
                 includepath = split[1]
-                basedir = os.path.dirname(self.file_path)
+                basedir = os.path.dirname(filepath)
                 filepath = os.path.join(basedir, includepath)
                 filepath = os.path.abspath(filepath)
                 if not os.path.isfile(filepath):

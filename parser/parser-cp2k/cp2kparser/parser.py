@@ -153,4 +153,4 @@ class CP2KParser(ParserInterface):
             )
             raise
 
-        self.main_parser = parser_class(self.parser_context.main_file, self.parser_context)
+        self.main_parser = parser_class(self.parser_context)
