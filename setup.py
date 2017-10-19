@@ -8,7 +8,7 @@ def main():
         package_data={
             'cp2kparser.versions.cp2k262': ['input_data/cp2k_input_tree.pickle'],
         },
-        description="NoMaD parser implementation for CP2K.",
+        description="NOMAD parser implementation for CP2K.",
         author="Lauri Himanen",
         author_email="lauri.himanen@aalto.fi",
         license="GPL3",
