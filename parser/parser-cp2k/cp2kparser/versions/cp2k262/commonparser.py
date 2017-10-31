@@ -127,8 +127,25 @@ class CP2KCommonParser(CommonParser):
                     ],
                 ),
                 SM( " CELL\|",
-                    adHoc=self.adHoc_x_cp2k_section_cell(),
+                    adHoc=self.adHoc_x_cp2k_section_cell,
                 ),
+            ]
+        )
+
+    # SimpleMatcher for the restart information
+    def restart(self):
+        return SM( re.escape(" *                            RESTART INFORMATION                              *"),
+            sections=["x_cp2k_section_restart_information"],
+            subMatchers=[
+                SM( re.escape(" *******************************************************************************")),
+                SM( re.escape(" *                                                                             *")),
+                SM( re.escape(" *    RESTART FILE NAME: (?P<x_cp2k_restart_file_name>{})\s+*".format(self.regexs.word))),
+                SM( re.escape(" *                                                                             *")),
+                SM( re.escape(" * RESTARTED QUANTITIES:                                                       *")),
+                SM( re.escape(" *                       (?P<x_cp2k_restarted_quantity>{})\s+*".format(self.regexs.word)),
+                    repeats=True,
+                ),
+                SM( re.escape(" *******************************************************************************"))
             ]
         )
 
@@ -168,32 +185,32 @@ class CP2KCommonParser(CommonParser):
                     ]
                 ),
                 SM( r"  \*\*\* SCF run converged in\s+(\d+) steps \*\*\*",
-                    adHoc=self.adHoc_single_point_converged()
+                    adHoc=self.adHoc_single_point_converged
                 ),
                 SM( r"  \*\*\* SCF run NOT converged \*\*\*",
-                    adHoc=self.adHoc_single_point_not_converged()
+                    adHoc=self.adHoc_single_point_not_converged
                 ),
                 SM( r"  Electronic kinetic energy:\s+(?P<x_cp2k_electronic_kinetic_energy__hartree>{})".format(self.regexs.float)),
                 SM( r" **************************** NUMERICAL STRESS ********************************".replace("*", "\*"),
                     # endReStr=" **************************** NUMERICAL STRESS END *****************************".replace("*", "\*"),
-                    adHoc=self.adHoc_stress_calculation(),
+                    adHoc=self.adHoc_stress_calculation,
                 ),
                 SM( r" ENERGY\| Total FORCE_EVAL \( \w+ \) energy \(a\.u\.\):\s+(?P<x_cp2k_energy_total__hartree>{0})".format(self.regexs.float),
                 ),
                 SM( r" ATOMIC FORCES in \[a\.u\.\]"),
                 SM( r" # Atom   Kind   Element          X              Y              Z",
-                    adHoc=self.adHoc_atom_forces(),
+                    adHoc=self.adHoc_atom_forces,
                 ),
                 SM( r" (?:NUMERICAL )?STRESS TENSOR \[GPa\]",
                     sections=["x_cp2k_section_stress_tensor"],
                     subMatchers=[
                         SM( r"\s+X\s+Y\s+Z",
-                            adHoc=self.adHoc_stress_tensor(),
+                            adHoc=self.adHoc_stress_tensor,
                         ),
                         SM( "  1/3 Trace\(stress tensor\):\s+(?P<x_cp2k_stress_tensor_one_third_of_trace__GPa>{})".format(self.regexs.float)),
                         SM( "  Det\(stress tensor\)\s+:\s+(?P<x_cp2k_stress_tensor_determinant__GPa3>{})".format(self.regexs.float)),
                         SM( " EIGENVECTORS AND EIGENVALUES OF THE STRESS TENSOR",
-                            adHoc=self.adHoc_stress_tensor_eigenpairs()),
+                            adHoc=self.adHoc_stress_tensor_eigenpairs),
                     ]
                 )
             ]
@@ -201,7 +218,7 @@ class CP2KCommonParser(CommonParser):
 
     # SimpleMatcher the stuff that is done to initialize a quickstep calculation
     def quickstep_header(self):
-        return SM( " *******************************************************************************".replace("*", "\*"),
+        return SM( re.escape(" **                                                ... make the atoms dance   **"),
             forwardMatch=True,
             sections=["x_cp2k_section_quickstep_settings"],
             subMatchers=[
@@ -216,7 +233,7 @@ class CP2KCommonParser(CommonParser):
                     ],
                 ),
                 SM( " DFT\+U\|",
-                    adHoc=self.adHoc_dft_plus_u(),
+                    adHoc=self.adHoc_dft_plus_u,
                 ),
                 SM( " QS\|",
                     forwardMatch=True,
@@ -301,10 +318,10 @@ class CP2KCommonParser(CommonParser):
                     ]
                 ),
                 SM( " MP2\|",
-                    adHoc=self.adHoc_mp2()
+                    adHoc=self.adHoc_mp2
                 ),
                 SM( " RI-RPA\|",
-                    adHoc=self.adHoc_rpa()
+                    adHoc=self.adHoc_rpa
                 ),
             ]
         )
@@ -501,113 +518,96 @@ class CP2KCommonParser(CommonParser):
 
     #===========================================================================
     # adHoc functions
-    def adHoc_x_cp2k_section_cell(self):
+    def adHoc_x_cp2k_section_cell(self, parser):
         """Used to extract the cell information.
         """
-        def wrapper(parser):
-            # Read the lines containing the cell vectors
-            a_line = parser.fIn.readline()
-            b_line = parser.fIn.readline()
-            c_line = parser.fIn.readline()
+        # Read the lines containing the cell vectors
+        a_line = parser.fIn.readline()
+        b_line = parser.fIn.readline()
+        c_line = parser.fIn.readline()
 
-            # Define the regex that extracts the components and apply it to the lines
-            regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.regexs.float)
-            regex_compiled = re.compile(regex_string)
-            a_result = regex_compiled.match(a_line)
-            b_result = regex_compiled.match(b_line)
-            c_result = regex_compiled.match(c_line)
+        # Define the regex that extracts the components and apply it to the lines
+        regex_string = r" CELL\| Vector \w \[angstrom\]:\s+({0})\s+({0})\s+({0})".format(self.regexs.float)
+        regex_compiled = re.compile(regex_string)
+        a_result = regex_compiled.match(a_line)
+        b_result = regex_compiled.match(b_line)
+        c_result = regex_compiled.match(c_line)
 
-            # Convert the string results into a 3x3 numpy array
-            cell = np.zeros((3, 3))
-            cell[0, :] = [float(x) for x in a_result.groups()]
-            cell[1, :] = [float(x) for x in b_result.groups()]
-            cell[2, :] = [float(x) for x in c_result.groups()]
+        # Convert the string results into a 3x3 numpy array
+        cell = np.zeros((3, 3))
+        cell[0, :] = [float(x) for x in a_result.groups()]
+        cell[1, :] = [float(x) for x in b_result.groups()]
+        cell[2, :] = [float(x) for x in c_result.groups()]
 
-            # Push the results to cache
-            self.cache_service["simulation_cell"] = cell
-        return wrapper
+        # Push the results to cache
+        self.cache_service["simulation_cell"] = cell
 
-    def adHoc_atom_forces(self):
+    def adHoc_atom_forces(self, parser):
         """Used to extract the final atomic forces printed at the end of a
         calculation.
         """
-        def wrapper(parser):
+        end_str = " SUM OF ATOMIC FORCES"
+        end = False
+        force_array = []
 
-            end_str = " SUM OF ATOMIC FORCES"
-            end = False
-            force_array = []
+        # Loop through coordinates until the sum of forces is read
+        while not end:
+            line = parser.fIn.readline()
+            if line.startswith(end_str):
+                end = True
+            else:
+                forces = line.split()[-3:]
+                forces = [float(x) for x in forces]
+                force_array.append(forces)
+        force_array = np.array(force_array)
 
-            # Loop through coordinates until the sum of forces is read
-            while not end:
-                line = parser.fIn.readline()
-                if line.startswith(end_str):
-                    end = True
-                else:
-                    forces = line.split()[-3:]
-                    forces = [float(x) for x in forces]
-                    force_array.append(forces)
-            force_array = np.array(force_array)
+        # If anything found, push the results to the correct section
+        if len(force_array) != 0:
+            # self.cache_service["atom_forces"] = force_array
+            self.backend.addArrayValues("x_cp2k_atom_forces", force_array, unit="forceAu")
 
-            # If anything found, push the results to the correct section
-            if len(force_array) != 0:
-                # self.cache_service["atom_forces"] = force_array
-                self.backend.addArrayValues("x_cp2k_atom_forces", force_array, unit="forceAu")
-
-        return wrapper
-
-    def adHoc_stress_tensor(self):
+    def adHoc_stress_tensor(self, parser):
         """Used to extract the stress tensor printed at the end of a
         calculation.
         """
-        def wrapper(parser):
-            row1 = [float(x) for x in parser.fIn.readline().split()[-3:]]
-            row2 = [float(x) for x in parser.fIn.readline().split()[-3:]]
-            row3 = [float(x) for x in parser.fIn.readline().split()[-3:]]
-            stress_array = np.array([row1, row2, row3])
-            parser.backend.addArrayValues("x_cp2k_stress_tensor", stress_array, unit="GPa")
+        row1 = [float(x) for x in parser.fIn.readline().split()[-3:]]
+        row2 = [float(x) for x in parser.fIn.readline().split()[-3:]]
+        row3 = [float(x) for x in parser.fIn.readline().split()[-3:]]
+        stress_array = np.array([row1, row2, row3])
+        parser.backend.addArrayValues("x_cp2k_stress_tensor", stress_array, unit="GPa")
 
-        return wrapper
-
-    def adHoc_stress_calculation(self):
+    def adHoc_stress_calculation(self, parser):
         """Used to skip over the stress tensor calculation details.
         """
-        def wrapper(parser):
-            end_line = " **************************** NUMERICAL STRESS END *****************************\n"
-            finished = False
-            while not finished:
-                line = parser.fIn.readline()
-                if line == end_line:
-                    finished = True
-        return wrapper
+        end_line = " **************************** NUMERICAL STRESS END *****************************\n"
+        finished = False
+        while not finished:
+            line = parser.fIn.readline()
+            if line == end_line:
+                finished = True
 
-    def adHoc_stress_tensor_eigenpairs(self):
+    def adHoc_stress_tensor_eigenpairs(self, parser):
         """Parses the stress tensor eigenpairs.
         """
-        def wrapper(parser):
-            parser.fIn.readline()
-            eigenvalues = np.array([float(x) for x in parser.fIn.readline().split()])
-            parser.fIn.readline()
-            row1 = [float(x) for x in parser.fIn.readline().split()]
-            row2 = [float(x) for x in parser.fIn.readline().split()]
-            row3 = [float(x) for x in parser.fIn.readline().split()]
-            eigenvectors = np.array([row1, row2, row3])
-            parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvalues", eigenvalues, unit="GPa")
-            parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvectors", eigenvectors)
-        return wrapper
+        parser.fIn.readline()
+        eigenvalues = np.array([float(x) for x in parser.fIn.readline().split()])
+        parser.fIn.readline()
+        row1 = [float(x) for x in parser.fIn.readline().split()]
+        row2 = [float(x) for x in parser.fIn.readline().split()]
+        row3 = [float(x) for x in parser.fIn.readline().split()]
+        eigenvectors = np.array([row1, row2, row3])
+        parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvalues", eigenvalues, unit="GPa")
+        parser.backend.addArrayValues("x_cp2k_stress_tensor_eigenvectors", eigenvectors)
 
-    def adHoc_single_point_converged(self):
+    def adHoc_single_point_converged(self, parser):
         """Called when the SCF cycle of a single point calculation has converged.
         """
-        def wrapper(parser):
-            parser.backend.addValue("x_cp2k_quickstep_converged", True)
-        return wrapper
+        parser.backend.addValue("x_cp2k_quickstep_converged", True)
 
-    def adHoc_single_point_not_converged(self):
+    def adHoc_single_point_not_converged(self, parser):
         """Called when the SCF cycle of a single point calculation did not converge.
         """
-        def wrapper(parser):
-            parser.backend.addValue("x_cp2k_quickstep_converged", False)
-        return wrapper
+        parser.backend.addValue("x_cp2k_quickstep_converged", False)
 
     def adHoc_x_cp2k_section_quickstep_atom_information(self):
         """Used to extract the initial atomic coordinates and names in the
@@ -680,17 +680,16 @@ class CP2KCommonParser(CommonParser):
 
         return wrapper
 
-    def adHoc_dft_plus_u(self):
-        def wrapper(parser):
-            self.test_electronic_structure_method = "DFT+U"
-        return wrapper
+    def adHoc_dft_plus_u(self, parser):
+        self.test_electronic_structure_method = "DFT+U"
 
-    def adHoc_mp2(self):
-        def wrapper(parser):
-            self.test_electronic_structure_method = "MP2"
-        return wrapper
+    def adHoc_mp2(self, parser):
+        self.test_electronic_structure_method = "MP2"
 
-    def adHoc_rpa(self):
-        def wrapper(parser):
-            self.test_electronic_structure_method = "RPA"
+    def adHoc_rpa(self, parser):
+        self.test_electronic_structure_method = "RPA"
+
+    def adHoc_print(self, msg):
+        def wrapper(parser, groups):
+            print(msg)
         return wrapper

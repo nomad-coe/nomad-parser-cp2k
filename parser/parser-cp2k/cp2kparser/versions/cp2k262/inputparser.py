@@ -70,20 +70,16 @@ class CP2KInputParser(AbstractBaseParser):
 
     def parse(self, filepath):
 
-        #=======================================================================
         # Preprocess to spell out variables and to include stuff from other
         # files
         self.preprocess_input(filepath)
 
-        #=======================================================================
         # Gather the information from the input file
         self.fill_input_tree(filepath)
 
-        #=======================================================================
         # Parse everything in the input to cp2k specific metadata
         self.fill_metadata()
 
-        #=======================================================================
         # Parse the used XC_functionals and their parameters
         xc = self.input_tree.get_section("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
         if xc is not None:

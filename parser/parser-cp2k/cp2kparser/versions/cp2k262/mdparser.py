@@ -103,7 +103,7 @@ class CP2KMDParser(MainHierarchicalParser):
                     subMatchers=[
                         self.cm.quickstep_calculation(),
                         SM( " ENSEMBLE TYPE                ="),
-                        SM( " STEP NUMBER                  ="),
+                        SM( " STEP NUMBER                  =\s+(?P<x_cp2k_md_step_number>{})".format(self.regexs.int)),
                         SM( " TIME \[fs\]                    =\s+(?P<x_cp2k_md_time__fs>{})".format(self.regexs.float)),
                         SM( " CONSERVED QUANTITY \[hartree\] =\s+(?P<x_cp2k_md_conserved_quantity__hartree>{})".format(self.regexs.float)),
                         SM( " CPU TIME \[s\]                 =\s+(?P<x_cp2k_md_cpu_time_instantaneous>{})\s+(?P<x_cp2k_md_cpu_time_average>{})".format(self.regexs.float, self.regexs.float)),
@@ -135,6 +135,7 @@ class CP2KMDParser(MainHierarchicalParser):
                     forwardMatch=True,
                     sections=["section_method"],
                     subMatchers=[
+                        self.cm.restart(),
                         self.cm.header(),
                         self.cm.quickstep_header(),
                     ],
@@ -260,7 +261,7 @@ class CP2KMDParser(MainHierarchicalParser):
         if add_last_vel_setting == "NUMERIC" or add_last_vel_setting == "SYMBOLIC":
             add_last_vel = True
 
-        last_step = self.n_steps - 1
+        last_step = self.n_steps
         md_steps = section["x_cp2k_section_md_step"]
 
         frame_sequence_potential_energy = []
@@ -269,9 +270,23 @@ class CP2KMDParser(MainHierarchicalParser):
         frame_sequence_kinetic_energy = []
         frame_sequence_conserved_quantity = []
         frame_sequence_pressure = []
+        ener_frames = []
 
         single_conf_gids = []
         i_md_step = 0
+
+        # Check that is the calculation starting from first frame. If not, this
+        # is a restarted calculation. In this case it is practically impossible
+        # to know from which frame number we should start reading the
+        # configurations, because the print settings in the previous runs may
+        # have been different from now, and the step numbers are hard to align.
+        # In this case we just parse what is found in this output file
+        start_step_number = md_steps[1]["x_cp2k_md_step_number"][0]
+        if start_step_number != 1:
+            self.traj_iterator = None
+            self.cell_iterator = None
+            self.vel_iterator = None
+            self.energy_iterator = None
 
         for i_step in range(self.n_steps + 1):
 
@@ -290,7 +305,7 @@ class CP2KMDParser(MainHierarchicalParser):
 
             # Trajectory
             if freqs["trajectory"][1] and self.traj_iterator is not None:
-                if (i_step + 1) % freqs["trajectory"][0] == 0 or (i_step == last_step and add_last_traj):
+                if (i_step) % freqs["trajectory"][0] == 0 or (i_step == last_step and add_last_traj):
                     try:
                         pos = next(self.traj_iterator)
                     except StopIteration:
@@ -300,7 +315,7 @@ class CP2KMDParser(MainHierarchicalParser):
 
             # Velocities
             if freqs["velocities"][1] and self.vel_iterator is not None:
-                if (i_step + 1) % freqs["velocities"][0] == 0 or (i_step == last_step and add_last_vel):
+                if (i_step) % freqs["velocities"][0] == 0 or (i_step == last_step and add_last_vel):
                     try:
                         vel = next(self.vel_iterator)
                     except StopIteration:
@@ -310,7 +325,7 @@ class CP2KMDParser(MainHierarchicalParser):
 
             # Energy file
             if self.energy_iterator is not None:
-                if (i_step + 1) % freqs["energies"][0] == 0:
+                if (i_step) % freqs["energies"][0] == 0:
                     line = next(self.energy_iterator)
 
                     time = line[1]
@@ -326,20 +341,30 @@ class CP2KMDParser(MainHierarchicalParser):
                     frame_sequence_potential_energy.append(potential_energy)
                     frame_sequence_conserved_quantity.append(conserved_quantity)
 
+                    ener_frames.append(i_step)
+
                     backend.addValue("energy_total", conserved_quantity)
                     backend.addValue("time_calculation", wall_time)
 
             # Cell file
             if self.cell_iterator is not None:
-                if (i_step + 1) % freqs["cell"][0] == 0:
+                if (i_step) % freqs["cell"][0] == 0:
                     line = next(self.cell_iterator)
                     cell = np.reshape(line, (3, 3))
                     self.backend.addArrayValues("simulation_cell", cell, unit="angstrom")
 
             # Output file
             if md_steps:
-                if (i_step + 1) % freqs["output"][0] == 0:
-                    md_step = md_steps[i_md_step]
+                if (i_step) % freqs["output"][0] == 0:
+                    try:
+                        md_step = md_steps[i_md_step]
+
+                    except IndexError:
+                        # The process has stopped unexpectedly, but still we
+                        # should report all the steps so far. So we break the
+                        # loop and retain what was parsed.
+                        break
+                    # print(md_step["x_cp2k_md_step_number"])
                     quickstep = self.md_quicksteps[i_md_step]
                     if quickstep is not None:
                         quickstep.add_latest_value("x_cp2k_atom_forces", "atom_forces")
@@ -358,55 +383,53 @@ class CP2KMDParser(MainHierarchicalParser):
             backend.closeSection("section_single_configuration_calculation", sectionGID)
 
         # Add the summaries to frame sequence
-        frame_sequence_potential_energy = convert_unit(np.array(frame_sequence_potential_energy), "hartree")
-        frame_sequence_kinetic_energy = convert_unit(np.array(frame_sequence_kinetic_energy), "hartree")
-        frame_sequence_conserved_quantity = convert_unit(np.array(frame_sequence_conserved_quantity), "hartree")
-        frame_sequence_time = np.array(frame_sequence_time)
-        frame_sequence_temperature = np.array(frame_sequence_temperature)
-        frame_sequence_pressure = np.array(frame_sequence_pressure)
-
-        backend.addArrayValues("frame_sequence_potential_energy", frame_sequence_potential_energy)
-        backend.addArrayValues("frame_sequence_kinetic_energy", frame_sequence_kinetic_energy)
-        backend.addArrayValues("frame_sequence_conserved_quantity", frame_sequence_conserved_quantity)
-        backend.addArrayValues("frame_sequence_temperature", frame_sequence_temperature)
-        backend.addArrayValues("frame_sequence_time", frame_sequence_time, unit="fs")
-        if frame_sequence_pressure.size != 0:
+        if len(frame_sequence_potential_energy) != 0:
+            frame_sequence_potential_energy = convert_unit(np.array(frame_sequence_potential_energy), "hartree")
+            backend.addArrayValues("frame_sequence_potential_energy", frame_sequence_potential_energy)
+            backend.addArrayValues("frame_sequence_potential_energy_frames", np.array(ener_frames))
+            mean_pot = frame_sequence_potential_energy.mean()
+            std_pot = frame_sequence_potential_energy.std()
+            backend.addArrayValues("frame_sequence_potential_energy_stats", np.array([mean_pot, std_pot]))
+        if len(frame_sequence_kinetic_energy) != 0:
+            frame_sequence_kinetic_energy = convert_unit(np.array(frame_sequence_kinetic_energy), "hartree")
+            backend.addArrayValues("frame_sequence_kinetic_energy", frame_sequence_kinetic_energy)
+            backend.addArrayValues("frame_sequence_kinetic_energy_frames", np.array(ener_frames))
+            mean_kin = frame_sequence_kinetic_energy.mean()
+            std_kin = frame_sequence_kinetic_energy.std()
+            backend.addArrayValues("frame_sequence_kinetic_energy_stats", np.array([mean_kin, std_kin]))
+        if len(frame_sequence_conserved_quantity) != 0:
+            frame_sequence_conserved_quantity = convert_unit(np.array(frame_sequence_conserved_quantity), "hartree")
+            backend.addArrayValues("frame_sequence_conserved_quantity", frame_sequence_conserved_quantity)
+            backend.addArrayValues("frame_sequence_conserved_quantity_frames", np.array(ener_frames))
+            mean_cons = frame_sequence_conserved_quantity.mean()
+            std_cons = frame_sequence_conserved_quantity.std()
+            backend.addArrayValues("frame_sequence_conserved_quantity_stats", np.array([mean_cons, std_cons]))
+        if len(frame_sequence_time) != 0:
+            frame_sequence_time = np.array(frame_sequence_time)
+            backend.addArrayValues("frame_sequence_time", frame_sequence_time, unit="fs")
+        if len(frame_sequence_temperature) != 0:
+            frame_sequence_temperature = np.array(frame_sequence_temperature)
+            backend.addArrayValues("frame_sequence_temperature", frame_sequence_temperature)
+            backend.addArrayValues("frame_sequence_temperature_frames", np.array(ener_frames))
+            mean_temp = frame_sequence_temperature.mean()
+            std_temp = frame_sequence_temperature.std()
+            backend.addArrayValues("frame_sequence_temperature_stats", np.array([mean_temp, std_temp]))
+        if len(frame_sequence_pressure) != 0:
+            frame_sequence_pressure = np.array(frame_sequence_pressure)
             backend.addArrayValues("frame_sequence_pressure", frame_sequence_pressure)
+            mean_pressure = frame_sequence_pressure.mean()
+            std_pressure = frame_sequence_pressure.std()
+            backend.addArrayValues("frame_sequence_pressure_stats", np.array([mean_pressure, std_pressure]))
 
-        # Number of frames
-        backend.addValue("number_of_frames_in_sequence", self.n_steps + 1)
+        # Number of frames. We open a SCC for each frame, even if there is no
+        # information for it.
+        backend.addValue("number_of_frames_in_sequence", len(single_conf_gids))
 
         # Reference to sampling method
         backend.addValue("frame_sequence_to_sampling_ref", 0)
 
         # References to local frames
         backend.addArrayValues("frame_sequence_local_frames_ref", np.array(single_conf_gids))
-
-        # Temperature stats
-        mean_temp = frame_sequence_temperature.mean()
-        std_temp = frame_sequence_temperature.std()
-        backend.addArrayValues("frame_sequence_temperature_stats", np.array([mean_temp, std_temp]))
-
-        # Potential energy stats
-        mean_pot = frame_sequence_potential_energy.mean()
-        std_pot = frame_sequence_potential_energy.std()
-        backend.addArrayValues("frame_sequence_potential_energy_stats", np.array([mean_pot, std_pot]))
-
-        # Kinetic energy stats
-        mean_kin = frame_sequence_kinetic_energy.mean()
-        std_kin = frame_sequence_kinetic_energy.std()
-        backend.addArrayValues("frame_sequence_kinetic_energy_stats", np.array([mean_kin, std_kin]))
-
-        # Conserved quantity stats
-        mean_cons = frame_sequence_conserved_quantity.mean()
-        std_cons = frame_sequence_conserved_quantity.std()
-        backend.addArrayValues("frame_sequence_conserved_quantity_stats", np.array([mean_cons, std_cons]))
-
-        # Pressure stats
-        if frame_sequence_pressure.size != 0:
-            mean_pressure = frame_sequence_pressure.mean()
-            std_pressure = frame_sequence_pressure.std()
-            backend.addArrayValues("frame_sequence_pressure_stats", np.array([mean_pressure, std_pressure]))
 
     #===========================================================================
     # adHoc functions

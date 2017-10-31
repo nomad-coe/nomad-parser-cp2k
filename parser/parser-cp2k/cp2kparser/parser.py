@@ -32,12 +32,15 @@ class CP2KParser(ParserInterface):
         # this information.
         regex_version = re.compile(r" CP2K\| version string:\s+CP2K version ([\d\.]+)")
         regex_run_type = re.compile(r"\s+GLOBAL\| Run type\s+(.+)")
-        n_lines = 50
+        n_lines = 100
         version_id = None
         run_type = None
         with open(self.parser_context.main_file, 'r') as outputfile:
             for i_line in range(n_lines):
-                line = next(outputfile)
+                try:
+                    line = next(outputfile)
+                except StopIteration:
+                    break
                 result_version = regex_version.match(line)
                 result_run_type = regex_run_type.match(line)
                 if result_version:
