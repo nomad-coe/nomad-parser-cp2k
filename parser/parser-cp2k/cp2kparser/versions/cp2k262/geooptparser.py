@@ -249,6 +249,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
 
     def onClose_section_system(self, backend, gIndex, section):
         self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
+        self.cache_service.addArrayValues("lattice_vectors", unit="angstrom")
 
     def onClose_section_method(self, backend, gIndex, section):
         traj_file = self.file_service.get_file_by_id("trajectory")

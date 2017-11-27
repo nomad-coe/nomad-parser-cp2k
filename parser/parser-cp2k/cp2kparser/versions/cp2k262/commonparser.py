@@ -42,6 +42,7 @@ class CP2KCommonParser(CommonParser):
         #=======================================================================
         # Globally cached values
         self.cache_service.add("simulation_cell", single=False, update=False)
+        self.cache_service.add("lattice_vectors", single=False, update=False)
         self.cache_service.add("number_of_scf_iterations", 0)
         self.cache_service.add("atom_positions", single=False, update=True)
         self.cache_service.add("atom_labels", single=False, update=False)
@@ -231,6 +232,34 @@ class CP2KCommonParser(CommonParser):
                         SM( " DFT\| Charge\s+(?P<total_charge>{})".format(self.regexs.int)),
                         SM( " DFT\| Self-interaction correction \(SIC\)\s+(?P<self_interaction_correction_method>[^\n]+)"),
                     ],
+                ),
+                SM( " vdW POTENTIAL\|\s+",
+                    forwardMatch=True,
+                    sections=["x_cp2k_section_vdw_settings"],
+                    subMatchers=[
+                        SM( " vdW POTENTIAL\|\s+(?P<x_cp2k_vdw_type>{})".format(self.regexs.eol)),
+                        SM( " vdW POTENTIAL\|\s+Potential Form:\s+(?P<x_cp2k_vdw_name>{})".format(self.regexs.eol)),
+                        SM( " vdW POTENTIAL\|\s+BJ Damping:\s+(?P<x_cp2k_vdw_bj_damping_name>{})".format(self.regexs.eol)),
+                        SM( " vdW POTENTIAL\|\s+Cutoff Radius \[Bohr\]:\s+(?P<x_cp2k_vdw_cutoff_radius>{})".format(self.regexs.float)),
+                        SM( " vdW POTENTIAL\|\+sScaling Factor:s+(?P<x_cp2k_vdw_scaling_factor>{})".format(self.regexs.float),
+                            sections=["x_cp2k_section_vdw_d2_settings"],
+                            subMatchers=[
+                                SM( " vdW POTENTIAL\|\s+Exp Prefactor for Damping:\s+(?P<x_cp2k_vdw_damping_factor>{})".format(self.regexs.float)),
+                                SM( " vdW PARAMETER\|\s+Atom=(?P<x_cp2k_vdw_parameter_element_name>{})\s+C6\[J*nm^6*mol^-1\]=\s+(?P<x_cp2k_vdw_parameter_c6>{})\s+r\(vdW\)\[A\]=\s+(?P<x_cp2k_vdw_parameter_radius>{})".format(self.regexs.word, self.regexs.float, self.regexs.float),
+                                    sections=["x_cp2k_section_vdw_element_settings"],
+                                    repeats=True,
+                                ),
+                            ],
+                        ),
+                        SM( " vdW POTENTIAL\|\s+s6 Scaling Factor:\s+(?P<x_cp2k_vdw_s6_scaling_factor>{})".format(self.regexs.float),
+                            sections=["x_cp2k_section_vdw_d3_settings"],
+                            subMatchers=[
+                                SM( " vdW POTENTIAL\|\s+sr6 Scaling Factor:\s+(?P<x_cp2k_vdw_sr6_scaling_factor>{})".format(self.regexs.float)),
+                                SM( " vdW POTENTIAL\|\s+s8 Scaling Factor:\s+(?P<x_cp2k_vdw_s8_scaling_factor>{})".format(self.regexs.float)),
+                                SM( " vdW POTENTIAL\|\s+Cutoff for CN calculation:\s+(?P<x_cp2k_vdw_cn_cutoff>{})".format(self.regexs.float)),
+                            ],
+                        )
+                    ]
                 ),
                 SM( " DFT\+U\|",
                     adHoc=self.adHoc_dft_plus_u,
@@ -427,6 +456,19 @@ class CP2KCommonParser(CommonParser):
         backend.addValue("number_of_basis_sets_atom_centered", len(self.basis_set_info))
         backend.closeSection("section_method_basis_set", method_basis_id)
 
+    def onClose_x_cp2k_section_vdw_settings(self, backend, gIndex, section):
+        """Figures out the common metainfo for vdw from the CP2K specific
+        settings.
+        """
+        vdw_name = section["x_cp2k_vdw_name"][0]
+        name_map = {
+            "S. Grimme, JCC 27: 1787 (2006)": "G06",
+            "S. Grimme et al, JCP 132: 154104 (2010)": "G10",
+        }
+        nomad_vdw_name = name_map.get(vdw_name)
+        if nomad_vdw_name is not None:
+            backend.addValue("van_der_Waals_method", nomad_vdw_name)
+
     def onClose_x_cp2k_section_atomic_kind(self, backend, gIndex, section):
         # basisID = backend.openSection("section_basis_set_atom_centered")
 
@@ -541,6 +583,7 @@ class CP2KCommonParser(CommonParser):
 
         # Push the results to cache
         self.cache_service["simulation_cell"] = cell
+        self.cache_service["lattice_vectors"] = cell
 
     def adHoc_atom_forces(self, parser):
         """Used to extract the final atomic forces printed at the end of a

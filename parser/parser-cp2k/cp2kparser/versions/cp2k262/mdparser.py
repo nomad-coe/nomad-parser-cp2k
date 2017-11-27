@@ -298,10 +298,12 @@ class CP2KMDParser(MainHierarchicalParser):
             # simulation cel only on the first step to section_system
             if i_step == 0 and self.ensemble == "NPT" and self.cell_iterator is None:
                 self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
+                self.cache_service.addArrayValues("lattice_vectors", unit="angstrom")
 
             # Unchanging cell
             if self.ensemble != "NPT":
                 self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
+                self.cache_service.addArrayValues("lattice_vectors", unit="angstrom")
 
             # Trajectory
             if freqs["trajectory"][1] and self.traj_iterator is not None:
@@ -352,6 +354,7 @@ class CP2KMDParser(MainHierarchicalParser):
                     line = next(self.cell_iterator)
                     cell = np.reshape(line, (3, 3))
                     self.backend.addArrayValues("simulation_cell", cell, unit="angstrom")
+                    self.backend.addArrayValues("lattice_vectors", cell, unit="angstrom")
 
             # Output file
             if md_steps:

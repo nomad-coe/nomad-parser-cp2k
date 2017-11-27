@@ -92,6 +92,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         """
         self.cache_service.addArrayValues("atom_positions", unit="angstrom")
         self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
+        self.cache_service.addArrayValues("lattice_vectors", unit="angstrom")
 
     #===========================================================================
     # adHoc functions
