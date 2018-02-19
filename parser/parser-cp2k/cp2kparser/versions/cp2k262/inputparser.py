@@ -7,6 +7,7 @@ import logging
 import pickle
 import numpy as np
 from nomadcore.baseclasses import AbstractBaseParser
+import nomadcore.configurationreading
 from cp2kparser.generic.inputparsing import metainfo_data_prefix, metainfo_section_prefix
 from pint import UnitRegistry
 import ase
@@ -89,14 +90,14 @@ class CP2KInputParser(AbstractBaseParser):
         print_level = self.input_tree.get_keyword("GLOBAL/PRINT_LEVEL")
         multiple_unit_cell = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/MULTIPLE_UNIT_CELL")
         top_multiple_unit_cell = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
-        centering = self.input_tree.get_section("FORCE_EVAL/SUBSYS/TOPOLOGY/CENTER_COORDINATES")
+        centering = self.input_tree.get_section("FORCE_EVAL/SUBSYS/TOPOLOGY/CENTER_COORDINATES").section_parameter.get_value()
+        center_point = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/CENTER_COORDINATES/CENTER_POINT")
         if multiple_unit_cell is None:
             multiple_unit_cell = np.array([1, 1, 1])
 
         if print_level == "LOW" \
            and np.array_equal(multiple_unit_cell, [1, 1, 1]) \
-           and np.array_equal(top_multiple_unit_cell, [1, 1, 1]) \
-           and not centering.accessed:
+           and np.array_equal(top_multiple_unit_cell, [1, 1, 1]):
 
             cell_section = self.input_tree.get_section("FORCE_EVAL/SUBSYS/CELL")
             a_obj = cell_section.get_keyword_object("A")
@@ -133,11 +134,16 @@ class CP2KInputParser(AbstractBaseParser):
                 self.cache_service["simulation_cell"] = cell
                 self.cache_service["lattice_vectors"] = cell
 
+            # Parse the coordinates from input file or xyz file
             coord = self.input_tree.get_section("FORCE_EVAL/SUBSYS/COORD")
+            coord_filename = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_NAME")
+            coord_format = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_FORMAT")
             scaled = coord.get_keyword("SCALED")
             coords = coord.default_keyword.value
-            print(coords)
             coord_unit = coord.get_keyword("UNIT")
+
+            final_pos = None
+            final_lab = None
             if len(coords) != 0:
                 lines = coords.split("\n")
                 pos = []
@@ -152,20 +158,53 @@ class CP2KInputParser(AbstractBaseParser):
                         labels.append(i_lab)
                         pos.append([i_x, i_y, i_z])
 
-                pos = np.array(pos)
-                coord_unit = self.get_pint_unit_string(coord_unit)
-                pos = (pos * ureg(coord_unit)).to("angstrom").magnitude
-                labels = np.array(labels)
-                if scaled == "F" or scaled == "FALSE":
-                    self.cache_service["atom_positions"] = pos
-                    self.cache_service["atom_labels"] = labels
+                final_pos = np.array(pos)
+                final_lab = np.array(labels)
 
-            # self.cache_service["simulation_cell"] = cell
-            # self.cache_service["lattice_vectors"] = cell
-            # coordinates = self.input_tree.get_section("FORCE_EVAL/SUBSYS/COORD")
-            # print(coordinates.get_section_parameter())
-            # self.cache_service["atom_positions"] = coordinates
-            # self.cache_service["atom_labels"] = labels
+            elif coord_filename is not None:
+
+                extension_map = {
+                    "XYZ": "xyz",
+                }
+                coord_extension = extension_map.get(coord_format)
+                if coord_extension is not None:
+                    abs_filename = self.file_service.get_absolute_path_to_file(coord_filename)
+                    try:
+                        atoms = ase.io.read(abs_filename, format=coord_extension)
+                        final_pos = atoms.get_positions()
+                        final_lab = atoms.get_chemical_symbols()
+                    except StopIteration:
+                        logger.error("Error in reading the structure file specified in the input file.")
+                else:
+                    logger.error(
+                        "Could not read the structure file specified in the "
+                        "input file because the file format is not supported."
+                    )
+
+            # Make the positions cartesian if they are scaled
+            if final_pos is not None and final_lab is not None:
+                if scaled == "T" or scaled == "TRUE":
+                    atoms = ase.Atoms(
+                        scaled_positions=final_pos,
+                        symbols=final_lab,
+                        cell=cell,
+                    )
+                    final_pos = atoms.get_positions()
+
+                # Center the atoms if requested.
+                if centering == "T" or centering == "TRUE":
+                    atoms = ase.Atoms(
+                        positions=final_pos,
+                        symbols=final_lab,
+                        cell=cell,
+                    )
+                    atoms.center(about=center_point)
+                    final_pos = atoms.get_positions()
+
+                coord_unit = self.get_pint_unit_string(coord_unit)
+                final_pos = (final_pos * ureg(coord_unit)).to("angstrom").magnitude
+                self.cache_service["atom_positions"] = final_pos
+                self.cache_service["atom_labels"] = final_lab
 
         # Parse the used XC_functionals and their parameters
         xc = self.input_tree.get_section("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
@@ -302,8 +341,8 @@ class CP2KInputParser(AbstractBaseParser):
         self.cache_service["velocity_unit"] = pint_vel_unit
 
         #=======================================================================
+        # OLD: This information is retrieved from output file
         # See if some more exotic calculation is requested (e.g. MP2, DFT+U, GW, RPA)
-
         # Search for a WF_CORRELATION section
         # correlation = self.input_tree.get_section("FORCE_EVAL/DFT/XC/WF_CORRELATION")
         # method = "DFT"
@@ -470,14 +509,12 @@ class CP2KInputParser(AbstractBaseParser):
             # Contents (keywords, default keywords)
             else:
                 split = line.split(None, 1)
-                print(split)
                 if len(split) <= 1:
                     keyword_value = ""
                 else:
                     keyword_value = split[1]
                 keyword_name = split[0].upper()
-                # print(keyword_value)
-                self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
+                self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value, line)
 
     def fill_metadata(self):
         """Goes through the input data and pushes everything to the

@@ -53,7 +53,7 @@ class CP2KInput(object):
         else:
             parameter.value = value
 
-    def set_keyword(self, path, value):
+    def set_keyword(self, path, value, full):
         keyword, section = self.get_keyword_and_section(path)
         # If keyword found, put data in there
         if keyword and section:
@@ -63,8 +63,7 @@ class CP2KInput(object):
             split_path = path.rsplit("/", 1)
             keyword = split_path[1]
             if section.default_keyword is not None:
-                # print "Saving default keyword at path '{}'".format(path)
-                section.default_keyword.value += keyword + " " + value + "\n"
+                section.default_keyword.value += full + "\n"
             else:
                 message = "The CP2K input does not contain the keyword {}, and there is no default keyword for the section {}".format(path, split_path[0])
                 logger.warning(message)
@@ -140,6 +139,7 @@ class CP2KInput(object):
             return (None, None)
         if section.section_parameter is not None:
             parameter = section.section_parameter
+            parameter.accessed = section.accessed
             return (parameter, section)
         else:
             return (None, section)
@@ -337,14 +337,17 @@ class Keyword(InputObject):
 
     def get_unit(self):
 
-        # Decode the unit and the value if not done before
-        if self.default_unit:
-            if not self.unit:
-                self.decode_cp2k_unit_and_value()
-            return self.unit
+        if self.unit is None:
+            self.decode_cp2k_unit_and_value()
+            if self.unit is not None:
+                return self.unit
+            elif self.default_unit is not None:
+                return self.default_unit
         else:
-            logger.error("The keyword '{}' does not have a unit.".format(self.default_name))
-            return None
+            return self.unit
+
+        logger.error("The keyword '{}' does not have a unit.".format(self.default_name))
+        return None
 
     def decode_cp2k_unit_and_value(self):
         """Given a CP2K unit name, decode it as Pint unit definition.
@@ -371,12 +374,26 @@ class SectionParameters(InputObject):
     Section parameters are the short values that can be added right after a
     section name, e.g. &PRINT ON, where ON is the section parameter.
     """
-    __slots__ = ['lone_keyword_value']
+    __slots__ = ['lone_keyword_value', 'accessed']
 
     def __init__(self, default_value, lone_keyword_value):
         super(SectionParameters, self).__init__("SECTION_PARAMETERS")
         self.default_value = default_value
         self.lone_keyword_value = lone_keyword_value
+        self.accessed = None
+
+    def get_value(self):
+        """Returns the value for this section parameter. Uses the user given
+        value primarily, if the section is not used, return the default value
+        and if the section is defined but without explicit section parameter
+        returns the lone keyword value.
+        """
+        if self.value is not None:
+            return self.value
+        elif self.accessed:
+            return self.lone_keyword_value
+        else:
+            return self.default_value
 
 
 class DefaultKeyword(InputObject):
