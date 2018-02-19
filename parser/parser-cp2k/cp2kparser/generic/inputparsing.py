@@ -9,7 +9,6 @@ metainfo_section_prefix = "x_cp2k_section_input_"
 metainfo_data_prefix = "x_cp2k_input_"
 
 
-#===============================================================================
 class CP2KInput(object):
     """The contents of a CP2K simulation including default values and default
     units from the version-specific xml file.
@@ -154,7 +153,6 @@ class CP2KInput(object):
                 return parameter.lone_value
 
 
-#===============================================================================
 class Section(object):
     """An input section in a CP2K calculation.
     """
@@ -216,7 +214,6 @@ class Section(object):
             return value.upper()
 
 
-#===============================================================================
 class InputObject(object):
     """Base class for all kind of data elements in the CP2K input.
     """
@@ -231,7 +228,6 @@ class InputObject(object):
         self.default_value = None
 
 
-#===============================================================================
 class Keyword(InputObject):
     """Information about a keyword in a CP2K calculation.
     """
@@ -265,13 +261,14 @@ class Keyword(InputObject):
         """
         # Decode the unit and the value if not done before
         proper_value = None
-        if self.default_unit:
-            if not self.value_no_unit:
+        if self.default_unit is not None:
+            if self.value_no_unit is None:
                 self.decode_cp2k_unit_and_value()
         if self.value_no_unit is not None:
             proper_value = self.value_no_unit
         else:
             proper_value = self.value
+
         # if allow_default:
         if proper_value is None:
             proper_value = self.default_value
@@ -331,8 +328,8 @@ class Keyword(InputObject):
         """If the units of this value can be changed, return a value and the
         unit separately.
         """
-        if self.default_unit:
-            if not self.value_no_unit:
+        if self.default_unit is not None:
+            if self.value_no_unit is None:
                 self.decode_cp2k_unit_and_value()
             return self.value_no_unit
         else:
@@ -352,22 +349,22 @@ class Keyword(InputObject):
     def decode_cp2k_unit_and_value(self):
         """Given a CP2K unit name, decode it as Pint unit definition.
         """
-        splitted = self.value.split(None, 1)
-        unit_definition = splitted[0]
-        if unit_definition.startswith('[') and unit_definition.endswith(']'):
-            unit_definition = unit_definition[1:-1]
-            self.unit = CP2KInput.decode_cp2k_unit(self.default_unit)
-            self.value_no_unit = splitted[1]
-        elif self.default_unit:
-            logger.debug("No special unit definition found, returning default unit.")
-            self.unit = CP2KInput.decode_cp2k_unit(self.default_unit)
-            self.value_no_unit = self.value
-        else:
-            logger.debug("The value has no unit, returning bare value.")
-            self.value_no_unit = self.value
+        if self.value is not None:
+            splitted = self.value.split(None, 1)
+            unit_definition = splitted[0]
+            if unit_definition.startswith('[') and unit_definition.endswith(']'):
+                unit_definition = unit_definition[1:-1]
+                self.unit = CP2KInput.decode_cp2k_unit(unit_definition)
+                self.value_no_unit = splitted[1]
+            elif self.default_unit:
+                logger.debug("No special unit definition found, returning default unit.")
+                self.unit = CP2KInput.decode_cp2k_unit(self.default_unit)
+                self.value_no_unit = self.value
+            else:
+                logger.debug("The value has no unit, returning bare value.")
+                self.value_no_unit = self.value
 
 
-#===============================================================================
 class SectionParameters(InputObject):
     """Section parameters in a CP2K calculation.
 
@@ -382,7 +379,6 @@ class SectionParameters(InputObject):
         self.lone_keyword_value = lone_keyword_value
 
 
-#===============================================================================
 class DefaultKeyword(InputObject):
     """Default keyword in the CP2K input.
     """

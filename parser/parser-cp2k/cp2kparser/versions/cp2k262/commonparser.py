@@ -380,18 +380,19 @@ class CP2KCommonParser(CommonParser):
         # correspondent, and push directly to the superBackend to avoid caching
         try:
             sic_cp2k = section.get_latest_value("self_interaction_correction_method")
-            sic_map = {
-                "NO": "",
-                "AD SIC": "SIC_AD",
-                "Explicit Orbital SIC": "SIC_EXPLICIT_ORBITALS",
-                "SPZ/MAURI SIC": "SIC_MAURI_SPZ",
-                "US/MAURI SIC": "SIC_MAURI_US",
-            }
-            sic_nomad = sic_map.get(sic_cp2k)
-            if sic_nomad is not None:
-                backend.superBackend.addValue('self_interaction_correction_method', sic_nomad)
-            else:
-                logger.warning("Unknown self-interaction correction method used.")
+            if sic_cp2k is not None:
+                sic_map = {
+                    "NO": "",
+                    "AD SIC": "SIC_AD",
+                    "Explicit Orbital SIC": "SIC_EXPLICIT_ORBITALS",
+                    "SPZ/MAURI SIC": "SIC_MAURI_SPZ",
+                    "US/MAURI SIC": "SIC_MAURI_US",
+                }
+                sic_nomad = sic_map.get(sic_cp2k)
+                if sic_nomad is not None:
+                    backend.superBackend.addValue('self_interaction_correction_method', sic_nomad)
+                else:
+                    logger.warning("Unknown self-interaction correction method used.")
         except:
             pass
 
@@ -515,7 +516,6 @@ class CP2KCommonParser(CommonParser):
         """
         self.section_system_index = gIndex
         self.cache_service.addValue("number_of_atoms")
-        # self.cache_service.push_array_values("simulation_cell", unit="angstrom")
         self.cache_service.addArrayValues("configuration_periodic_dimensions")
         self.cache_service.addArrayValues("atom_labels")
 

@@ -8,6 +8,9 @@ import pickle
 import numpy as np
 from nomadcore.baseclasses import AbstractBaseParser
 from cp2kparser.generic.inputparsing import metainfo_data_prefix, metainfo_section_prefix
+from pint import UnitRegistry
+import ase
+ureg = UnitRegistry()
 logger = logging.getLogger("nomad")
 
 
@@ -66,7 +69,6 @@ class CP2KInputParser(AbstractBaseParser):
         self.cache_service.add("vel_add_last")
         self.cache_service.add("each_geo_opt")
         self.cache_service.add("traj_add_last")
-        # self.cache_service.add("electronic_structure_method")
 
     def parse(self, filepath):
 
@@ -79,6 +81,91 @@ class CP2KInputParser(AbstractBaseParser):
 
         # Parse everything in the input to cp2k specific metadata
         self.fill_metadata()
+
+        # If the print level is low, parse the system geometry from the input
+        # file. If keywords that manipulate the system are enabled, the
+        # geometry is not parsed because the manipulations can be hard to
+        # reproduce.
+        print_level = self.input_tree.get_keyword("GLOBAL/PRINT_LEVEL")
+        multiple_unit_cell = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/MULTIPLE_UNIT_CELL")
+        top_multiple_unit_cell = self.input_tree.get_keyword("FORCE_EVAL/SUBSYS/TOPOLOGY/MULTIPLE_UNIT_CELL")
+        centering = self.input_tree.get_section("FORCE_EVAL/SUBSYS/TOPOLOGY/CENTER_COORDINATES")
+        if multiple_unit_cell is None:
+            multiple_unit_cell = np.array([1, 1, 1])
+
+        if print_level == "LOW" \
+           and np.array_equal(multiple_unit_cell, [1, 1, 1]) \
+           and np.array_equal(top_multiple_unit_cell, [1, 1, 1]) \
+           and not centering.accessed:
+
+            cell_section = self.input_tree.get_section("FORCE_EVAL/SUBSYS/CELL")
+            a_obj = cell_section.get_keyword_object("A")
+            b_obj = cell_section.get_keyword_object("B")
+            c_obj = cell_section.get_keyword_object("C")
+            a_val = a_obj.get_value()
+            b_val = b_obj.get_value()
+            c_val = c_obj.get_value()
+
+            abc_obj = cell_section.get_keyword_object("ABC")
+            angles_obj = cell_section.get_keyword_object("ALPHA_BETA_GAMMA")
+            abc_val = abc_obj.get_value()
+            angles_val = angles_obj.get_value()
+
+            # Cell given as three vectors
+            if a_val is not None and b_val is not None and c_val is not None:
+                a_unit = a_obj.get_unit()
+                b_unit = b_obj.get_unit()
+                c_unit = c_obj.get_unit()
+                a = (a_val * ureg(a_unit)).to("angstrom").magnitude
+                b = (b_val * ureg(b_unit)).to("angstrom").magnitude
+                c = (c_val * ureg(c_unit)).to("angstrom").magnitude
+                cell = np.stack((a, b, c), axis=0)
+                self.cache_service["simulation_cell"] = cell
+                self.cache_service["lattice_vectors"] = cell
+            # Cell given as lengths and angles
+            elif abc_val is not None and angles_val is not None:
+                abc_unit = abc_obj.get_unit()
+                angles_unit = angles_obj.get_unit()
+                abc = (abc_val * ureg(abc_unit)).to("angstrom").magnitude
+                angles = (angles_val * ureg(angles_unit)).to("degree").magnitude
+                parameters = np.hstack((abc, angles))
+                cell = ase.geometry.cellpar_to_cell(parameters)
+                self.cache_service["simulation_cell"] = cell
+                self.cache_service["lattice_vectors"] = cell
+
+            coord = self.input_tree.get_section("FORCE_EVAL/SUBSYS/COORD")
+            scaled = coord.get_keyword("SCALED")
+            coords = coord.default_keyword.value
+            print(coords)
+            coord_unit = coord.get_keyword("UNIT")
+            if len(coords) != 0:
+                lines = coords.split("\n")
+                pos = []
+                labels = []
+                for line in lines:
+                    if len(line) != 0:
+                        parts = line.split()
+                        i_lab = parts[0]
+                        i_x = float(parts[1])
+                        i_y = float(parts[2])
+                        i_z = float(parts[3])
+                        labels.append(i_lab)
+                        pos.append([i_x, i_y, i_z])
+
+                pos = np.array(pos)
+                coord_unit = self.get_pint_unit_string(coord_unit)
+                pos = (pos * ureg(coord_unit)).to("angstrom").magnitude
+                labels = np.array(labels)
+                if scaled == "F" or scaled == "FALSE":
+                    self.cache_service["atom_positions"] = pos
+                    self.cache_service["atom_labels"] = labels
+
+            # self.cache_service["simulation_cell"] = cell
+            # self.cache_service["lattice_vectors"] = cell
+            # coordinates = self.input_tree.get_section("FORCE_EVAL/SUBSYS/COORD")
+            # print(coordinates.get_section_parameter())
+            # self.cache_service["atom_positions"] = coordinates
+            # self.cache_service["atom_labels"] = labels
 
         # Parse the used XC_functionals and their parameters
         xc = self.input_tree.get_section("FORCE_EVAL/DFT/XC/XC_FUNCTIONAL")
@@ -383,11 +470,13 @@ class CP2KInputParser(AbstractBaseParser):
             # Contents (keywords, default keywords)
             else:
                 split = line.split(None, 1)
+                print(split)
                 if len(split) <= 1:
                     keyword_value = ""
                 else:
                     keyword_value = split[1]
                 keyword_name = split[0].upper()
+                # print(keyword_value)
                 self.input_tree.set_keyword(path + "/" + keyword_name, keyword_value)
 
     def fill_metadata(self):
