@@ -630,7 +630,7 @@ class CP2KInputParser(AbstractBaseParser):
                 input_set_removed.append(line)
 
         # Place the variables
-        variable_pattern = r"\@\{(\w+)\}|@(\w+)"
+        variable_pattern = r"\$\{(\w+)\}|\$(\w+)"
         compiled = re.compile(variable_pattern)
         reserved = ("include", "set", "if", "endif")
         input_variables_replaced = []
