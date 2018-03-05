@@ -3,6 +3,7 @@ standard_library.install_aliases()
 from builtins import object
 import os
 import re
+from io import StringIO
 import logging
 import pickle
 import numpy as np
@@ -11,6 +12,7 @@ import nomadcore.configurationreading
 from cp2kparser.generic.inputparsing import metainfo_data_prefix, metainfo_section_prefix
 from pint import UnitRegistry
 import ase
+
 ureg = UnitRegistry()
 logger = logging.getLogger("nomad")
 
@@ -168,9 +170,20 @@ class CP2KInputParser(AbstractBaseParser):
                 }
                 coord_extension = extension_map.get(coord_format)
                 if coord_extension is not None:
+
+                    # We first remove the comment line from the XYZ file,
+                    # because ASE cannot properly handle comments that have ASE
+                    # specific data that is malformed.
                     abs_filename = self.file_service.get_absolute_path_to_file(coord_filename)
+                    stringio = StringIO()
+                    with open(abs_filename, "r") as fin:
+                        for i_line, line in enumerate(fin):
+                            if i_line == 1:
+                                stringio.write("\n")
+                            else:
+                                stringio.write(line)
                     try:
-                        atoms = ase.io.read(abs_filename, format=coord_extension)
+                        atoms = ase.io.read(stringio, format="xyz")
                         final_pos = atoms.get_positions()
                         final_lab = atoms.get_chemical_symbols()
                     except StopIteration:

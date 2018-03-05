@@ -47,6 +47,7 @@ class CP2KParser(ParserInterface):
                     version_id = result_version.group(1).replace('.', '')
                 if result_run_type:
                     run_type = result_run_type.group(1)
+
         if version_id is None:
             msg = "Could not find a version specification from the given main file."
             logger.exception(msg)

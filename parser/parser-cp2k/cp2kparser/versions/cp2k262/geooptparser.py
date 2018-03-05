@@ -218,6 +218,9 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         # Push the trajectory
         n_steps = len(steps) + 1
         last_step = n_steps - 1
+
+        # First push the original system geometry
+        # print(self.cache_service["atom_positions"])
         for i_step in range(n_steps):
             singleId = backend.openSection("section_single_configuration_calculation")
             systemId = backend.openSection("section_system")
@@ -227,7 +230,13 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     try:
                         pos = next(self.traj_iterator)
                     except StopIteration:
-                        logger.error("Could not get the next geometries from an external file. It seems that the number of optimization steps in the CP2K outpufile doesn't match the number of steps found in the external trajectory file.")
+                        logger.error(
+                            "Could not get next geometry from an external"
+                            " file. It seems that the number of optimization "
+                            "steps in the CP2K output file doesn't match the "
+                            "number of steps found in the external trajectory "
+                            "file."
+                        )
                     else:
                         backend.addArrayValues("atom_positions", pos, unit="angstrom")
             backend.closeSection("section_system", systemId)

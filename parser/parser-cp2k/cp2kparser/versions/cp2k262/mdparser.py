@@ -35,6 +35,7 @@ class CP2KMDParser(MainHierarchicalParser):
         self.cell_freq = None
         self.md_quicksteps = []
         self.ensemble = None
+        self.cp2k_ensemble = None
 
         #=======================================================================
         # Globally cached values
@@ -150,18 +151,21 @@ class CP2KMDParser(MainHierarchicalParser):
     def onClose_x_cp2k_section_md_settings(self, backend, gIndex, section):
 
         # Ensemble
-        sampling = section.get_latest_value("x_cp2k_md_ensemble_type")
-        if sampling is not None:
+        cp2k_ensemble = section.get_latest_value("x_cp2k_md_ensemble_type")
+        self.cp2k_ensemble = cp2k_ensemble
+        if cp2k_ensemble is not None:
             sampling_map = {
                 "NVE": "NVE",
                 "NVT": "NVT",
                 "NPT_F": "NPT",
                 "NPT_I": "NPT",
             }
-            sampling = sampling_map.get(sampling)
+            sampling = sampling_map.get(cp2k_ensemble)
             if sampling is not None:
                 self.ensemble = sampling
                 backend.addValue("ensemble_type", sampling)
+            else:
+                logger.error("Unknown ensemble type {}.".format(cp2k_ensemble))
 
         # Sampling type
         backend.addValue("sampling_method", "molecular_dynamics")
@@ -173,7 +177,7 @@ class CP2KMDParser(MainHierarchicalParser):
         self.velo_freq = section.get_latest_value("x_cp2k_md_velocities_print_frequency")
         self.cell_freq = section.get_latest_value("x_cp2k_md_simulation_cell_print_frequency")
 
-        # Step number
+        # Number of steps
         self.n_steps = section.get_latest_value("x_cp2k_md_number_of_time_steps")
 
         # Files
@@ -280,15 +284,25 @@ class CP2KMDParser(MainHierarchicalParser):
         # to know from which frame number we should start reading the
         # configurations, because the print settings in the previous runs may
         # have been different from now, and the step numbers are hard to align.
-        # In this case we just parse what is found in this output file
+        # In this case we just parse what is found in this output file. The
+        # REFTRAJ calculations use a different indexing that starts from 2
+        # instead of one.
         start_step_number = md_steps[1]["x_cp2k_md_step_number"][0]
-        if start_step_number != 1:
+        if (self.cp2k_ensemble.upper() == "REFTRAJ" and start_step_number != 2) or \
+           (self.cp2k_ensemble.upper() != "REFTRAJ" and start_step_number != 1):
             self.traj_iterator = None
             self.cell_iterator = None
             self.vel_iterator = None
             self.energy_iterator = None
 
-        for i_step in range(self.n_steps + 1):
+        # The reftraj mode has axactly the requested number of steps, but other
+        # modes have one more.
+        if self.cp2k_ensemble.upper() == "REFTRAJ":
+            n_steps = self.n_steps
+        else:
+            n_steps = self.n_steps + 1
+
+        for i_step in range(n_steps):
 
             sectionGID = backend.openSection("section_single_configuration_calculation")
             systemGID = backend.openSection("section_system")
