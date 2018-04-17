@@ -4,7 +4,7 @@ import os
 import re
 import logging
 import importlib
-from nomadcore.baseclasses import ParserInterface
+from nomadcore.parsing.baseclasses import ParserInterface
 
 # Needs to be imported in order for the importlib calls to work in python 2.7
 import cp2kparser.versions.cp2k262.singlepointparser

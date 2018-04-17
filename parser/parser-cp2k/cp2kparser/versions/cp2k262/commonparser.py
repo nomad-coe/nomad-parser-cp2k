@@ -3,10 +3,10 @@ from builtins import str
 import re
 import numpy as np
 import logging
-from nomadcore.simple_parser import SimpleMatcher as SM
-from nomadcore.caching_backend import CachingLevel
-from nomadcore.unit_conversion.unit_conversion import convert_unit
-from nomadcore.baseclasses import CommonParser
+from nomadcore.parsing.simple_parser import SimpleMatcher as SM
+from nomadcore.parsing.caching_backend import CachingLevel
+from nomadcore.parsing.unit_conversion import convert_unit
+from nomadcore.parsing.baseclasses import CommonParser
 from .inputparser import CP2KInputParser
 from collections import defaultdict
 logger = logging.getLogger("nomad")

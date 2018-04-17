@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from nomadcore.baseclasses import AbstractBaseParser
+from nomadcore.parsing.baseclasses import AbstractBaseParser
 logger = logging.getLogger("nomad")
 
 

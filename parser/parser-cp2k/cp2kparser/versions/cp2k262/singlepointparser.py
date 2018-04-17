@@ -1,8 +1,8 @@
 from __future__ import absolute_import
-from nomadcore.simple_parser import SimpleMatcher as SM
-from nomadcore.baseclasses import MainHierarchicalParser
+from nomadcore.parsing.simple_parser import SimpleMatcher as SM
+from nomadcore.parsing.baseclasses import MainHierarchicalParser
+from nomadcore.parsing.caching_backend import CachingLevel
 from cp2kparser.versions.cp2k262.singlepointforceparser import CP2KSinglePointForceParser
-from nomadcore.caching_backend import CachingLevel
 from cp2kparser.versions.cp2k262.commonparser import CP2KCommonParser
 import logging
 logger = logging.getLogger("nomad")
