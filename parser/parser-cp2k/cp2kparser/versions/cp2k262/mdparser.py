@@ -2,14 +2,13 @@ from __future__ import absolute_import
 from builtins import next
 from builtins import range
 import numpy as np
-from nomadcore.simple_parser import SimpleMatcher as SM
-from nomadcore.baseclasses import MainHierarchicalParser
-import nomadcore.configurationreading
-import nomadcore.csvparsing
-from .commonparser import CP2KCommonParser
-from nomadcore.caching_backend import CachingLevel
-from nomadcore.unit_conversion.unit_conversion import convert_unit
+from nomadcore.parsing.simple_parser import SimpleMatcher as SM
+from nomadcore.parsing.base_classes import MainHierarchicalParser
+from nomadcore.parsing.caching_backend import CachingLevel
+from nomadcore.parsing.unit_conversion import convert_unit
+from nomadcore.parsing import csv_reader, coordinate_reader
 import logging
+from .commonparser import CP2KCommonParser
 logger = logging.getLogger("nomad")
 
 
@@ -196,10 +195,10 @@ class CP2KMDParser(MainHierarchicalParser):
 
             # Use special parsing for CP2K pdb files because they don't follow the proper syntax
             if traj_format == "PDB":
-                self.traj_iterator = nomadcore.csvparsing.iread(coord_filepath, columns=[3, 4, 5], start="CRYST", end="END")
+                self.traj_iterator = csv_reader.iread(coord_filepath, columns=[3, 4, 5], start="CRYST", end="END")
             else:
                 try:
-                    self.traj_iterator = nomadcore.configurationreading.iread(coord_filepath)
+                    self.traj_iterator = coordinate_reader.iread(coord_filepath)
                 except ValueError:
                     pass
 
@@ -207,17 +206,17 @@ class CP2KMDParser(MainHierarchicalParser):
         vel_format = self.cache_service["velocity_format"]
         if vel_format is not None and vel_filepath is not None:
             try:
-                self.vel_iterator = nomadcore.configurationreading.iread(vel_filepath)
+                self.vel_iterator = coordinate_reader.iread(vel_filepath)
             except ValueError:
                 pass
 
         # Setup energy file iterator
         if energies_filepath is not None:
-            self.energy_iterator = nomadcore.csvparsing.iread(energies_filepath, columns=[0, 1, 2, 3, 4, 5, 6], comments="#")
+            self.energy_iterator = csv_reader.iread(energies_filepath, columns=[0, 1, 2, 3, 4, 5, 6], comments="#")
 
         # Setup cell file iterator
         if cell_filepath is not None:
-            self.cell_iterator = nomadcore.csvparsing.iread(cell_filepath, columns=[2, 3, 4, 5, 6, 7, 8, 9, 10], comments="#")
+            self.cell_iterator = csv_reader.iread(cell_filepath, columns=[2, 3, 4, 5, 6, 7, 8, 9, 10], comments="#")
 
     def onClose_x_cp2k_section_md(self, backend, gIndex, section):
 

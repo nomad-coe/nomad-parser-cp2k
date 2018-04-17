@@ -3,15 +3,17 @@ standard_library.install_aliases()
 from builtins import object
 import os
 import re
-from io import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 import logging
 import pickle
 import numpy as np
-from nomadcore.baseclasses import AbstractBaseParser
-import nomadcore.configurationreading
+from nomadcore.parsing.base_classes import AbstractBaseParser
 from cp2kparser.generic.inputparsing import metainfo_data_prefix, metainfo_section_prefix
 from pint import UnitRegistry
-import ase
+import ase.io
 
 ureg = UnitRegistry()
 logger = logging.getLogger("nomad")
