@@ -54,6 +54,7 @@ class CP2KCommonParser(CommonParser):
         self.cache_service.add("map_kind_to_basis", single=False, update=False)
         self.cache_service.add("map_index_to_kind", single=False, update=False)
         self.cache_service.add("map_kind_number_to_basis_ref", single=False, update=False)
+        self.cache_service.add("electron_density_filename", single=False, update=True)
 
     #===========================================================================
     # SimpleMatchers
@@ -190,6 +191,15 @@ class CP2KCommonParser(CommonParser):
                 ),
                 SM( r"  \*\*\* SCF run NOT converged \*\*\*",
                     adHoc=self.adHoc_single_point_not_converged
+                ),
+                SM( r" The electron density is written in cube file format to the file:",
+                    subMatchers=[
+                        SM(""),
+                        SM(
+                            "\s+(.+\.cube)",
+                            startReAction=self.startReAction_save_cube_filename,
+                        ),
+                    ]
                 ),
                 SM( r"  Electronic kinetic energy:\s+(?P<x_cp2k_electronic_kinetic_energy__hartree>{})".format(self.regexs.float)),
                 SM( r" **************************** NUMERICAL STRESS ********************************".replace("*", "\*"),
@@ -556,6 +566,10 @@ class CP2KCommonParser(CommonParser):
         # Cell dependent basis mapping
         self.cache_service.addValue("mapping_section_basis_set_cell_dependent")
 
+        # If a cube file was found, open it and store values.
+        filename = self.cache_service["electron_density_filename"]
+        absolute_filepath = self.parser_context.file_service.get_absolute_path_to_file(filename)
+
         backend.closeSection("section_basis_set", scc_basis_id)
 
     #===========================================================================
@@ -736,3 +750,9 @@ class CP2KCommonParser(CommonParser):
         def wrapper(parser, groups):
             print(msg)
         return wrapper
+
+    #=======================================================================
+    # StarReActions
+    def startReAction_save_cube_filename(self, backend, groups):
+        filename = groups[0]
+        self.cache_service["electron_density_filename"] = filename
