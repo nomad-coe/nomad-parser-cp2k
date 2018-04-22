@@ -566,9 +566,11 @@ class CP2KCommonParser(CommonParser):
         # Cell dependent basis mapping
         self.cache_service.addValue("mapping_section_basis_set_cell_dependent")
 
-        # If a cube file was found, open it and store values.
+        # If a cube file was found, get the filepath. Currently no information
+        # is read from this file because there is no suitable metainfo for it.
         filename = self.cache_service["electron_density_filename"]
-        absolute_filepath = self.parser_context.file_service.get_absolute_path_to_file(filename)
+        if filename is not None:
+            self.parser_context.file_service.get_absolute_path_to_file(filename)
 
         backend.closeSection("section_basis_set", scc_basis_id)
 
