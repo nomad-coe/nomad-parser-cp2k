@@ -42,7 +42,7 @@ Finally download and install the parser:
 
 ```sh
 git clone https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k.git
-cd parser-cp2k
+cd parser-cp2k/parser/parser-cp2k
 pip install -e .
 ```
 
