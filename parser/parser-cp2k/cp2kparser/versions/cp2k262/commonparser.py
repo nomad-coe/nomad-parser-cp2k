@@ -1,11 +1,11 @@
 # Copyright 2015-2018 Lauri Himanen, Fawzi Mohamed, Ankit Kariryaa
-# 
+#
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -45,7 +45,7 @@ class CP2KCommonParser(CommonParser):
         # Cache levels
         self.caching_levels = {
             'x_cp2k_atoms': CachingLevel.ForwardAndCache,
-            'section_XC_functionals': CachingLevel.ForwardAndCache,
+            'section_xc_functionals': CachingLevel.ForwardAndCache,
             'self_interaction_correction_method': CachingLevel.Cache,
             'x_cp2k_section_program_information': CachingLevel.ForwardAndCache,
             'x_cp2k_section_quickstep_settings': CachingLevel.ForwardAndCache,
@@ -196,7 +196,7 @@ class CP2KCommonParser(CommonParser):
                     sections=["x_cp2k_section_scf_iteration"],
                     repeats=True,
                     subMatchers=[
-                        SM( r"  Exchange-correlation energy:\s+(?P<x_cp2k_energy_XC_scf_iteration__hartree>{})".format(self.regexs.float)),
+                        SM( r"  Exchange-correlation energy:\s+(?P<x_cp2k_energy_xc_scf_iteration__hartree>{})".format(self.regexs.float)),
                         SM( r"\s+\d+\s+\S+\s+{0}\s+{0}\s+{0}\s+(?P<x_cp2k_energy_total_scf_iteration__hartree>{0})\s+(?P<x_cp2k_energy_change_scf_iteration__hartree>{0})".format(self.regexs.float)),
                     ]
                 ),
@@ -473,9 +473,10 @@ class CP2KCommonParser(CommonParser):
             dict_map[kind_id] = basis_id
         method_basis_id = backend.openSection("section_method_basis_set")
         if mapping:
-            mapping = np.array(mapping)
             self.cache_service["map_kind_to_basis"] = dict_map
-            backend.addArrayValues("mapping_section_method_basis_set_atom_centered", np.array(mapping))
+            # The metainfo for mapping section_method_basis_set_atom_centered has been removed
+            # mapping = np.array(mapping)
+            # backend.addArrayValues("mapping_section_method_basis_set_atom_centered", np.array(mapping))
         backend.addValue("method_basis_set_kind", "wavefunction")
         self.cache_service.addValue("mapping_section_method_basis_set_cell_associated")
         backend.addValue("number_of_basis_sets_atom_centered", len(self.basis_set_info))
@@ -492,7 +493,7 @@ class CP2KCommonParser(CommonParser):
         }
         nomad_vdw_name = name_map.get(vdw_name)
         if nomad_vdw_name is not None:
-            backend.addValue("van_der_Waals_method", nomad_vdw_name)
+            backend.addValue("van_der_waals_method", nomad_vdw_name)
 
     def onClose_x_cp2k_section_atomic_kind(self, backend, gIndex, section):
         # basisID = backend.openSection("section_basis_set_atom_centered")

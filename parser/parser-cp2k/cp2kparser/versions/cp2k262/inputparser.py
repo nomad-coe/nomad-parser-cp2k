@@ -1,11 +1,11 @@
 # Copyright 2015-2018 Lauri Himanen, Fawzi Mohamed, Ankit Kariryaa
-# 
+#
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -316,12 +316,12 @@ class CP2KInputParser(AbstractBaseParser):
             # backend and construct the summary string
             for i, functional in enumerate(xc_list):
 
-                gId = self.backend.openSection("section_XC_functionals")
-                self.backend.addValue("XC_functional_name", functional.name)
-                self.backend.addValue("XC_functional_weight", functional.weight)
+                gId = self.backend.openSection("section_xc_functionals")
+                self.backend.addValue("xc_functional_name", functional.name)
+                self.backend.addValue("xc_functional_weight", functional.weight)
                 if functional.parameters is not None:
                     pass
-                self.backend.closeSection("section_XC_functionals", gId)
+                self.backend.closeSection("section_xc_functionals", gId)
 
                 if i != 0:
                     xc_summary += "+"
@@ -331,7 +331,7 @@ class CP2KInputParser(AbstractBaseParser):
 
             # Stream summary
             if xc_summary is not "":
-                self.backend.addValue("XC_functional", xc_summary)
+                self.backend.addValue("xc_functional", xc_summary)
 
         #=======================================================================
         # Cell periodicity
@@ -560,10 +560,10 @@ class CP2KInputParser(AbstractBaseParser):
         if section.name == "CP2K_INPUT":
             path = "x_cp2k_section_input"
         else:
-            name_stack.append(section.name)
-            path = metainfo_section_prefix + "{}".format(".".join(name_stack))
+            name_stack.append(section.name.lower())
+            path = metainfo_section_prefix + "{}".format("_".join(name_stack))
 
-        not_section_path = metainfo_data_prefix + "{}".format(".".join(name_stack))
+        not_section_path = metainfo_data_prefix + "{}".format("_".join(name_stack))
 
         gid = self.backend.openSection(path)
 
@@ -572,13 +572,13 @@ class CP2KInputParser(AbstractBaseParser):
             keywords = section.keywords.get(default_name)
             for keyword in keywords:
                 if keyword.value is not None:
-                    name = "{}.{}".format(not_section_path, keyword.default_name)
+                    name = "{}_{}".format(not_section_path, keyword.default_name.lower())
                     self.backend.addValue(name, keyword.value)
 
         # Section parameter
         section_parameter = section.section_parameter
         if section_parameter is not None:
-            name = "{}.SECTION_PARAMETERS".format(not_section_path)
+            name = "{}_section_parameters".format(not_section_path)
             if section_parameter.value is not None:
                 self.backend.addValue(name, section_parameter.value)
 
@@ -586,7 +586,7 @@ class CP2KInputParser(AbstractBaseParser):
         default_keyword = section.default_keyword
         if default_keyword is not None:
 
-            name = "{}.DEFAULT_KEYWORD".format(not_section_path)
+            name = "{}_default_keyword".format(not_section_path)
             self.backend.addValue(name, default_keyword.value)
 
         # Subsections

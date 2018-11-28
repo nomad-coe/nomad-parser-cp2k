@@ -1,11 +1,11 @@
 # Copyright 2015-2018 Lauri Himanen, Fawzi Mohamed, Ankit Kariryaa
-# 
+#
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,7 +37,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         # Cache levels
         self.caching_levels.update({
             'x_cp2k_energy_total_scf_iteration': CachingLevel.ForwardAndCache,
-            'x_cp2k_energy_XC_scf_iteration': CachingLevel.ForwardAndCache,
+            'x_cp2k_energy_xc_scf_iteration': CachingLevel.ForwardAndCache,
             'x_cp2k_energy_change_scf_iteration': CachingLevel.ForwardAndCache,
             'x_cp2k_stress_tensor': CachingLevel.ForwardAndCache,
             'x_cp2k_section_stress_tensor': CachingLevel.ForwardAndCache,
@@ -83,7 +83,7 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         self.cache_service["number_of_scf_iterations"] += 1
         gId = backend.openSection("section_scf_iteration")
         section.add_latest_value("x_cp2k_energy_total_scf_iteration", "energy_total_scf_iteration")
-        section.add_latest_value("x_cp2k_energy_XC_scf_iteration", "energy_XC_scf_iteration")
+        section.add_latest_value("x_cp2k_energy_xc_scf_iteration", "energy_xc_scf_iteration")
         section.add_latest_value("x_cp2k_energy_change_scf_iteration", "energy_change_scf_iteration")
         backend.closeSection("section_scf_iteration", gId)
 
