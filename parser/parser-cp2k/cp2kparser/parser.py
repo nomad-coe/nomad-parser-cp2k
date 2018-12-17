@@ -1,16 +1,23 @@
 # Copyright 2015-2018 Lauri Himanen, Fawzi Mohamed, Ankit Kariryaa
-# 
+#
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+""" Main parser file to parse simulation files created using CP2K DFT program.
+
+This file creates the parser class for CP2K simulation files. The class extends
+the Parser Interface class created for NOMAD-fair. This class also uses structlog
+to increase analytics on logged errors during parsing uploading data to NOMAD.
+"""
 
 from builtins import next
 from builtins import range
@@ -18,12 +25,13 @@ import os
 import re
 import logging
 import importlib
+import structlog  # New Logging Mechanism introduced for NOMAD-fair.
 from nomadcore.baseclasses import ParserInterface
 
 # Needs to be imported in order for the importlib calls to work in python 2.7
 import cp2kparser.versions.cp2k262.singlepointparser
 
-logger = logging.getLogger("nomad")
+# logger = logging.getLogger("nomad")  # This redefines the global logger.
 
 
 class CP2KParser(ParserInterface):
@@ -34,8 +42,16 @@ class CP2KParser(ParserInterface):
     After the implementation has been setup, you can parse files with
     parse().
     """
-    def __init__(self, metainfo_to_keep=None, backend=None, default_units=None, metainfo_units=None, debug=False, log_level=logging.ERROR, store=True):
-        super(CP2KParser, self).__init__(metainfo_to_keep, backend, default_units, metainfo_units, debug, log_level, store)
+    def __init__(
+        self, metainfo_to_keep=None, backend=None, default_units=None,
+        metainfo_units=None, debug=False, logger=None,
+        log_level=logging.ERROR, store=True
+    ):
+        super(CP2KParser, self).__init__(
+            metainfo_to_keep, backend, default_units, metainfo_units,
+            debug, log_level, store
+        )
+        self.logger = structlog.get_logger()  # New logger keep it in this namespace.
 
     def setup_version(self):
         """Setups the version by looking at the output file and the version
@@ -64,11 +80,11 @@ class CP2KParser(ParserInterface):
 
         if version_id is None:
             msg = "Could not find a version specification from the given main file."
-            logger.exception(msg)
+            self.logger.exception(msg)
             raise RuntimeError(msg)
         if run_type is None:
             msg = "Could not find a version specification from the given main file."
-            logger.exception(msg)
+            self.logger.exception(msg)
             raise RuntimeError(msg)
 
         # Setup the root folder to the fileservice that is used to access files
@@ -132,7 +148,7 @@ class CP2KParser(ParserInterface):
         try:
             parser = parser_map[run_type]
         except KeyError:
-            logger.exception(
+            self.logger.exception(
                 "A parser corresponding to the run_type '{}' could not be found."
                 .format(run_type)
             )
@@ -147,7 +163,7 @@ class CP2KParser(ParserInterface):
         try:
             parser_module = importlib.import_module(base)
         except ImportError:
-            logger.warning(
+            self.logger.warning(
                 "Could not find a parser for version '{}' and run type '{}'. "
                 "Trying to default to the base implementation for CP2K 2.6.2"
                 .format(version_id, run_type)
@@ -156,7 +172,7 @@ class CP2KParser(ParserInterface):
             try:
                 parser_module = importlib.import_module(base)
             except ImportError:
-                logger.exception(
+                self.logger.exception(
                     "Tried to default to the CP2K 2.6.2 implementation but "
                     "could not find the correct modules for run_type '{}'."
                     .format(run_type)
@@ -165,7 +181,7 @@ class CP2KParser(ParserInterface):
         try:
             parser_class = getattr(parser_module, "CP2K{}".format(parser))
         except AttributeError:
-            logger.exception(
+            self.logger.exception(
                 "A parser class '{}' could not be found in the module '[]'."
                 .format(parser_class, parser_module)
             )
