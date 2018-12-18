@@ -51,7 +51,7 @@ class CP2KParser(ParserInterface):
 
         if logger is not None:
             self.logger = logger
-            self.logger.info('received logger')
+            self.logger.debug('received logger')
         else:
             self.logger = logging.getLogger(__name__)
 
