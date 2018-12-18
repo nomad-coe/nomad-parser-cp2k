@@ -25,7 +25,6 @@ import os
 import re
 import logging
 import importlib
-import structlog  # New Logging Mechanism introduced for NOMAD-fair.
 from nomadcore.baseclasses import ParserInterface
 
 # Needs to be imported in order for the importlib calls to work in python 2.7
@@ -49,7 +48,12 @@ class CP2KParser(ParserInterface):
             metainfo_to_keep, backend, default_units, metainfo_units,
             debug, log_level, store
         )
-        self.logger = structlog.get_logger()  # New logger keep it in this namespace.
+
+        if logger is not None:
+            self.logger = logger
+            self.logger.info('received logger')
+        else:
+            self.logger = logging.getLogger(__name__)
 
     def setup_version(self):
         """Setups the version by looking at the output file and the version

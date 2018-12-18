@@ -71,4 +71,4 @@ test/unittests/GTH_POTENTIALS
 test/unittests/cp2k_2.6.2/data
 
 # Setuptools install folder
-parser/parser-cp2k/cp2kparser.egg-info/
+cp2kparser.egg-info/
