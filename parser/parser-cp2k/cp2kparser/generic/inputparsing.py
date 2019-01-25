@@ -211,7 +211,7 @@ class Section(object):
             else:
                 logger.error("The subsection '{}' in '{}' has too many entries.".format(name, self.name))
         else:
-            logger.error("The subsection '{}' in '{}' does not exist.".format(name, self.name))
+            logger.error("The subsection '{}' in '{}' does not exist, knowing sections {} and keywords {} .".format(name, self.name, self.sections.keys(), self.keywords.keys()))
 
     def get_subsection_list(self, name):
         subsection = self.sections.get(name)

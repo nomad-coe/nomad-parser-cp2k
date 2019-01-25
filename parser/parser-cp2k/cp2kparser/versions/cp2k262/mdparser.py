@@ -361,14 +361,14 @@ class CP2KMDParser(MainHierarchicalParser):
                     wall_time = line[6]
 
                     frame_sequence_time.append(time)
-                    backend.addValue('kinetic_energy', kinetic_energy, unit="hartree")
-                    backend.addValue('instant_temperature', temperature, unit="K")
-                    backend.addValue('potential_energy', potential_energy, unit="hartree")
-                    backend.addValue('conserved_quantity', conserved_quantity, unit="hartree")
+                    backend.addRealValue('kinetic_energy', kinetic_energy, unit="hartree")
+                    backend.addRealValue('instant_temperature', temperature, unit="K")
+                    backend.addRealValue('potential_energy', potential_energy, unit="hartree")
+                    backend.addRealValue('conserved_quantity', conserved_quantity, unit="hartree")
 
                     ener_frames.append(i_step)
 
-                    backend.addValue("energy_total", conserved_quantity, unit="hartree")
+                    backend.addRealValue("energy_total", conserved_quantity, unit="hartree")
                     backend.addValue("time_calculation", wall_time)
 
             # Cell file

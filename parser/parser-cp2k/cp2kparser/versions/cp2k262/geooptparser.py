@@ -41,6 +41,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         #=======================================================================
         # Globally cached values
         self.cache_service.add("number_of_frames_in_sequence", 0)
+        self.cache_service.add("frame_sequence_potential_energy", [])
         self.cache_service.add("frame_sequence_to_frames_ref", [])
         self.cache_service.add("geometry_optimization_method")
         self.cache_service.add("geometry_optimization_converged")
@@ -195,7 +196,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         if reeval_quickstep is not None:
             energy = reeval_quickstep.get_latest_value("x_cp2k_energy_total")
             if energy is not None:
-                self.backend.addValue("potential_energy", energy)
+                self.cache_service["frame_sequence_potential_energy"].append(energy)
 
         # Push values from cache
         self.cache_service.addValue("geometry_optimization_method")
@@ -231,6 +232,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             n_steps -= 1
         last_step = n_steps - 1
 
+        ePot = self.cache_service['frame_sequence_potential_energy']
         # First push the original system geometry
         # print(self.cache_service["atom_positions"])
         for i_step in range(n_steps):
@@ -252,6 +254,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     else:
                         backend.addArrayValues("atom_positions", pos, unit="angstrom")
             backend.closeSection("section_system", systemId)
+            backend.addValue("potential_energy", ePot[i_step])
             backend.closeSection("section_single_configuration_calculation", singleId)
 
         self.cache_service.addArrayValues("frame_sequence_to_frames_ref")
@@ -269,7 +272,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
     def onClose_x_cp2k_section_geometry_optimization_step(self, backend, gIndex, section):
         energy = section["x_cp2k_optimization_energy"]
         if energy is not None:
-            self.backend.addValue("potential_energy",energy[0])
+            self.cache_service["frame_sequence_potential_energy"].append(energy[0])
 
     def onClose_section_system(self, backend, gIndex, section):
         self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
