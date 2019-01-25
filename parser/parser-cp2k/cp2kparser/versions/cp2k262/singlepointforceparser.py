@@ -36,7 +36,9 @@ class CP2KSinglePointForceParser(AbstractBaseParser):
                     continue
                 elif line.startswith(" SUM"):
                     forces = np.array(forces)
+                    fId = self.backend.openSection("section_atom_forces")
                     self.backend.addArrayValues("atom_forces", forces, unit="forceAu")
+                    self.backend.closeSection("section_atom_forces", fId)
                     break
                 elif start:
                     components = [float(comp) for comp in line.split()[-3:]]

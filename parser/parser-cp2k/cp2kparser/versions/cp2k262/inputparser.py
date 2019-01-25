@@ -31,6 +31,10 @@ ureg = UnitRegistry()
 logger = logging.getLogger("nomad")
 
 
+def metaN(metaName):
+    """Retrurns a normalized meta name"""
+    return metaName.replace(".", "_").lower()
+
 class CP2KInputParser(AbstractBaseParser):
     """Used to parse out a CP2K input file.
 
@@ -565,7 +569,7 @@ class CP2KInputParser(AbstractBaseParser):
 
         not_section_path = metainfo_data_prefix + "{}".format("_".join(name_stack))
 
-        gid = self.backend.openSection(path)
+        gid = self.backend.openSection(metaN(path))
 
         # Keywords
         for default_name in section.default_keyword_names:
@@ -573,28 +577,28 @@ class CP2KInputParser(AbstractBaseParser):
             for keyword in keywords:
                 if keyword.value is not None:
                     name = "{}_{}".format(not_section_path, keyword.default_name.lower())
-                    self.backend.addValue(name, keyword.value)
+                    self.backend.addValue(metaN(name), keyword.value)
 
         # Section parameter
         section_parameter = section.section_parameter
         if section_parameter is not None:
             name = "{}_section_parameters".format(not_section_path)
             if section_parameter.value is not None:
-                self.backend.addValue(name, section_parameter.value)
+                self.backend.addValue(metaN(name), section_parameter.value)
 
         # Default keyword
         default_keyword = section.default_keyword
         if default_keyword is not None:
 
             name = "{}_default_keyword".format(not_section_path)
-            self.backend.addValue(name, default_keyword.value)
+            self.backend.addValue(metaN(name), default_keyword.value)
 
         # Subsections
         for name, subsections in section.sections.items():
             for subsection in subsections:
                 self.fill_metadata_recursively(subsection, name_stack)
 
-        self.backend.closeSection(path, gid)
+        self.backend.closeSection(metaN(path), gid)
 
         if section.name != "CP2K_INPUT":
             name_stack.pop()

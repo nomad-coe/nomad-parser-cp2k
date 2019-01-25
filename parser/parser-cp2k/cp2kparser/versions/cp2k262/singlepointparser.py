@@ -92,7 +92,11 @@ class CP2KSinglePointParser(MainHierarchicalParser):
         section.add_latest_value("x_cp2k_energy_total", "energy_total")
         section.add_latest_value("x_cp2k_electronic_kinetic_energy", "electronic_kinetic_energy")
         section.add_latest_value("x_cp2k_quickstep_converged", "single_configuration_calculation_converged")
-        section.add_latest_array_values("x_cp2k_atom_forces", "atom_forces")
+        # some uglyness as we need to open a subsection...
+        if section.get_latest_value("x_cp2k_atom_forces"):
+            fId = section.caching_backend.openSection("section_atom_forces")
+            section.add_latest_array_values("x_cp2k_atom_forces", "atom_forces")
+            section.caching_backend.closeSection("section_atom_forces", fId)
 
     def onClose_x_cp2k_section_stress_tensor(self, backend, gIndex, section):
         """"""

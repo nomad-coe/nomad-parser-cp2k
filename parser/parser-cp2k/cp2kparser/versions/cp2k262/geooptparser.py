@@ -41,8 +41,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
         #=======================================================================
         # Globally cached values
         self.cache_service.add("number_of_frames_in_sequence", 0)
-        self.cache_service.add("frame_sequence_potential_energy", [])
-        self.cache_service.add("frame_sequence_local_frames_ref", [])
+        self.cache_service.add("frame_sequence_to_frames_ref", [])
         self.cache_service.add("geometry_optimization_method")
         self.cache_service.add("geometry_optimization_converged")
         self.cache_service.add("geometry_opt_max_reached")
@@ -191,17 +190,16 @@ class CP2KGeoOptParser(MainHierarchicalParser):
     # onClose triggers
     def onClose_x_cp2k_section_geometry_optimization(self, backend, gIndex, section):
 
-        # Get the re-evaluated energy and add it to frame_sequence_potential_energy
+        # Get the re-evaluated energy and add it to potential_energy
         reeval_quickstep = self.energy_reeval_quickstep
         if reeval_quickstep is not None:
             energy = reeval_quickstep.get_latest_value("x_cp2k_energy_total")
             if energy is not None:
-                self.cache_service["frame_sequence_potential_energy"].append(energy)
+                self.backend.addValue("potential_energy", energy)
 
         # Push values from cache
-        self.cache_service.addArrayValues("frame_sequence_potential_energy")
         self.cache_service.addValue("geometry_optimization_method")
-        self.backend.addValue("frame_sequence_to_sampling_ref", 0)
+        self.backend.addValue("frame_sequence_to_sampling_method_ref", 0)
 
         # Get the optimization convergence criteria from the last optimization
         # step
@@ -256,7 +254,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
             backend.closeSection("section_system", systemId)
             backend.closeSection("section_single_configuration_calculation", singleId)
 
-        self.cache_service.addArrayValues("frame_sequence_local_frames_ref")
+        self.cache_service.addArrayValues("frame_sequence_to_frames_ref")
         backend.addValue("number_of_frames_in_sequence", n_steps)
 
     def onClose_section_frame_sequence(self, backend, gIndex, section):
@@ -271,7 +269,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
     def onClose_x_cp2k_section_geometry_optimization_step(self, backend, gIndex, section):
         energy = section["x_cp2k_optimization_energy"]
         if energy is not None:
-            self.cache_service["frame_sequence_potential_energy"].append(energy[0])
+            self.backend.addValue("potential_energy",energy[0])
 
     def onClose_section_system(self, backend, gIndex, section):
         self.cache_service.addArrayValues("simulation_cell", unit="angstrom")
@@ -292,7 +290,7 @@ class CP2KGeoOptParser(MainHierarchicalParser):
                     pass
 
     def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
-        self.cache_service["frame_sequence_local_frames_ref"].append(gIndex)
+        self.cache_service["frame_sequence_to_frames_ref"].append(gIndex)
 
     #===========================================================================
     # adHoc functions

@@ -217,7 +217,7 @@ def generate_input_metainfos(object_tree):
         "type": "nomad_meta_info_1_0",
         "description": "Metainfo for the values parsed from a CP2K input file.",
         "dependencies": [ {
-            "relativePath": "cp2k.general.nomadmetainfo.json"
+            "relativePath": "cp2k_general.nomadmetainfo.json"
             }],
     }
 

@@ -476,7 +476,7 @@ class CP2KCommonParser(CommonParser):
             self.cache_service["map_kind_to_basis"] = dict_map
             # The metainfo for mapping section_method_basis_set_atom_centered has been removed
             # mapping = np.array(mapping)
-            # backend.addArrayValues("mapping_section_method_basis_set_atom_centered", np.array(mapping))
+            # backend.addArrayValues("xxx_replaced_by_method_basis_set_to_atom_centered_ref_and_method_basis_set_to_atom_kind_ref", np.array(mapping))
         backend.addValue("method_basis_set_kind", "wavefunction")
         self.cache_service.addValue("mapping_section_method_basis_set_cell_associated")
         backend.addValue("number_of_basis_sets_atom_centered", len(self.basis_set_info))
@@ -546,7 +546,7 @@ class CP2KCommonParser(CommonParser):
 
     def onClose_section_single_configuration_calculation(self, backend, gIndex, section):
         # Write the references to section_method and section_system
-        backend.addValue('single_configuration_to_calculation_method_ref', self.section_method_index)
+        backend.addValue('single_configuration_calculation_to_method_ref', self.section_method_index)
         backend.addValue('single_configuration_calculation_to_system_ref', self.section_system_index)
 
         scc_basis_id = backend.openSection("section_basis_set")
