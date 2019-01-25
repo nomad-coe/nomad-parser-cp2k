@@ -393,7 +393,7 @@ class CP2KMDParser(MainHierarchicalParser):
                     # print(md_step["x_cp2k_md_step_number"])
                     quickstep = self.md_quicksteps[i_md_step]
                     if quickstep is not None:
-                        if quickstep.get_latest_value("x_cp2k_atom_forces"):
+                        if quickstep.get_latest_value("x_cp2k_atom_forces") is not None:
                             # uglyness
                             fId = quickstep.caching_backend.openSection("section_atom_forces")
                             quickstep.add_latest_value("x_cp2k_atom_forces", "atom_forces")
