@@ -30,6 +30,8 @@ from nomadcore.baseclasses import ParserInterface
 # Needs to be imported in order for the importlib calls to work in python 2.7
 import cp2kparser.versions.cp2k262.singlepointparser
 
+logger = logging.getLogger("nomad")
+
 
 class CP2KParser(ParserInterface):
     """This class handles the initial setup before any parsing can happen. It
@@ -39,21 +41,8 @@ class CP2KParser(ParserInterface):
     After the implementation has been setup, you can parse files with
     parse().
     """
-    def __init__(
-        self, metainfo_to_keep=None, backend=None, default_units=None,
-        metainfo_units=None, debug=False, logger=None,
-        log_level=logging.ERROR, store=True
-    ):
-        super(CP2KParser, self).__init__(
-            metainfo_to_keep, backend, default_units, metainfo_units,
-            debug, log_level, store
-        )
-
-        if logger is not None:
-            self.logger = logger
-            self.logger.debug('received logger')
-        else:
-            self.logger = logging.getLogger(__name__)
+    def __init__(self, metainfo_to_keep=None, backend=None, default_units=None, metainfo_units=None, debug=False, log_level=logging.ERROR, store=True):
+        super(CP2KParser, self).__init__(metainfo_to_keep, backend, default_units, metainfo_units, debug, log_level, store)
 
     def setup_version(self):
         """Setups the version by looking at the output file and the version
@@ -82,11 +71,11 @@ class CP2KParser(ParserInterface):
 
         if version_id is None:
             msg = "Could not find a version specification from the given main file."
-            self.logger.exception(msg)
+            logger.exception(msg)
             raise RuntimeError(msg)
         if run_type is None:
             msg = "Could not find a version specification from the given main file."
-            self.logger.exception(msg)
+            logger.exception(msg)
             raise RuntimeError(msg)
 
         # Setup the root folder to the fileservice that is used to access files
@@ -150,7 +139,7 @@ class CP2KParser(ParserInterface):
         try:
             parser = parser_map[run_type]
         except KeyError:
-            self.logger.exception(
+            logger.exception(
                 "A parser corresponding to the run_type '{}' could not be found."
                 .format(run_type)
             )
@@ -165,7 +154,7 @@ class CP2KParser(ParserInterface):
         try:
             parser_module = importlib.import_module(base)
         except ImportError:
-            self.logger.warning(
+            logger.warning(
                 "Could not find a parser for version '{}' and run type '{}'. "
                 "Trying to default to the base implementation for CP2K 2.6.2"
                 .format(version_id, run_type)
@@ -174,7 +163,7 @@ class CP2KParser(ParserInterface):
             try:
                 parser_module = importlib.import_module(base)
             except ImportError:
-                self.logger.exception(
+                logger.exception(
                     "Tried to default to the CP2K 2.6.2 implementation but "
                     "could not find the correct modules for run_type '{}'."
                     .format(run_type)
@@ -183,7 +172,7 @@ class CP2KParser(ParserInterface):
         try:
             parser_class = getattr(parser_module, "CP2K{}".format(parser))
         except AttributeError:
-            self.logger.exception(
+            logger.exception(
                 "A parser class '{}' could not be found in the module '[]'."
                 .format(parser_class, parser_module)
             )
