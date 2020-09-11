@@ -13,7 +13,7 @@ in the same directory as files that also belong to that entry. Parsers
 might also read information from these auxillary files. This way you can add more files
 to an entry, even if the respective parser/code might not directly support it.
 
-For cp2k please provide at least the files from this table if applicable to your
+For CP2K please provide at least the files from this table if applicable to your
 calculations (remember that you can provide more files if you want):
 
 
@@ -49,12 +49,12 @@ import sys
 from nomad.cli.parse import parse, normalize_all
 
 # match and run the parser
-backend = parse(sys.argv[1])
+archive = parse(sys.argv[1])
 # run all normalizers
-normalize_all(backend)
+normalize_all(archive)
 
 # get the 'main section' section_run as a metainfo object
-section_run = backend.resource.contents[0].section_run[0]
+section_run = archive.section_run[0]
 
 # get the same data as JSON serializable Python dict
 python_dict = section_run.m_to_dict()
@@ -76,3 +76,31 @@ pip install -e parser-cp2k
 ```
 
 Running the parser now, will use the parser's Python code from the clone project.
+
+---
+## Parser Specific
+## Usage notes
+The parser is based on CP2K 2.6.2.
+
+The CP2K input setting
+[PRINT_LEVEL](https://manual.cp2k.org/trunk/CP2K_INPUT/GLOBAL.html#PRINT_LEVEL)
+controls the amount of details that are outputted during the calculation. The
+higher this setting is, the more can be parsed from the upload.
+
+The parser will try to find the paths to all the input and output files, but if
+they are located very deep inside some folder structure or outside the folder
+where the output file is, the parser will not be able to locate them. For this
+reason it is recommended to keep the upload structure as flat as possible.
+
+Here is a list of features/fixes that would make the parsing of CP2K results
+easier:
+- The pdb trajectory output doesn't seem to conform to the actual standard as
+  the different configurations are separated by the END keyword which is
+  supposed to be written only once in the file. The [format
+  specification](http://www.wwpdb.org/documentation/file-format) states that
+  different configurations should start with MODEL and end with ENDMDL tags.
+- The output file should contain the paths/filenames of different input and
+  output files that are accessed during the program run. This data is already
+  available for some files (input file, most files produced by MD), but many
+  are not mentioned.
+
