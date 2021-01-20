@@ -1,8 +1,9 @@
 codeLabel: CP2K
 codeLabelStyle: all in capitals
+codeName: cp2k
 codeUrl: https://www.cp2k.org/
 parserDirName: dependencies/parsers/cp2k/
-parserGitUrl: https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k
+parserGitUrl: https://github.com/nomad-coe/nomad-parser-cp2k.git
 parserSpecific: |
   ## Usage notes
   The parser is based on CP2K 2.6.2.
@@ -28,5 +29,5 @@ parserSpecific: |
     output files that are accessed during the program run. This data is already
     available for some files (input file, most files produced by MD), but many
     are not mentioned.
-
+preamble: ''
 tableOfFiles: ''

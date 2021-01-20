@@ -62,7 +62,15 @@ python_dict = section_run.m_to_dict()
 
 ## Developing the parser
 
-Also install NOMAD's pypi package:
+Create a virtual environment to install the parser in development mode:
+
+```
+pip install virtualenv
+virtualenv -p `which python3` .pyenv
+source .pyenv/bin/activate
+```
+
+Install NOMAD's pypi package:
 
 ```
 pip install nomad-lab
@@ -71,13 +79,12 @@ pip install nomad-lab
 Clone the parser project and install it in development mode:
 
 ```
-git clone https://gitlab.mpcdf.mpg.de/nomad-lab/parser-cp2k parser-cp2k
-pip install -e parser-cp2k
+git clone https://github.com/nomad-coe/nomad-parser-cp2k.git nomad-parser-cp2k
+pip install -e nomad-parser-cp2k
 ```
 
 Running the parser now, will use the parser's Python code from the clone project.
 
----
 ## Parser Specific
 ## Usage notes
 The parser is based on CP2K 2.6.2.
@@ -103,4 +110,3 @@ easier:
   output files that are accessed during the program run. This data is already
   available for some files (input file, most files produced by MD), but many
   are not mentioned.
-
