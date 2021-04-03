@@ -1,8 +1,7 @@
 #
 # Copyright The NOMAD Authors.
 #
-# This file is part of NOMAD.
-# See https://nomad-lab.eu for further info.
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,4 +16,4 @@
 # limitations under the License.
 #
 
-from cp2kparser.parser import CP2KParser
+from cp2kparser.cp2k_parser import CP2KParser

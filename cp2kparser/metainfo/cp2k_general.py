@@ -1109,6 +1109,22 @@ class x_cp2k_section_md_step(MSection):
         ''',
         a_legacy=LegacyDefinition(name='x_cp2k_md_cell_length_c_average'))
 
+    x_cp2k_md_cell_length_instantaneous = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        description='''
+        Instantaneous cell vector lengths in this MD step.
+        ''',
+        a_legacy=LegacyDefinition(name='x_cp2k_md_cell_length_c_instantaneous'))
+
+    x_cp2k_md_cell_length_average = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3],
+        description='''
+        Average cell vector lengths in this MD step.
+        ''',
+        a_legacy=LegacyDefinition(name='x_cp2k_md_cell_length_c_average'))
+
     x_cp2k_md_cell_angle_a_instantaneous = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -1154,6 +1170,22 @@ class x_cp2k_section_md_step(MSection):
         shape=[],
         description='''
         Average cell vector c angle in this MD step.
+        ''',
+        a_legacy=LegacyDefinition(name='x_cp2k_md_cell_angle_c_average'))
+
+    x_cp2k_md_cell_angle_instantaneous = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Instantaneous cell vector angles in this MD step.
+        ''',
+        a_legacy=LegacyDefinition(name='x_cp2k_md_cell_angle_c_instantaneous'))
+
+    x_cp2k_md_cell_angle_average = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        description='''
+        Average cell vector angles in this MD step.
         ''',
         a_legacy=LegacyDefinition(name='x_cp2k_md_cell_angle_c_average'))
 
@@ -1535,6 +1567,11 @@ class section_sampling_method(public.section_sampling_method):
         repeats=True,
         a_legacy=LegacyDefinition(name='x_cp2k_section_md_settings'))
 
+    x_cp2k_section_geometry_optimization = SubSection(
+        sub_section=SectionProxy('x_cp2k_section_geometry_optimization'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='x_cp2k_section_geometry_optimization'))
+
 
 class section_method(public.section_method):
 
@@ -1549,6 +1586,16 @@ class section_method(public.section_method):
         sub_section=SectionProxy('x_cp2k_section_vdw_settings'),
         repeats=True,
         a_legacy=LegacyDefinition(name='x_cp2k_section_vdw_settings'))
+
+
+class section_single_configuration_calculation(public.section_single_configuration_calculation):
+
+    m_def = Section(validate=False, extends_base_section=True, a_legacy=LegacyDefinition(name='section_single_configuration_calculation'))
+
+    x_cp2k_section_md_step = SubSection(
+        sub_section=SectionProxy('x_cp2k_section_md_step'),
+        repeats=True,
+        a_legacy=LegacyDefinition(name='x_cp2k_section_md_step'))
 
 
 m_package.__init_metainfo__()

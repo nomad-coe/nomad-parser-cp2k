@@ -1,8 +1,7 @@
 #
 # Copyright The NOMAD Authors.
 #
-# This file is part of NOMAD.
-# See https://nomad-lab.eu for further info.
+# This file is part of NOMAD. See https://nomad-lab.eu for further info.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,21 +21,14 @@ from setuptools import setup, find_packages
 
 def main():
     setup(
-        name="cp2kparser",
-        version="0.1",
-        package_data={
-            'cp2kparser.versions.cp2k262': ['input_data/cp2k_input_tree.pickle'],
-        },
-        description="NOMAD parser implementation for CP2K.",
-        author="Lauri Himanen",
-        author_email="lauri.himanen@aalto.fi",
-        license="GPL3",
-        package_dir={'': './'},
-        packages=find_packages(),
-        install_requires=[
-            'nomadcore',
-        ],
-    )
+        name='cp2kparser',
+        version='1.0',
+        description='NOMAD parser implementation for CP2K.',
+        author='The NOMAD Authors',
+        license='APACHE 2.0',
+        packages=find_packages(exclude=['tests']),
+        install_requires=['nomad-lab'])
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()
