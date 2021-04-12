@@ -39,7 +39,7 @@ def test_single_point(parser):
     assert sec_run.x_cp2k_section_startinformation[0].x_cp2k_start_id == 8212
     assert sec_run.x_cp2k_section_end_information[0].x_cp2k_end_time == '2016-02-08 22:11:17.875'
     assert sec_run.x_cp2k_section_program_information[0].x_cp2k_svn_revision == 15893
-    assert pytest.approx(sec_run.section_basis_set_cell_dependent[0].basis_set_planewave_cutoff.magnitude, 6.53961708e-16)
+    assert sec_run.section_basis_set_cell_dependent[0].basis_set_planewave_cutoff.magnitude == pytest.approx(6.53961708e-16)
     assert sec_run.section_basis_set_atom_centered[0].basis_set_atom_centered_short_name == 'DZVP-GTH-PADE'
     assert len(sec_run.x_cp2k_section_quickstep_calculation) == 1
 
@@ -49,7 +49,7 @@ def test_single_point(parser):
     assert sec_force_eval_dft.x_cp2k_section_input_FORCE_EVAL_DFT_SCF[0].x_cp2k_input_FORCE_EVAL_DFT_SCF_EPS_SCF == '1.0E-7'
 
     sec_method = sec_run.section_method[0]
-    assert pytest.approx(sec_method.scf_threshold_energy_change.magnitude, 4.35974472220717e-25)
+    assert sec_method.scf_threshold_energy_change.magnitude == pytest.approx(4.35974472220717e-25)
     assert sec_method.section_XC_functionals[0].XC_functional_name == 'LDA_XC_TETER93'
     sec_qs_settings = sec_method.x_cp2k_section_quickstep_settings[0]
     assert sec_qs_settings.x_cp2k_planewave_cutoff == 150.
@@ -62,15 +62,15 @@ def test_single_point(parser):
 
     assert len(sec_run.section_single_configuration_calculation) == 1
     sec_scc = sec_run.section_single_configuration_calculation[0]
-    assert pytest.approx(sec_scc.energy_total.magnitude, -1.36450791e-16)
-    assert pytest.approx(sec_scc.atom_forces[4][1].magnitude, -8.2387235e-16)
+    assert sec_scc.energy_total.magnitude == pytest.approx(-1.36450791e-16)
+    assert sec_scc.atom_forces[4][1].magnitude == pytest.approx(-8.2387235e-16)
     assert len(sec_scc.section_scf_iteration) == 10
-    assert pytest.approx(sec_scc.section_scf_iteration[1].energy_total_scf_iteration.magnitude, -1.35770357e-16)
+    assert sec_scc.section_scf_iteration[1].energy_total_scf_iteration.magnitude == pytest.approx(-1.35770357e-16)
 
     sec_system = sec_run.section_system[0]
     assert sec_system.atom_labels == ['Si'] * 8
-    assert pytest.approx(sec_system.atom_positions[6][2].magnitude, 4.073023e-10)
-    assert pytest.approx(sec_system.lattice_vectors[2][2].magnitude, 5.431e-10)
+    assert sec_system.atom_positions[6][2].magnitude == pytest.approx(4.073023e-10)
+    assert sec_system.lattice_vectors[2][2].magnitude == pytest.approx(5.431e-10)
     assert False not in sec_system.configuration_periodic_dimensions
 
     assert sec_run.section_sampling_method[0].sampling_method == 'single_point'
@@ -86,18 +86,18 @@ def test_geometry_optimization(parser):
     assert sec_sampling.geometry_optimization_method == 'conjugate gradient'
     sec_opt = sec_sampling.x_cp2k_section_geometry_optimization[0]
     assert len(sec_opt.x_cp2k_section_geometry_optimization_step) == 11
-    assert pytest.approx(sec_opt.x_cp2k_section_geometry_optimization_step[2].x_cp2k_optimization_rms_gradient, 1.0992366882757706e-10)
-    assert pytest.approx(sec_opt.x_cp2k_section_geometry_optimization_step[-1].x_cp2k_optimization_energy_change, -2.306304958047593e-25)
+    assert sec_opt.x_cp2k_section_geometry_optimization_step[2].x_cp2k_optimization_rms_gradient == pytest.approx(1.0992366882757706e-10)
+    assert sec_opt.x_cp2k_section_geometry_optimization_step[-1].x_cp2k_optimization_energy_change == pytest.approx(-2.306304958047593e-25)
 
     sec_sccs = archive.section_run[0].section_single_configuration_calculation
     assert len(sec_sccs) == 13
-    assert pytest.approx(sec_sccs[7].energy_XC.magnitude, -1.79928366e-17)
+    assert sec_sccs[7].energy_XC.magnitude == pytest.approx(-1.79928366e-17)
     assert len(sec_sccs[2].section_scf_iteration) == 7
-    assert pytest.approx(sec_sccs[11].section_scf_iteration[-1].energy_total_scf_iteration.magnitude, -7.48333145e-17)
+    assert sec_sccs[11].section_scf_iteration[-1].energy_total_scf_iteration.magnitude == pytest.approx(-7.48333145e-17)
 
     sec_systems = archive.section_run[0].section_system
     assert len(sec_systems) == 13
-    assert pytest.approx(sec_systems[6].atom_positions[1][1].magnitude, 2.25671575e-10)
+    assert sec_systems[6].atom_positions[1][1].magnitude == pytest.approx(2.25671575e-10)
 
 
 def test_molecular_dynamics(parser):
@@ -111,9 +111,9 @@ def test_molecular_dynamics(parser):
     sec_sccs = archive.section_run[0].section_single_configuration_calculation
     assert len(sec_sccs) == 12
     assert len(sec_sccs[6].section_scf_iteration) == 7
-    assert pytest.approx(sec_sccs[3].energy_total.magnitude, -1.49661312e-16)
-    assert pytest.approx(sec_sccs[10].x_cp2k_section_md_step[0].x_cp2k_md_kinetic_energy_instantaneous, 2.34172483e-20)
+    assert sec_sccs[3].energy_total.magnitude == pytest.approx(-1.49661312e-16)
+    assert sec_sccs[10].x_cp2k_section_md_step[0].x_cp2k_md_kinetic_energy_instantaneous == pytest.approx(2.34172483e-20)
 
     sec_systems = archive.section_run[0].section_system
     assert len(sec_systems) == 12
-    assert pytest.approx(sec_systems[5].atom_positions[4][0].magnitude, 5.8374765e-11)
+    assert sec_systems[5].atom_positions[4][0].magnitude == pytest.approx(5.8374765e-11)
