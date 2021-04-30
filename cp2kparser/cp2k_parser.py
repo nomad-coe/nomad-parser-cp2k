@@ -303,7 +303,7 @@ class CP2KOutParser(TextParser):
 
         energy_quantities = [Quantity(
             '%s' % key.lower().replace(' ', '_').replace('-', '_'),
-            rf'%s:\s*({re_float})' % key, dtype=float, unit='hartree') for key in [
+            rf'%s:\s*({re_float})' % key, dtype=float, unit='hartree', repeats=True) for key in [
                 'Hartree energy', 'Exchange-correlation energy', 'Electronic kinetic energy',
                 'Total energy']]
         # what is the difference between Total energy and ENERGY| Total
@@ -630,7 +630,8 @@ class CP2KParser(FairdiParser):
             'convergence_in_rms_step_size': 'rms_step_size_convergence',
             'conv_limit_for_gradients': 'gradient_convergence_limit',
             'conv_for_gradients': 'max_gradient_convergence',
-            'conv_in_rms_gradients': 'rms_gradient_convergence'}
+            'conv_in_rms_gradients': 'rms_gradient_convergence',
+            'exchange_correlation_energy': 'energy_XC'}
 
         self._self_interaction_map = {
             'NO': None, 'D SIC': 'SIC_AD', 'Explicit Orbital SIC': 'SIC_EXPLICIT_ORBITALS',
@@ -964,12 +965,16 @@ class CP2KParser(FairdiParser):
 
         sec_scc = self.archive.section_run[-1].m_create(SingleConfigurationCalculation)
 
-        for key in ['energy_total', 'electronic_kinetic_energy', 'stress_tensor']:
+        for key in ['energy_total', 'stress_tensor']:
             val = source.get(key)
             if val is not None:
                 setattr(sec_scc, key, val)
-        if source.get('exchange_correlation_energy') is not None:
-            sec_scc.energy_XC = source.get('exchange_correlation_energy')
+
+        for key in ['electronic_kinetic_energy', 'exchange_correlation_energy']:
+            val = source.get(key)
+            if val is not None:
+                key = self._metainfo_name_map.get(key, key)
+                setattr(sec_scc, key, val[-1])
 
         # self consistency
         for iteration in source.get('iteration', []):
@@ -1036,11 +1041,14 @@ class CP2KParser(FairdiParser):
             if source is None:
                 return
             sec_quickstep_calc = sec_run.m_create(x_cp2k_section_quickstep_calculation)
-            for key in ['energy_total', 'electronic_kinetic_energy', 'atom_forces']:
+            for key in ['energy_total', 'atom_forces']:
                 val = source.get(key)
                 if val is not None:
                     setattr(sec_quickstep_calc, 'x_cp2k_%s' % key, val)
                 sec_quickstep_calc.x_cp2k_quickstep_converged = source.get('converged') is not None
+
+            if source.get('electronic_kinetic_energy') is not None:
+                sec_quickstep_calc.x_cp2k_electronic_kinetic_energy = source.get('electronic_kinetic_energy')[-1]
 
             for iteration in source.get('iteration', []):
                 sec_scf = sec_quickstep_calc.m_create(x_cp2k_section_scf_iteration)
