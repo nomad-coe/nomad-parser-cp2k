@@ -18,13 +18,13 @@
 #
 import os
 import numpy as np
-import pint
 import logging
 import re
 import ase
 from ase import io as aseio
 
 from .metainfo import m_env
+from nomad.units import ureg
 from nomad.parsing.parser import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser, DataTextParser
 from nomad.datamodel.metainfo.common_dft import Run, Method, System, XCFunctionals,\
@@ -46,6 +46,80 @@ try:
 except ImportError:
     logging.getLogger(__name__).warn('Required MDTraj module not found.')
     mdtraj = False
+
+
+units_map = {
+    'hbar': ureg.hbar, 'hartree': ureg.hartree, 'angstrom': ureg.angstrom,
+    'au_t': ureg.hbar / ureg.hartree}
+
+
+def resolve_unit(unit_str, parts=[]):
+    unit_str = unit_str.lower().replace(' ', '')
+    parts = list(parts)
+
+    if unit_str in units_map:
+        return units_map[unit_str]
+
+    try:
+        return float(unit_str)
+    except Exception:
+        pass
+
+    if unit_str == '':
+        return 1
+
+    open_p = unit_str.rfind('(')
+    if open_p > -1:
+        n_groups = unit_str.count('(')
+        if n_groups != unit_str.count(')'):
+            return unit_str
+        for n in range(n_groups):
+            part = unit_str[open_p + 1:]
+            part = part[:part.find(')')]
+            parts.append(resolve_unit(part, parts))
+            unit_str = unit_str.replace('(%s)' % part, '[%d]' % n)
+            open_p = unit_str.rfind('(')
+        return resolve_unit(unit_str, parts)
+
+    vals = unit_str.split('/')
+    if len(vals) > 1:
+        vals = [resolve_unit(v, parts) for v in vals]
+        val = vals[0]
+        for v in vals[1:]:
+            val /= v
+        return val
+
+    vals = unit_str.split('**')
+    if len(vals) > 1:
+        vals = [resolve_unit(v, parts) for v in vals]
+        val = vals[0]
+        for v in reversed(vals[1:]):
+            val = val ** v
+        return val
+
+    vals = unit_str.split('^')
+    if len(vals) > 1:
+        vals = [resolve_unit(v, parts) for v in vals]
+        val = vals[0]
+        for v in reversed(vals[1:]):
+            val = val ** v
+        return val
+
+    vals = unit_str.split('*')
+    if len(vals) > 1:
+        vals = [resolve_unit(v, parts) for v in vals]
+        unit = 1
+        for v in vals:
+            unit *= v
+        return unit
+
+    vals = unit_str.split('-1')
+    if len(vals) == 2:
+        return 1 / resolve_unit(vals[0], parts)
+
+    vals = re.match(r'\[(\d+)\]', unit_str)
+    if vals:
+        return parts[int(vals.group(1))]
 
 
 class Property:
@@ -127,7 +201,7 @@ class TrajParser(FileParser):
                     except Exception:
                         pass
 
-            result = pint.Quantity(result, self.units) if self.units is not None else result
+            result = result * self.units if self.units is not None else result
 
             result = [Trajectory(**{self.type: res}) for res in result]
 
@@ -274,20 +348,20 @@ class CP2KOutParser(TextParser):
             lengthunit = val[0][0].lower()
             val = np.transpose(np.array([v for v in val if len(v) == 9]))
             labels = val[2]
-            positions = pint.Quantity(np.transpose(np.array(val[4:7], dtype=float)), lengthunit)
+            positions = np.transpose(np.array(val[4:7], dtype=float)) * resolve_unit(lengthunit)
             atomic_numbers = {element: int(val[3][n]) for n, element in enumerate(val[2])}
             return Trajectory(labels=labels, positions=positions, atomic_numbers=atomic_numbers)
 
         def str_to_stress_eigenvalues(val_in):
             val = [v.split() for v in val_in.strip().split('\n')]
             val = np.array([v for v in val if v], dtype=float)
-            return pint.Quantity(val[0], 'GPa'), val[1:]
+            return val[0] * ureg.GPa, val[1:]
 
         def str_to_iteration(val_in):
             val = val_in.strip().split()
             return {
-                'energy_total_scf_iteration': pint.Quantity(float(val[-2]), 'hartree'),
-                'energy_change_scf_iteration': pint.Quantity(float(val[-1]), 'hartree')}
+                'energy_total_scf_iteration': float(val[-2]) * ureg.hartree,
+                'energy_change_scf_iteration': float(val[-1]) * ureg.hartree}
 
         def str_to_information(val_in):
             val = [v.split('=') for v in val_in.strip().split('\n')]
@@ -656,7 +730,6 @@ class CP2KParser(FairdiParser):
             "S. Grimme et al, JCP 132: 154104 (2010)": "G10"}
 
         self._settings = None
-        self._re_units = re.compile(r'[\^\-\+\*\d]+')
 
     def init_parser(self):
         self.out_parser.mainfile = self.filepath
@@ -734,20 +807,6 @@ class CP2KParser(FairdiParser):
                 return calculation
             return calculation.molecular_dynamics.md_step[frame - 1].get('ensemble_type', '')
 
-    def get_pint_units(self, units_str):
-        units_map = {'au_t': '(hbar/hartree)'}
-
-        units = re.split(self._re_units, units_str.lower())
-        for unit in units:
-            if not unit:
-                continue
-            pint_unit = unit if unit not in units_map else units_map[unit]
-            units_str = units_str.replace(unit, pint_unit)
-        try:
-            return pint.Quantity(1, units_str).units
-        except Exception:
-            return
-
     def get_velocities(self, frame):
         if self.out_parser.get(self._calculation_type, {}).get('molecular_dynamics') is not None:
             return
@@ -760,7 +819,7 @@ class CP2KParser(FairdiParser):
                 frequency = 1
 
             self.velocities_parser.mainfile = os.path.join(self.maindir, filename)
-            self.velocities_parser.units = self.get_pint_units(
+            self.velocities_parser.units = resolve_unit(
                 self.inp_parser.get('MOTION/PRINT/VELOCITIES/UNIT', 'bohr*au_t^-1'))
             self.velocities_parser._frequency = frequency
 
@@ -780,7 +839,7 @@ class CP2KParser(FairdiParser):
 
         if frame == 0:
             coord = self.inp_parser.get('FORCE_EVAL/SUBSYS/COORD/DEFAULT_KEYWORD')
-            units = self.get_pint_units(self.inp_parser.get('FORCE_EVAL/SUBSYS/COORD/UNIT', 'angstrom'))
+            units = resolve_unit(self.inp_parser.get('FORCE_EVAL/SUBSYS/COORD/UNIT', 'angstrom'))
             if coord is None:
                 coord_filename = self.inp_parser.get('FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_NAME', '')
                 self.traj_parser.mainfile = os.path.join(self.maindir, coord_filename.strip())
@@ -793,7 +852,7 @@ class CP2KParser(FairdiParser):
 
             else:
                 coord = np.transpose([c.split() for c in coord])
-                positions = pint.Quantity(np.array(coord[1:4], dtype=float).T, units)
+                positions = np.array(coord[1:4], dtype=float).T * units
                 scaled = 'T' in self.inp_parser.get('FORCE_EVAL/SUBSYS/COORD/SCALED', 'False')
                 if scaled:
                     trajectory = Trajectory(labels=coord[0], scaled_positions=positions)
@@ -816,7 +875,7 @@ class CP2KParser(FairdiParser):
                 frequency = 1
 
             self.traj_parser.mainfile = os.path.join(self.maindir, filename)
-            self.traj_parser.units = self.get_pint_units(
+            self.traj_parser.units = resolve_unit(
                 self.inp_parser.get('MOTION/PRINT/TRAJECTORY/UNIT', 'angstrom'))
             self.traj_parser._frequency = frequency
 
@@ -840,25 +899,24 @@ class CP2KParser(FairdiParser):
                 # get it from input
                 cell = self.inp_parser.get('FORCE_EVAL/SUBSYS/CELL')
                 # is this the unit for cell? how about for angles
-                units = self.get_pint_units(
+                units = resolve_unit(
                     self.inp_parser.get('FORCE_EVAL/SUBSYS/COORD/UNIT', 'angstrom'))
                 if cell is None:
                     return
 
                 if 'A' in cell and 'B' in cell and 'C' in cell:
-                    lattice_vectors = pint.Quantity(np.array([
-                        cell.get(c).split() for c in ('A', 'B', 'C')], dtype=float), units)
+                    lattice_vectors = np.array([
+                        cell.get(c).split() for c in ('A', 'B', 'C')], dtype=float) * units
                 elif 'ABC' in cell:
-                    abc = pint.Quantity(np.array(
-                        cell.get('ABC').split(), dtype=float), units).to('angstrom').magnitude
+                    abc = (np.array(
+                        cell.get('ABC').split(), dtype=float) * units).to('angstrom').magnitude
                     angles = np.array(cell.get('ALPHA_BETA_GAMMA', '90. 90. 90.').split(), dtype=float)
-                    lattice_vectors = pint.Quantity(
-                        ase.geometry.cellpar_to_cell(np.hstack((abc, angles))), 'angstrom')
+                    lattice_vectors = ase.geometry.cellpar_to_cell(np.hstack((abc, angles))) * ureg.angstrom
 
             else:
-                units = self.get_pint_units(
+                units = resolve_unit(
                     self.inp_parser.get('FORCE_EVAL/SUBSYS/COORD/UNIT', 'angstrom'))
-                lattice_vectors = pint.Quantity(lattice_vectors, units)
+                lattice_vectors = lattice_vectors * units
 
         if lattice_vectors is not None:
             return lattice_vectors
@@ -873,7 +931,7 @@ class CP2KParser(FairdiParser):
 
             if filename:
                 self.cell_parser.mainfile = os.path.join(self.maindir, filename)
-                self.cell_parser.units = self.get_pint_units(
+                self.cell_parser.units = resolve_unit(
                     self.inp_parser.get('MOTION/PRINT/TRAJECTORY/UNIT', 'angstrom'))
                 self.cell_parser._frequency = frequency
             else:
@@ -891,8 +949,7 @@ class CP2KParser(FairdiParser):
             return
 
         try:
-            return pint.Quantity(
-                self.cell_parser.data[frame // self.cell_parser._frequency], self.cell_parser.units)
+            return self.cell_parser.data[frame // self.cell_parser._frequency] * resolve_unit(self.cell_parser.units)
         except Exception:
             self.logger.error('Error reading lattice vectors.')
 
@@ -915,10 +972,10 @@ class CP2KParser(FairdiParser):
             data = self.energy_parser.data[frame // self.energy_parser._frequency]
             return dict(
                 time=data[1],
-                kinetic_energy_instantaneous=pint.Quantity(data[2], 'hartree'),
+                kinetic_energy_instantaneous=data[2] * ureg.hartree,
                 temperature_instantaneous=data[3],
-                potential_energy_instantaneous=pint.Quantity(data[4], 'hartree'),
-                conserved_quantity=pint.Quantity(data[5], 'hartree'),
+                potential_energy_instantaneous=data[4] * ureg.hartree,
+                conserved_quantity=data[5] * ureg.hartree,
                 cpu_time_instantaneous=data[6])
 
         except Exception:
@@ -985,7 +1042,7 @@ class CP2KParser(FairdiParser):
 
         atom_forces = source.get('atom_forces', self.get_forces(source._frame))
         if atom_forces is not None:
-            atom_forces = pint.Quantity(np.array(atom_forces), 'hartree/bohr')
+            atom_forces = np.array(atom_forces) * ureg.hartree / ureg.bohr
             sec_scc.atom_forces = atom_forces
 
         # TODO add dos
@@ -1275,11 +1332,11 @@ class CP2KParser(FairdiParser):
 
                     name = self._metainfo_name_map.get(key, key)
                     if name.startswith('energy') and isinstance(val, float):
-                        val = pint.Quantity(val, 'hartree').to('joule').magnitude
+                        val = (val * ureg.hartree).to('joule').magnitude
                     elif 'step_size' in name and isinstance(val, float):
-                        val = pint.Quantity(val, 'bohr').to('m').magnitude
+                        val = (val * ureg.bohr).to('m').magnitude
                     elif 'gradient' in name and isinstance(val, float):
-                        val = pint.Quantity(val, 'hartree/bohr').to('joule/m').magnitude
+                        val = (val * ureg.hartree / ureg.bohr).to('joule/m').magnitude
                     elif isinstance(val, str):
                         val = val.strip()
 
@@ -1409,7 +1466,7 @@ class CP2KParser(FairdiParser):
         planewave_cutoff = self.settings.get('qs', {}).get('planewave_cutoff', None)
         if planewave_cutoff is not None:
             sec_basis_set = sec_run.m_create(BasisSetCellDependent)
-            sec_basis_set.basis_set_planewave_cutoff = pint.Quantity(planewave_cutoff, 'hartree')
+            sec_basis_set.basis_set_planewave_cutoff = planewave_cutoff * ureg.hartree
 
         atoms = self.out_parser.get(
             self._calculation_type, {}).get('atomic_kind_information', {}).get('atom', [])
