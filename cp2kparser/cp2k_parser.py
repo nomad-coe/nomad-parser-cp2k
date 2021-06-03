@@ -29,7 +29,7 @@ from nomad.parsing.parser import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser, DataTextParser
 from nomad.datamodel.metainfo.common_dft import Run, Method, System, XCFunctionals,\
     MethodAtomKind, BasisSetCellDependent, BasisSetAtomCentered, MethodBasisSet,\
-    SingleConfigurationCalculation, ScfIteration, SamplingMethod
+    SingleConfigurationCalculation, ScfIteration, SamplingMethod, Energy, Forces, Stress
 
 from .metainfo.cp2k_general import x_cp2k_section_quickstep_settings, x_cp2k_section_dbcsr,\
     x_cp2k_section_startinformation, x_cp2k_section_end_information, x_cp2k_section_program_information,\
@@ -705,7 +705,8 @@ class CP2KParser(FairdiParser):
             'conv_limit_for_gradients': 'gradient_convergence_limit',
             'conv_for_gradients': 'max_gradient_convergence',
             'conv_in_rms_gradients': 'rms_gradient_convergence',
-            'exchange_correlation_energy': 'energy_XC'}
+            'exchange_correlation_energy': 'energy_XC',
+            'electronic_kinetic_energy': 'energy_kinetic_electronic'}
 
         self._self_interaction_map = {
             'NO': None, 'D SIC': 'SIC_AD', 'Explicit Orbital SIC': 'SIC_EXPLICIT_ORBITALS',
@@ -1022,16 +1023,20 @@ class CP2KParser(FairdiParser):
 
         sec_scc = self.archive.section_run[-1].m_create(SingleConfigurationCalculation)
 
-        for key in ['energy_total', 'stress_tensor']:
-            val = source.get(key)
-            if val is not None:
-                setattr(sec_scc, key, val)
+        if source.get('energy_total') is not None:
+            sec_scc.m_add_sub_section(SingleConfigurationCalculation.energy_total, Energy(
+                value=source.get('energy_total')))
+
+        if source.get('stress_tensor') is not None:
+            sec_scc.m_add_sub_section(SingleConfigurationCalculation.stress_total, Stress(
+                value=source.get('stress_tensor')))
 
         for key in ['electronic_kinetic_energy', 'exchange_correlation_energy']:
             val = source.get(key)
             if val is not None:
-                key = self._metainfo_name_map.get(key, key)
-                setattr(sec_scc, key, val[-1])
+                key = self._metainfo_name_map.get(key)
+                sec_scc.m_add_sub_section(getattr(
+                    SingleConfigurationCalculation, key), Energy(value=val[-1]))
 
         # self consistency
         for iteration in source.get('iteration', []):
@@ -1043,7 +1048,8 @@ class CP2KParser(FairdiParser):
         atom_forces = source.get('atom_forces', self.get_forces(source._frame))
         if atom_forces is not None:
             atom_forces = np.array(atom_forces) * ureg.hartree / ureg.bohr
-            sec_scc.atom_forces = atom_forces
+            sec_scc.m_add_sub_section(SingleConfigurationCalculation.forces_total, Forces(
+                value=atom_forces))
 
         # TODO add dos
         return sec_scc
