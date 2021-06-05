@@ -68,8 +68,8 @@ def test_single_point(parser):
     sec_scc = sec_run.section_single_configuration_calculation[0]
     assert sec_scc.energy_total.value.magnitude == approx(-1.36450791e-16)
     assert sec_scc.forces_total.value[4][1].magnitude == approx(-8.2387235e-16)
-    assert len(sec_scc.section_scf_iteration) == 10
-    assert sec_scc.section_scf_iteration[1].energy_total_scf_iteration.magnitude == approx(-1.35770357e-16)
+    assert len(sec_scc.scf_iteration) == 10
+    assert sec_scc.scf_iteration[1].energy_total.value.magnitude == approx(-1.35770357e-16)
 
     sec_system = sec_run.section_system[0]
     assert sec_system.atom_labels == ['Si'] * 8
@@ -96,8 +96,8 @@ def test_geometry_optimization(parser):
     sec_sccs = archive.section_run[0].section_single_configuration_calculation
     assert len(sec_sccs) == 13
     assert sec_sccs[7].energy_XC.value.magnitude == approx(-1.79924161e-17)
-    assert len(sec_sccs[2].section_scf_iteration) == 7
-    assert sec_sccs[11].section_scf_iteration[-1].energy_total_scf_iteration.magnitude == approx(-7.48333145e-17)
+    assert len(sec_sccs[2].scf_iteration) == 7
+    assert sec_sccs[11].scf_iteration[-1].energy_total.value.magnitude == approx(-7.48333145e-17)
 
     sec_systems = archive.section_run[0].section_system
     assert len(sec_systems) == 13
@@ -114,9 +114,11 @@ def test_molecular_dynamics(parser):
 
     sec_sccs = archive.section_run[0].section_single_configuration_calculation
     assert len(sec_sccs) == 12
-    assert len(sec_sccs[6].section_scf_iteration) == 7
+    assert len(sec_sccs[6].scf_iteration) == 7
     assert sec_sccs[3].energy_total.value.magnitude == approx(-1.49661312e-16)
     assert sec_sccs[10].x_cp2k_section_md_step[0].x_cp2k_md_kinetic_energy_instantaneous == approx(2.34172483e-20)
+    assert sec_sccs[7].thermodynamics[0].temperature.magnitude == approx(218.299664775)
+    assert sec_sccs[9].thermodynamics[0].kinetic_energy.magnitude == approx(2.4094966278264588e-20)
 
     sec_systems = archive.section_run[0].section_system
     assert len(sec_systems) == 12

@@ -29,7 +29,8 @@ from nomad.parsing.parser import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser, DataTextParser
 from nomad.datamodel.metainfo.common_dft import Run, Method, System, XCFunctionals,\
     MethodAtomKind, BasisSetCellDependent, BasisSetAtomCentered, MethodBasisSet,\
-    SingleConfigurationCalculation, ScfIteration, SamplingMethod, Energy, Forces, Stress
+    SingleConfigurationCalculation, ScfIteration, SamplingMethod, Energy, Forces, Stress,\
+    Thermodynamics
 
 from .metainfo.cp2k_general import x_cp2k_section_quickstep_settings, x_cp2k_section_dbcsr,\
     x_cp2k_section_startinformation, x_cp2k_section_end_information, x_cp2k_section_program_information,\
@@ -360,8 +361,8 @@ class CP2KOutParser(TextParser):
         def str_to_iteration(val_in):
             val = val_in.strip().split()
             return {
-                'energy_total_scf_iteration': float(val[-2]) * ureg.hartree,
-                'energy_change_scf_iteration': float(val[-1]) * ureg.hartree}
+                'energy_total': float(val[-2]) * ureg.hartree,
+                'energy_change': float(val[-1]) * ureg.hartree}
 
         def str_to_information(val_in):
             val = [v.split('=') for v in val_in.strip().split('\n')]
@@ -1043,7 +1044,12 @@ class CP2KParser(FairdiParser):
             sec_scf = sec_scc.m_create(ScfIteration)
             for key, val in iteration.items():
                 if val is not None:
-                    setattr(sec_scf, key, val)
+                    if key == 'energy_change':
+                        sec_scf.energy_change = val
+                    elif key.startswith('energy_'):
+                        sec_scf.m_add_sub_section(getattr(ScfIteration, key), Energy(value=val))
+                    else:
+                        setattr(sec_scf, key, val)
 
         atom_forces = source.get('atom_forces', self.get_forces(source._frame))
         if atom_forces is not None:
@@ -1138,6 +1144,7 @@ class CP2KParser(FairdiParser):
             md_output = md_output if md_output else source
             sec_scc = sec_run.section_single_configuration_calculation[-1]
             sec_md_step = sec_scc.m_create(x_cp2k_section_md_step)
+            sec_thermo = sec_scc.m_create(Thermodynamics)
 
             with_average = [
                 'cpu_time', 'energy_drift', 'potential_energy', 'kinetic_energy',
@@ -1158,7 +1165,7 @@ class CP2KParser(FairdiParser):
                     setattr(sec_md_step, '%s_instantaneous' % name, val[0])
                     name = '%s_average' % name
                     val = val[1]
-
+                setattr(sec_thermo, key.replace('_instantaneous', ''), val)
                 setattr(sec_md_step, name, val)
 
         def parse_calculations(calculations):
