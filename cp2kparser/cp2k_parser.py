@@ -278,11 +278,13 @@ class InpParser(FileParser):
         self._re_open = re.compile(r'&(\w+)\s*(.*)[#!]*')
         self._re_close = re.compile(r'&END')
         self._re_key_value = re.compile(r'(\w+)\s+(.+)[#!]*')
+        self._re_set_variable = re.compile(r'\@SET\s+(\w+)\s+(.+)')
+        self._re_variable = re.compile(r'\$\{\w+\}')
 
     @property
     def tree(self):
         if self._file_handler is None:
-            def override(name, data):
+            def override(data):
                 if data[0] == 'PROJECT':
                     return 'PROJECT_NAME', data[1]
                 elif not data[0].isupper():
@@ -291,11 +293,16 @@ class InpParser(FileParser):
 
             line = True
             sections = [InpValue('tree')]
+            variables = dict()
             while line:
                 line = self.mainfile_obj.readline()
                 # comments
                 strip = line.strip()
-                if not strip or strip[0] in ('#', '#', '!'):
+                if not strip or strip[0] in ('#', '!'):
+                    continue
+                set_variable = self._re_set_variable.search(line)
+                if set_variable:
+                    variables['${%s}' % set_variable.group(1)] = set_variable.group(2)
                     continue
                 close_section = self._re_close.search(line)
                 if close_section:
@@ -311,7 +318,9 @@ class InpParser(FileParser):
                     continue
                 key_value = self._re_key_value.search(line)
                 if key_value:
-                    key_value = override(sections[-1].name, [key_value.group(1), key_value.group(2)])
+                    key_value = list(key_value.groups())
+                    key_value[1] = variables.get(key_value[1], key_value[1])
+                    key_value = override(key_value)
                     sections[-1].add(key_value[0], key_value[1])
                     continue
             self._file_handler = sections[0]
@@ -1141,7 +1150,9 @@ class CP2KParser(FairdiParser):
                     continue
                 name = 'x_cp2k_md_%s' % key
 
-                if 'energy' in key or 'conserved' in key:
+                if key == 'energy_drift':
+                    pass
+                elif 'energy' in key or 'conserved' in key:
                     val = val.to('joule').magnitude
                 elif 'pressure' in key:
                     val - val.to('pascal').magnitude
