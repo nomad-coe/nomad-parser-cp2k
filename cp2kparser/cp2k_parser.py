@@ -27,10 +27,22 @@ from .metainfo import m_env
 from nomad.units import ureg
 from nomad.parsing.parser import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser, DataTextParser
-from nomad.datamodel.metainfo.common_dft import Run, Method, System, XCFunctionals,\
-    MethodAtomKind, BasisSetCellDependent, BasisSetAtomCentered, MethodBasisSet,\
-    SingleConfigurationCalculation, ScfIteration, SamplingMethod, Energy, Forces, Stress,\
-    Thermodynamics
+from nomad.datamodel.metainfo.run.run import (
+    Run, Program)
+from nomad.datamodel.metainfo.run.method import (
+    Method, DFT, XCFunctional, Functional, BasisSet, BasisSetCellDependent, BasisSetAtomCentered,
+    AtomParameters, Scf
+)
+from nomad.datamodel.metainfo.run.system import (
+    System, Atoms
+)
+from nomad.datamodel.metainfo.run.calculation import (
+    Calculation, Energy, EnergyEntry, Stress, StressEntry, ScfIteration, Forces,
+    ForcesEntry, Thermodynamics
+)
+from nomad.datamodel.metainfo.workflow import (
+    Workflow, GeometryOptimization, MolecularDynamics
+)
 
 from .metainfo.cp2k_general import x_cp2k_section_quickstep_settings, x_cp2k_section_dbcsr,\
     x_cp2k_section_startinformation, x_cp2k_section_end_information, x_cp2k_section_program_information,\
@@ -226,7 +238,7 @@ class ForceParser(TextParser):
             rf'\d+\s*\d+\s*\w+\s*({re_float})\s*({re_float})\s*({re_float})', repeats=True)]
 
 
-class XCFunctional(Property):
+class XCFunctionalProperty(Property):
     def __init__(self, name, **kwargs):
         super().__init__(name=name, **kwargs)
 
@@ -578,9 +590,9 @@ class CP2KOutParser(TextParser):
                 'scf_parameters',
                 r' SCF PARAMETERS([\s\S]+?)\*{79}',
                 sub_parser=TextParser(quantities=[
-                    Quantity('scf_max_iteration', r'max_scf:\s*(\d+)', dtype=int),
+                    Quantity('n_max_iteration', r'max_scf:\s*(\d+)', dtype=int),
                     Quantity(
-                        'scf_threshold_energy_change', rf'eps_scf:\s*({re_float})',
+                        'threshold_energy_change', rf'eps_scf:\s*({re_float})',
                         dtype=float, unit='hartree'),
                     Quantity(
                         'md',
@@ -659,7 +671,6 @@ class CP2KParser(FairdiParser):
                 r' \*\*\*\*\* \*\*    \*\* \*\* \*\*   PROGRAM PROCESS ID .*\n'
                 r'  \*\*\*\* \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n')
         )
-        self._metainfo_env = m_env
         self.out_parser = CP2KOutParser()
         self.inp_parser = InpParser()
         # use a custom xyz parser as the output of cp2k is sometimes not up to standard
@@ -717,15 +728,15 @@ class CP2KParser(FairdiParser):
         self._file_extension_map = {
             'XYZ': 'xyz', 'XMOL': 'xyz', 'ATOMIC': 'xyz', 'PDB': 'pdb', 'DCD': 'dcd'}
         self._xc_functional_map = {
-            'BLYP': [XCFunctional('GGA_X_B88'), XCFunctional('GGA_C_LYP')],
-            'LDA': [XCFunctional('LDA_XC_TETER93')],
-            'PADE': [XCFunctional('LDA_XC_TETER93')],
-            'PBE': [XCFunctional('GGA_X_PBE'), XCFunctional('GGA_C_PBE')],
-            'OLYP': [XCFunctional('GGA_X_OPTX'), XCFunctional('GGA_C_LYP')],
-            'HCTH120': [XCFunctional('GGA_XC_HCTH_120')],
-            'PBE0': [XCFunctional('HYB_GGA_XC_PBEH')],
-            'B3LYP': [XCFunctional('HYB_GGA_XC_B3LYP')],
-            'TPSS': [XCFunctional('MGGA_X_TPSS'), XCFunctional('MGGA_C_TPSS')]}
+            'BLYP': [XCFunctionalProperty('GGA_X_B88'), XCFunctionalProperty('GGA_C_LYP')],
+            'LDA': [XCFunctionalProperty('LDA_XC_TETER93')],
+            'PADE': [XCFunctionalProperty('LDA_XC_TETER93')],
+            'PBE': [XCFunctionalProperty('GGA_X_PBE'), XCFunctionalProperty('GGA_C_PBE')],
+            'OLYP': [XCFunctionalProperty('GGA_X_OPTX'), XCFunctionalProperty('GGA_C_LYP')],
+            'HCTH120': [XCFunctionalProperty('GGA_XC_HCTH_120')],
+            'PBE0': [XCFunctionalProperty('HYB_GGA_XC_PBEH')],
+            'B3LYP': [XCFunctionalProperty('HYB_GGA_XC_B3LYP')],
+            'TPSS': [XCFunctionalProperty('MGGA_X_TPSS'), XCFunctionalProperty('MGGA_C_TPSS')]}
         self._ensemble_map = {'NVE': 'NVE', 'NVT': 'NVT', 'NPT_F': 'NPT', 'NPT_I': 'NPT'}
         self._vdw_map = {
             "S. Grimme, JCC 27: 1787 (2006)": "G06",
@@ -1001,7 +1012,7 @@ class CP2KParser(FairdiParser):
                     continue
                 # get xc_func from mapping then apply read attributes
                 # if func is not in mapping, create it
-                values = self._xc_functional_map.get(name, [XCFunctional(name)])
+                values = self._xc_functional_map.get(name, [XCFunctionalProperty(name)])
                 for n, value in enumerate(values):
                     weight = attrib.get('SCALE_X', None) if n == 0 else attrib.get('SCALE_C', None)
                     value._data.update({'weight': weight})
@@ -1022,40 +1033,39 @@ class CP2KParser(FairdiParser):
         if source is None:
             return
 
-        sec_scc = self.archive.section_run[-1].m_create(SingleConfigurationCalculation)
+        sec_scc = self.archive.run[-1].m_create(Calculation)
 
+        sec_energy = sec_scc.m_create(Energy)
         if source.get('energy_total') is not None:
-            sec_scc.m_add_sub_section(SingleConfigurationCalculation.energy_total, Energy(
-                value=source.get('energy_total')))
+            sec_energy.total = EnergyEntry(value=source.get('energy_total'))
+        if source.get('electronic_kinetic_energy') is not None:
+            sec_energy.kinetic_electronic = EnergyEntry(value=source.get('electronic_kinetic_energy')[-1])
+        if source.get('exchange_correlation_energy') is not None:
+            sec_energy.xc = EnergyEntry(value=source.get('exchange_correlation_energy')[-1])
 
         if source.get('stress_tensor') is not None:
-            sec_scc.m_add_sub_section(SingleConfigurationCalculation.stress_total, Stress(
-                value=source.get('stress_tensor')))
-
-        for key in ['electronic_kinetic_energy', 'exchange_correlation_energy']:
-            val = source.get(key)
-            if val is not None:
-                key = self._metainfo_name_map.get(key)
-                sec_scc.m_add_sub_section(getattr(
-                    SingleConfigurationCalculation, key), Energy(value=val[-1]))
+            sec_stress = sec_scc.m_create(Stress)
+            sec_stress.total = StressEntry(value=source.get('stress_tensor'))
 
         # self consistency
         for iteration in source.get('iteration', []):
             sec_scf = sec_scc.m_create(ScfIteration)
+            sec_scf_energy = sec_scf.m_create(Energy)
             for key, val in iteration.items():
                 if val is not None:
                     if key == 'energy_change':
-                        sec_scf.energy_change = val
+                        sec_scf_energy.change = val
                     elif key.startswith('energy_'):
-                        sec_scf.m_add_sub_section(getattr(ScfIteration, key), Energy(value=val))
+                        sec_scf_energy.m_add_sub_section(getattr(
+                            Energy, key.replace('energy_', '')), EnergyEntry(value=val))
                     else:
                         setattr(sec_scf, key, val)
 
         atom_forces = source.get('atom_forces', self.get_forces(source._frame))
         if atom_forces is not None:
             atom_forces = np.array(atom_forces) * ureg.hartree / ureg.bohr
-            sec_scc.m_add_sub_section(SingleConfigurationCalculation.forces_total, Forces(
-                value=atom_forces))
+            sec_forces = sec_scc.m_create(Forces)
+            sec_forces.total = ForcesEntry(value=atom_forces)
 
         # TODO add dos
         return sec_scc
@@ -1073,36 +1083,37 @@ class CP2KParser(FairdiParser):
         if trajectory is None:
             return
 
-        sec_system = self.archive.section_run[-1].m_create(System)
+        sec_system = self.archive.run[-1].m_create(System)
+        sec_atoms = sec_system.m_create(Atoms)
 
         lattice_vectors = self.get_lattice_vectors(trajectory._frame)
 
         if trajectory.positions is not None:
-            sec_system.atom_positions = trajectory.positions
+            sec_atoms.positions = trajectory.positions
         elif trajectory.scaled_positions is not None and lattice_vectors is not None:
-            sec_system.atom_positions = np.dot(trajectory.scaled_positions, lattice_vectors)
+            sec_atoms.positions = np.dot(trajectory.scaled_positions, lattice_vectors)
 
         labels = trajectory.labels if trajectory.labels is not None else self.out_parser.get(
             self._calculation_type).get('atomic_coordinates')
         if labels is not None:
-            sec_system.atom_labels = labels
+            sec_atoms.labels = labels
 
         if lattice_vectors is not None:
-            sec_system.lattice_vectors = lattice_vectors
+            sec_atoms.lattice_vectors = lattice_vectors
         periodic = self.inp_parser.get('FORCE_EVAL/SUBSYS/CELL/PERIODIC', 'xyz').lower()
-        sec_system.configuration_periodic_dimensions = [v in periodic for v in ('x', 'y', 'z')]
+        sec_atoms.periodic = [v in periodic for v in ('x', 'y', 'z')]
 
         # TODO test this I cannot find an example
         # velocities
         if self.sampling_method == 'molecular_dynamics':
             velocities = self.get_velocities(trajectory._frame)
             if velocities is not None:
-                sec_system.atom_velocities = velocities
+                sec_atoms.velocities = velocities
 
         return sec_system
 
     def parse_configurations_quickstep(self):
-        sec_run = self.archive.section_run[-1]
+        sec_run = self.archive.run[-1]
         quickstep = self.out_parser.get(self._calculation_type)
 
         # quickstep extension to scc quantities
@@ -1142,7 +1153,7 @@ class CP2KParser(FairdiParser):
             # TODO put in workflow
             md_output = self.get_md_output(source._frame)
             md_output = md_output if md_output else source
-            sec_scc = sec_run.section_single_configuration_calculation[-1]
+            sec_scc = sec_run.calculation[-1]
             sec_md_step = sec_scc.m_create(x_cp2k_section_md_step)
             sec_thermo = sec_scc.m_create(Thermodynamics)
 
@@ -1195,7 +1206,7 @@ class CP2KParser(FairdiParser):
                 if sec_system is not None:
                     sec_scc.single_configuration_calculation_to_system_ref = sec_system
 
-            sec_scc.single_configuration_to_calculation_method_ref = sec_run.section_method[-1]
+            sec_scc.single_configuration_to_calculation_method_ref = sec_run.method[-1]
 
         single_point = quickstep.get('single_point')
         if single_point is not None:
@@ -1215,28 +1226,55 @@ class CP2KParser(FairdiParser):
             parse_calculations(md_steps)
 
     def parse_method_quickstep(self):
-        sec_run = self.archive.section_run[-1]
+        sec_run = self.archive.run[-1]
         sec_method = sec_run.m_create(Method)
+
+        sec_basis = sec_method.m_create(BasisSet)
+        sec_basis.kind = 'wavefunction'
+
+        planewave_cutoff = self.settings.get('qs', {}).get('planewave_cutoff', None)
+        if planewave_cutoff is not None:
+            sec_basis_cell = sec_basis.m_create(BasisSetCellDependent)
+            sec_basis_cell.planewave_cutoff = planewave_cutoff * ureg.hartree
+
+        atoms = self.out_parser.get(
+            self._calculation_type, {}).get('atomic_kind_information', {}).get('atom', [])
+        for atom in atoms:
+            basis_set = atom.get('kind_basis_set_name', None)
+            if basis_set is not None:
+                sec_basis_atom = sec_basis.m_create(BasisSetAtomCentered)
+                sec_basis_atom.atom_number = self.get_atomic_number(atom.kind_label)
+                sec_basis_atom.name = basis_set
+
         quickstep = self.out_parser.get(self._calculation_type)
 
+        sec_dft = sec_method.m_create(DFT)
         # electronic structure method
-        if quickstep.get('dft') is not None:
-            sec_method.electronic_structure_method = 'DFT'
-        elif quickstep.get('dft_u') is not None:
-            sec_method.electronic_structure_method = 'DFT+U'
-        elif quickstep.get('mp2') is not None:
-            sec_method.electronic_structure_method = 'MP2'
-        elif quickstep.get('rpa') is not None:
-            sec_method.electronic_structure_method = 'RPA'
+        # TODO include methods
+        # if quickstep.get('dft') is not None:
+        #     sec_method.electronic_structure_method = 'DFT'
+        # elif quickstep.get('dft_u') is not None:
+        #     sec_method.electronic_structure_method = 'DFT+U'
+        # elif quickstep.get('mp2') is not None:
+        #     sec_method.electronic_structure_method = 'MP2'
+        # elif quickstep.get('rpa') is not None:
+        #     sec_method.electronic_structure_method = 'RPA'
 
         # xc functionals
+        sec_xc_functional = sec_dft.m_create(XCFunctional)
         for functional in self.get_xc_functionals():
-            sec_xc_functional = sec_method.m_create(XCFunctionals)
-            sec_xc_functional.XC_functional_name = functional.name
-            sec_xc_functional.XC_functional_weight = functional.weight
+            if '_X_' in functional.name:
+                sec_xc_functional.exchange.append(Functional(
+                    name=functional.name, weight=functional.weight))
+            elif '_C_' in functional.name:
+                sec_xc_functional.correlation.append(Functional(
+                    name=functional.name, weight=functional.weight))
+            else:
+                sec_xc_functional.contributions.append(Functional(
+                    name=functional.name, weight=functional.weight))
 
         # van der Waals settings
-        # TODO test this no example, add parameter
+        # TODO test this no example, add parameter, put in main metainfo
         vdw = self.settings['vdw']
         if vdw:
             sec_vdw = sec_method.m_create(x_cp2k_section_vdw_settings)
@@ -1256,7 +1294,7 @@ class CP2KParser(FairdiParser):
         sec_quickstep_settings = sec_method.m_create(x_cp2k_section_quickstep_settings)
         if self.settings['dft']:
             for key, val in self.settings['dft'].items():
-                section = sec_method
+                section = sec_dft
                 if key == 'self_interaction_correction_method':
                     val = self._self_interaction_map.get(val, None)
                 elif key == 'spin_restriction':
@@ -1284,9 +1322,9 @@ class CP2KParser(FairdiParser):
                     else:
                         setattr(sec_kind_basis_set, 'x_cp2k_%s' % key, val)
 
-                sec_method_atom_kind = sec_method.m_create(MethodAtomKind)
-                sec_method_atom_kind.method_atom_kind_label = atom.kind_label
-                sec_method_atom_kind.method_atom_kind_atom_number = self.get_atomic_number(atom.kind_label)
+                sec_method_atom_kind = sec_method.m_create(AtomParameters)
+                sec_method_atom_kind.label = atom.kind_label
+                sec_method_atom_kind.atom_number = self.get_atomic_number(atom.kind_label)
 
         total_maximum_numbers = quickstep.get('total_maximum_numbers', None)
         if total_maximum_numbers is not None:
@@ -1300,16 +1338,13 @@ class CP2KParser(FairdiParser):
                 else:
                     setattr(sec_total, 'x_cp2k_%s' % key, val)
 
+        sec_scf = sec_method.m_create(Scf)
         scf_parameters = quickstep.get('scf_parameters', None)
         if scf_parameters is not None:
             for key, val in scf_parameters.items():
                 if val is None:
                     continue
-                setattr(sec_method, key, val)
-
-        sec_method_basis_set = sec_method.m_create(MethodBasisSet)
-        sec_method_basis_set.method_basis_set_kind = 'wavefunction'
-        sec_method_basis_set.number_of_basis_sets_atom_centered = len(sec_run.section_basis_set_atom_centered)
+                setattr(sec_scf, key, val)
 
     @property
     def sampling_method(self):
@@ -1320,20 +1355,20 @@ class CP2KParser(FairdiParser):
                     self._method = method
         return self._method
 
-    def parse_sampling_method(self):
-        # TODO move these all to workflow
+    def parse_workflow(self):
         # TODO add vdW
-        sec_sampling_method = self.archive.section_run[0].m_create(SamplingMethod)
-        sec_sampling_method.sampling_method = self.sampling_method
+        sec_workflow = self.archive.m_create(Workflow)
+        sec_workflow.type = self.sampling_method
 
         if self.sampling_method == 'geometry_optimization':
+            sec_geometry_optimization = sec_workflow.m_create(GeometryOptimization)
             optimization = self.out_parser.get(self._calculation_type).geometry_optimization
             if optimization.method is not None:
                 method = self._optimization_method_map.get(optimization.method, '')
                 if not method:
                     self.logger.error('Cannot resolve optimization method.')
-                sec_sampling_method.geometry_optimization_method = method
-            sec_geometry_opt = sec_sampling_method.m_create(x_cp2k_section_geometry_optimization)
+                sec_geometry_optimization.method = method
+            sec_geometry_opt = sec_workflow.m_create(x_cp2k_section_geometry_optimization)
             for step in optimization.get('optimization_step', []):
                 information = step.information
                 if information is None:
@@ -1357,17 +1392,18 @@ class CP2KParser(FairdiParser):
 
             geometry_change = sec_geometry_opt_step.x_cp2k_optimization_step_size_convergence_limit
             if geometry_change is not None:
-                sec_sampling_method.geometry_optimization_geometry_change = geometry_change
+                sec_geometry_optimization.input_displacement_maximum_tolerance = geometry_change
             threshold_force = sec_geometry_opt_step.x_cp2k_optimization_gradient_convergence_limit
             if threshold_force is not None:
-                sec_sampling_method.geometry_optimization_threshold_force = threshold_force
+                sec_geometry_optimization.input_force_maximum_tolerance = threshold_force
 
         elif self.sampling_method == 'molecular_dynamics':
+            sec_md = sec_workflow.m_create(MolecularDynamics)
             ensemble_type = self._ensemble_map.get(self.get_ensemble_type(0), None)
             if ensemble_type is not None:
-                sec_sampling_method.ensemble_type = ensemble_type
+                sec_md.ensemble_type = ensemble_type
 
-            sec_md_settings = sec_sampling_method.m_create(x_cp2k_section_md_settings)
+            sec_md_settings = sec_workflow.m_create(x_cp2k_section_md_settings)
             for key, val in self.settings['md'].items():
                 if val is None or key == 'file_type':
                     continue
@@ -1386,8 +1422,10 @@ class CP2KParser(FairdiParser):
         if input_filename is None:
             return
 
+        definitions = dict(m_env.all_definitions_by_name)
+
         def resolve_definition(name):
-            return self._metainfo_env.all_definitions_by_name.get(name, [None])[0]
+            return definitions.get(name, [None])[0]
 
         def override_keyword(name):
             # override keys to be compatible with metainfo name
@@ -1422,7 +1460,7 @@ class CP2KParser(FairdiParser):
         if self.inp_parser.tree is None:
             return
 
-        parse('x_cp2k_section_input', self.inp_parser.tree, self.archive.section_run[-1])
+        parse('x_cp2k_section_input', self.inp_parser.tree, self.archive.run[-1])
 
     def parse(self, filepath, archive, logger):
         self.filepath = os.path.abspath(filepath)
@@ -1440,10 +1478,9 @@ class CP2KParser(FairdiParser):
                 break
 
         sec_run = self.archive.m_create(Run)
-        sec_run.program_name = 'CP2K'
-        sec_run.program_basis_set_type = 'gaussians'
-        sec_run.program_version = self.settings['cp2k']['program_version']
-        sec_run.program_compilation_host = self.settings['cp2k']['program_compilation_host']
+        sec_run.program = Program(
+            name='CP2K', version=self.settings['cp2k']['program_version'],
+            compilation_host=self.settings['cp2k']['program_compilation_host'])
 
         if self.settings['dbcsr']:
             sec_dbcsr = sec_run.m_create(x_cp2k_section_dbcsr)
@@ -1476,20 +1513,6 @@ class CP2KParser(FairdiParser):
             for key, val in self.settings['global'].items():
                 setattr(sec_global_settings, 'x_cp2k_%s' % key, val)
 
-        planewave_cutoff = self.settings.get('qs', {}).get('planewave_cutoff', None)
-        if planewave_cutoff is not None:
-            sec_basis_set = sec_run.m_create(BasisSetCellDependent)
-            sec_basis_set.basis_set_planewave_cutoff = planewave_cutoff * ureg.hartree
-
-        atoms = self.out_parser.get(
-            self._calculation_type, {}).get('atomic_kind_information', {}).get('atom', [])
-        for atom in atoms:
-            basis_set = atom.get('kind_basis_set_name', None)
-            if basis_set is not None:
-                sec_basis_set = sec_run.m_create(BasisSetAtomCentered)
-                sec_basis_set.basis_set_atom_number = self.get_atomic_number(atom.kind_label)
-                sec_basis_set.basis_set_atom_centered_short_name = basis_set
-
         restart = self.out_parser.get('restart')
         if restart is not None:
             sec_restart = sec_run.m_create(x_cp2k_section_restart_information)
@@ -1502,4 +1525,4 @@ class CP2KParser(FairdiParser):
             self.parse_method_quickstep()
             self.parse_configurations_quickstep()
 
-        self.parse_sampling_method()
+        self.parse_workflow()
