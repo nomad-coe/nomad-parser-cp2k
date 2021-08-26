@@ -26,6 +26,9 @@ from nomad.metainfo import (  # pylint: disable=unused-import
 from nomad.datamodel.metainfo import run, workflow
 
 
+m_package = Package()
+
+
 class x_cp2k_section_restart_information(MSection):
     '''
     Contains restart information for this calculation.

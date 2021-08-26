@@ -26,6 +26,9 @@ from nomad.metainfo import (  # pylint: disable=unused-import
 from nomad.datamodel.metainfo import run
 
 
+m_package = Package()
+
+
 class x_cp2k_section_input_ATOM_AE_BASIS_BASIS(MSection):
     '''
     Section used to specify a general basis set for QM calculations.

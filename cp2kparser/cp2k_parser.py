@@ -31,7 +31,7 @@ from nomad.datamodel.metainfo.run.run import (
     Run, Program)
 from nomad.datamodel.metainfo.run.method import (
     Method, DFT, XCFunctional, Functional, BasisSet, BasisSetCellDependent, BasisSetAtomCentered,
-    AtomParameters, Scf
+    AtomParameters, Scf, Electronic
 )
 from nomad.datamodel.metainfo.run.system import (
     System, Atoms
@@ -1231,6 +1231,7 @@ class CP2KParser(FairdiParser):
 
         sec_basis = sec_method.m_create(BasisSet)
         sec_basis.kind = 'wavefunction'
+        sec_basis.type = 'gaussians'
 
         planewave_cutoff = self.settings.get('qs', {}).get('planewave_cutoff', None)
         if planewave_cutoff is not None:
@@ -1251,14 +1252,14 @@ class CP2KParser(FairdiParser):
         sec_dft = sec_method.m_create(DFT)
         # electronic structure method
         # TODO include methods
-        # if quickstep.get('dft') is not None:
-        #     sec_method.electronic_structure_method = 'DFT'
-        # elif quickstep.get('dft_u') is not None:
-        #     sec_method.electronic_structure_method = 'DFT+U'
-        # elif quickstep.get('mp2') is not None:
-        #     sec_method.electronic_structure_method = 'MP2'
-        # elif quickstep.get('rpa') is not None:
-        #     sec_method.electronic_structure_method = 'RPA'
+        if quickstep.get('dft') is not None:
+            sec_method.electronic = Electronic(method='DFT')
+        elif quickstep.get('dft_u') is not None:
+            sec_method.electronic = Electronic(method='DFT+U')
+        elif quickstep.get('mp2') is not None:
+            sec_method.electronic = Electronic(method='MP2')
+        elif quickstep.get('rpa') is not None:
+            sec_method.electronic = Electronic(method='RPA')
 
         # xc functionals
         sec_xc_functional = sec_dft.m_create(XCFunctional)
