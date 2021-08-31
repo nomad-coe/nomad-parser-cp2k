@@ -23,7 +23,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference
 )
 
-from nomad.datamodel.metainfo import run
+from nomad.datamodel.metainfo import simulation
 
 
 m_package = Package()
@@ -50450,7 +50450,7 @@ class x_cp2k_section_input(MSection):
         repeats=True)
 
 
-class Run(run.run.Run):
+class Run(simulation.run.Run):
 
     m_def = Section(validate=False, extends_base_section=True)
 

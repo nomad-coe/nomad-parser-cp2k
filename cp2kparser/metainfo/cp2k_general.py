@@ -23,7 +23,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     Reference
 )
 
-from nomad.datamodel.metainfo import run, workflow
+from nomad.datamodel.metainfo import simulation, workflow
 
 
 m_package = Package()
@@ -1338,7 +1338,7 @@ class x_cp2k_section_kind_basis_set(MSection):
         ''')
 
 
-class Run(run.run.Run):
+class Run(simulation.run.Run):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -1402,7 +1402,7 @@ class Workflow(workflow.Workflow):
         repeats=True)
 
 
-class Method(run.method.Method):
+class Method(simulation.method.Method):
 
     m_def = Section(validate=False, extends_base_section=True)
 
@@ -1415,7 +1415,7 @@ class Method(run.method.Method):
         repeats=True)
 
 
-class Calculation(run.calculation.Calculation):
+class Calculation(simulation.calculation.Calculation):
 
     m_def = Section(validate=False, extends_base_section=True)
 

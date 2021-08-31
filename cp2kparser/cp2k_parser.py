@@ -27,16 +27,16 @@ from .metainfo import m_env
 from nomad.units import ureg
 from nomad.parsing.parser import FairdiParser
 from nomad.parsing.file_parser import TextParser, Quantity, FileParser, DataTextParser
-from nomad.datamodel.metainfo.run.run import (
+from nomad.datamodel.metainfo.simulation.run import (
     Run, Program)
-from nomad.datamodel.metainfo.run.method import (
+from nomad.datamodel.metainfo.simulation.method import (
     Method, DFT, XCFunctional, Functional, BasisSet, BasisSetCellDependent, BasisSetAtomCentered,
     AtomParameters, Scf, Electronic
 )
-from nomad.datamodel.metainfo.run.system import (
+from nomad.datamodel.metainfo.simulation.system import (
     System, Atoms
 )
-from nomad.datamodel.metainfo.run.calculation import (
+from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Stress, StressEntry, ScfIteration, Forces,
     ForcesEntry, Thermodynamics
 )
