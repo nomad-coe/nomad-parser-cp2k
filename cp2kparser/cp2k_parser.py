@@ -227,12 +227,14 @@ class TrajParser(FileParser):
         return self._file_handler
 
 
+re_float = r'[-+]?\d+\.?\d*(?:[Ee][-+]\d+)?'
+
+
 class ForceParser(TextParser):
     def __init__(self):
         super().__init__()
 
     def init_quantities(self):
-        re_float = r'[\d\.\-\+eE]+'
         self._quantities = [Quantity(
             'atom_forces',
             rf'\d+\s*\d+\s*\w+\s*({re_float})\s*({re_float})\s*({re_float})', repeats=True)]
@@ -291,6 +293,7 @@ class InpParser(FileParser):
         self._re_open = re.compile(r'&(\w+)\s*(.*)[#!]*')
         self._re_close = re.compile(r'&END')
         self._re_key_value = re.compile(r'(\w+)\s+(.+)[#!]*')
+        self._re_variable = re.compile(r'@SET (\w+)\s+(.+)[#!]*')
 
     @property
     def tree(self):
@@ -302,6 +305,7 @@ class InpParser(FileParser):
                     return 'DEFAULT_KEYWORD', ' '.join(data)
                 return data
 
+            self._variables = dict()
             line = True
             sections = [InpValue('tree')]
             while line:
@@ -309,6 +313,10 @@ class InpParser(FileParser):
                 # comments
                 strip = line.strip()
                 if not strip or strip[0] in ('#', '#', '!'):
+                    continue
+                variable = self._re_variable.search(line)
+                if variable:
+                    self._variables['${%s}' % variable.group(1)] = variable.group(2)
                     continue
                 close_section = self._re_close.search(line)
                 if close_section:
@@ -324,8 +332,11 @@ class InpParser(FileParser):
                     continue
                 key_value = self._re_key_value.search(line)
                 if key_value:
-                    key_value = override(sections[-1].name, [key_value.group(1), key_value.group(2)])
-                    sections[-1].add(key_value[0], key_value[1])
+                    key, val = key_value.group(1), key_value.group(2)
+                    if val in self._variables:
+                        val = self._variables[val]
+                    key, val = override(sections[-1].name, [key, val])
+                    sections[-1].add(key, val)
                     continue
             self._file_handler = sections[0]
         return self._file_handler
@@ -379,8 +390,6 @@ class CP2KOutParser(TextParser):
         def str_to_information(val_in):
             val = [v.split('=') for v in val_in.strip().split('\n')]
             return {v[0].strip().lower().replace(' ', '_').replace('.', ''): v[1] for v in val if len(v) == 2}
-
-        re_float = r'[\d\.\-\+eE]+'
 
         n_orbital_basis_quantities = [Quantity(
             'basis_set_number_of_%s' % key.lower().replace(' ', '_'),
@@ -497,7 +506,7 @@ class CP2KOutParser(TextParser):
                     Quantity(
                         'energy_drift',
                         rf'ENERGY DRIFT PER ATOM \[K\]\s*=\s*({re_float})\s*({re_float})',
-                        dtype=float),
+                        dtype=float, unit='hartree'),
                     Quantity(
                         'potential_energy',
                         rf'POTENTIAL ENERGY\[hartree\]\s*=\s*({re_float})\s*({re_float})',
@@ -523,11 +532,11 @@ class CP2KOutParser(TextParser):
                     Quantity(
                         'cell_length_instantaneous',
                         rf'CELL LNTHS\[bohr\]\s*=\s*({re_float})\s*({re_float})\s*({re_float})',
-                        dtype=float, unit='bohr'),
+                        dtype=float),
                     Quantity(
                         'cell_length_average',
                         rf'AVE\. CELL LNTHS\[bohr\]\s*=\s*({re_float})\s*({re_float})\s*({re_float})',
-                        dtype=float, unit='bohr'),
+                        dtype=float),
                     Quantity(
                         'cell_angle_instantaneous',
                         rf'CELL ANGLS\[deg\]\s*=\s*({re_float})\s*({re_float})\s*({re_float})',
@@ -764,10 +773,12 @@ class CP2KParser(FairdiParser):
     @property
     def settings(self):
         if self._settings is None:
-            def to_dict(data):
+            def to_dict(data, repeats=True):
                 data_dict = dict()
                 for key, val in data:
                     name = self._metainfo_name_map.get(key, key)
+                    if not repeats and name in data_dict:
+                        continue
                     data_dict.setdefault(name, [])
                     data_dict[name].append(val)
                 for key, val in data_dict.items():
@@ -781,10 +792,10 @@ class CP2KParser(FairdiParser):
                 self.out_parser.get(self._calculation_type, {}).get('qs', []))
             self._settings['vdw'] = to_dict(
                 self.out_parser.get(self._calculation_type, {}).get('vdw', []))
-            self._settings['dbcsr'] = to_dict(self.out_parser.get('dbcsr', []))
+            self._settings['dbcsr'] = to_dict(self.out_parser.get('dbcsr', []), False)
             self._settings['program'] = to_dict(self.out_parser.get('program', []))
-            self._settings['cp2k'] = to_dict(self.out_parser.get('cp2k', []))
-            self._settings['global'] = to_dict(self.out_parser.get('global', []))
+            self._settings['cp2k'] = to_dict(self.out_parser.get('cp2k', []), False)
+            self._settings['global'] = to_dict(self.out_parser.get('global', []), False)
             self._settings['md'] = to_dict(
                 self.out_parser.get(self._calculation_type, {}).get('scf_parameters', {}).get('md', []))
 
@@ -971,7 +982,7 @@ class CP2KParser(FairdiParser):
             frequency, filename = self.settings['md'].get('energies', '0, none').split()
             frequency = int(frequency)
             if frequency == 0:
-                return
+                return dict()
             self.energy_parser.mainfile = os.path.join(self.maindir, filename)
             self.energy_parser._frequency = frequency
 
@@ -1479,9 +1490,11 @@ class CP2KParser(FairdiParser):
                 break
 
         sec_run = self.archive.m_create(Run)
+        version = self.settings['cp2k']['program_version']
+        host = self.settings['cp2k']['program_compilation_host']
         sec_run.program = Program(
-            name='CP2K', version=self.settings['cp2k']['program_version'],
-            compilation_host=self.settings['cp2k']['program_compilation_host'])
+            name='CP2K', version=version[0] if isinstance(version, list) else version,
+            compilation_host=host[0] if isinstance(host, list) else host)
 
         if self.settings['dbcsr']:
             sec_dbcsr = sec_run.m_create(x_cp2k_section_dbcsr)
@@ -1497,6 +1510,7 @@ class CP2KParser(FairdiParser):
                     sec_endinformation.x_cp2k_end_id = val[1]
                     key, val = 'start_id', val[0]
                 section = sec_endinformation if key.startswith('end') else sec_startinformation
+                val = val[0] if isinstance(val, list) else val
                 setattr(section, 'x_cp2k_%s' % key, val)
 
         if self.settings['cp2k']:
