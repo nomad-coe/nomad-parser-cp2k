@@ -1141,7 +1141,7 @@ class x_cp2k_section_vdw_settings(MSection):
         ''')
 
     x_cp2k_vdw_cutoff_radius = Quantity(
-        type=str,
+        type=np.dtype(np.float64),
         shape=[],
         description='''
         Cutoff radius of the van der Waals method.

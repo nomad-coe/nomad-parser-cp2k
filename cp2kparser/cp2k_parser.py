@@ -193,8 +193,8 @@ class TrajParser(FileParser):
             except Exception:
                 if self.format == 'xyz':
                     self._xyz_parser.mainfile = self.mainfile
-                    result = [traj.positions for traj in self._xyz_parser.get('trajectory')]
-                    labels = [traj.labels for traj in self._xyz_parser.get('trajectory')]
+                    result = [traj.positions for traj in self._xyz_parser.get('trajectory', [])]
+                    labels = [traj.labels for traj in self._xyz_parser.get('trajectory', [])]
 
             if result is None and mdtraj:
                 reader = None
@@ -940,7 +940,7 @@ class CP2KParser(FairdiParser):
             else:
                 units = resolve_unit(
                     self.inp_parser.get('FORCE_EVAL/SUBSYS/COORD/UNIT', 'angstrom'))
-                lattice_vectors = lattice_vectors * units
+                lattice_vectors = lattice_vectors[:3] * units
 
         if lattice_vectors is not None:
             return lattice_vectors
@@ -1506,7 +1506,7 @@ class CP2KParser(FairdiParser):
             sec_endinformation = sec_run.m_create(x_cp2k_section_end_information)
             section = sec_startinformation
             for key, val in self.settings['program'].items():
-                if key == 'id':
+                if key == 'id' and isinstance(val, list):
                     sec_endinformation.x_cp2k_end_id = val[1]
                     key, val = 'start_id', val[0]
                 section = sec_endinformation if key.startswith('end') else sec_startinformation
