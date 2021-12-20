@@ -940,7 +940,7 @@ class CP2KParser(FairdiParser):
             else:
                 units = resolve_unit(
                     self.inp_parser.get('FORCE_EVAL/SUBSYS/COORD/UNIT', 'angstrom'))
-                lattice_vectors = lattice_vectors[:3] * units
+                lattice_vectors = np.array(lattice_vectors[:3], dtype=np.float64) * units
 
         if lattice_vectors is not None:
             return lattice_vectors
@@ -1402,12 +1402,13 @@ class CP2KParser(FairdiParser):
 
                     setattr(sec_geometry_opt_step, 'x_cp2k_optimization_%s' % name, val)
 
-            geometry_change = sec_geometry_opt_step.x_cp2k_optimization_step_size_convergence_limit
-            if geometry_change is not None:
-                sec_geometry_optimization.input_displacement_maximum_tolerance = geometry_change
-            threshold_force = sec_geometry_opt_step.x_cp2k_optimization_gradient_convergence_limit
-            if threshold_force is not None:
-                sec_geometry_optimization.input_force_maximum_tolerance = threshold_force
+            if sec_geometry_opt.x_cp2k_section_geometry_optimization_step:
+                geometry_change = sec_geometry_opt_step.x_cp2k_optimization_step_size_convergence_limit
+                if geometry_change is not None:
+                    sec_geometry_optimization.input_displacement_maximum_tolerance = geometry_change
+                threshold_force = sec_geometry_opt_step.x_cp2k_optimization_gradient_convergence_limit
+                if threshold_force is not None:
+                    sec_geometry_optimization.input_force_maximum_tolerance = threshold_force
 
         elif self.sampling_method == 'molecular_dynamics':
             sec_md = sec_workflow.m_create(MolecularDynamics)
