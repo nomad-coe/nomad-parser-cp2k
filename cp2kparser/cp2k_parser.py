@@ -316,7 +316,7 @@ class InpParser(FileParser):
                     continue
                 variable = self._re_variable.search(line)
                 if variable:
-                    self._variables['${%s}' % variable.group(1)] = variable.group(2)
+                    self._variables['${%s}' % variable.group(1)] = variable.group(2).strip()
                     continue
                 close_section = self._re_close.search(line)
                 if close_section:
@@ -333,6 +333,7 @@ class InpParser(FileParser):
                 key_value = self._re_key_value.search(line)
                 if key_value:
                     key, val = key_value.group(1), key_value.group(2)
+                    val = val.strip()
                     if val in self._variables:
                         val = self._variables[val]
                     key, val = override(sections[-1].name, [key, val])
@@ -868,7 +869,7 @@ class CP2KParser(FairdiParser):
                 coord_filename = self.inp_parser.get('FORCE_EVAL/SUBSYS/TOPOLOGY/COORD_FILE_NAME', '')
                 self.traj_parser.mainfile = os.path.join(self.maindir, coord_filename.strip())
                 self.traj_parser.units = units
-                if self.traj_parser.trajectory is not None:
+                if self.traj_parser.trajectory:
                     result = self.traj_parser.trajectory[0]
                     # reset for output trajectory
                     self.traj_parser.mainfile = None
